@@ -58,18 +58,18 @@ class CodeBlock(object):
         return '\n'.join(unicode(l) for l in self.lines)
 
 
-class ExpressionMetaclass(type):
+class ExpressionFormatterMetaclass(type):
 
     def __new__(cls, name, bases, attrs):
         klass = type.__new__(cls, name, bases, attrs)
         if attrs.get('ast_type') is not None:
-            Expression._a2e[attrs['ast_type']] = klass
+            ExpressionFormatter._a2e[attrs['ast_type']] = klass
         return klass
 
 
-class Expression(object):
+class ExpressionFormatter(object):
 
-    __metaclass__ = ExpressionMetaclass
+    __metaclass__ = ExpressionFormatterMetaclass
     _a2e = {}
 
     def __init__(self, expr):
@@ -83,7 +83,7 @@ class Expression(object):
         return cls._a2e[type(expr)](expr)
 
 
-class Atom(Expression):
+class Atom(ExpressionFormatter):
 
     ast_type = None
 
@@ -129,7 +129,7 @@ class Attribute(Atom):
         return u'%s.%s' % (self.expr.value.id, self.expr.attr)
 
 
-class ExpressionList(Expression):
+class ExpressionFormatterList(ExpressionFormatter):
 
     def __init__(self, expressions):
         self.expressions = expressions
@@ -158,24 +158,24 @@ class ExpressionList(Expression):
         return block
 
 
-class Call(Expression):
+class Call(ExpressionFormatter):
 
     ast_type = ast.Call
 
-    class KeywordArg(Expression):
+    class KeywordArg(ExpressionFormatter):
 
         ast_type = ast.keyword
 
         def format_code(self, width, force=False):
             block = CodeBlock([CodeLine(['%s=' % self.expr.arg])])
-            block.merge(Expression.from_expr(self.expr.value)
+            block.merge(ExpressionFormatter.from_expr(self.expr.value)
                                   .format_code(width-block.width, force=force))
             return block
 
 
     def format_code(self, width, force=False):
         block = CodeBlock([CodeLine([self.expr.func.id, '('])])
-        expressions_list = ExpressionList([Expression.from_expr(e)
+        expressions_list = ExpressionFormatterList([ExpressionFormatter.from_expr(e)
                                            for e in chain(self.expr.args, self.expr.keywords)])
         subblock = expressions_list.format_code(width=width-block.width, force=force)
         block.merge(subblock)
@@ -183,15 +183,15 @@ class Call(Expression):
         return block
 
 
-class Dict(Expression):
+class Dict(ExpressionFormatter):
 
     ast_type = ast.Dict
 
-    class Item(Expression):
+    class Item(ExpressionFormatter):
 
         def __init__(self, key, value):
-            self.key = Expression.from_expr(key)
-            self.value = Expression.from_expr(value)
+            self.key = ExpressionFormatter.from_expr(key)
+            self.value = ExpressionFormatter.from_expr(value)
 
         def format_code(self, width, force=False):
             # FIXME: search for solution on failure
@@ -205,7 +205,7 @@ class Dict(Expression):
 
     def format_code(self, width, force=False):
         block = CodeBlock([CodeLine(['{'])])
-        expressions_list = ExpressionList([Dict.Item(k,v)
+        expressions_list = ExpressionFormatterList([Dict.Item(k,v)
                                            for k,v in zip(self.expr.keys, self.expr.values)])
         subblock = expressions_list.format_code(width=width-block.width, force=force)
         block.merge(subblock)
@@ -213,63 +213,19 @@ class Dict(Expression):
         return block
 
 
-#MAX_LENGTH = 80
-#
-#def format_code_function_call(expr, indent=''):
-#    fun = expr.func.id
-#    curr_line = Line(indent)
-#    curr_line.extend([fun, '('])
-#    lines = [curr_line]
-#
-#    param_indent = indent + (' ' * (len(fun) + 1))
-#
-#    args = [('', arg) for arg in expr.args]
-#    args.extend((kwarg.arg+'=', kwarg.value) for kwarg in expr.keywords)
-#
-#    for param, (prefix, arg) in enumerate(args):
-#        if isinstance(arg, (ast.Name, ast.Num, ast.Str, ast.Attribute, ast.Subscript)):
-#            s = str({ast.Num: attrgetter('n'), ast.Name: attrgetter('id'),
-#                     ast.Str: lambda i: "'%s'" % i.s,
-#                     ast.Attribute: lambda i: '%s.%s' % (i.value.id, i.attr),
-#                     ast.Subscript: lambda i: '%s[%s]' % (i.value.id,i.slice)}[type(arg)](arg))
-#            if isinstance(arg, ast.Subscript):
-#                import ipdb; ipdb.set_trace()
-#            if len(curr_line) + (2 if param != 0 else 0) + len(prefix) + len(s) > MAX_LENGTH:
-#                if param != 0:
-#                    curr_line.append(',')
-#                curr_line = Line(param_indent)
-#                lines.append(curr_line)
-#            elif param != 0 and len(curr_line.tokens) > 0:
-#                curr_line.append(', ')
-#            if prefix:
-#                curr_line.append(prefix)
-#            curr_line.append(s)
-#        elif isinstance(arg, ast.Call):
-#            # les't check .....function(param,
-#            if (len(curr_line) + (2 if param != 0 else 0) + len(prefix) +
-#                len(arg.func.id)  + 1 + len(arg.args[0].id) + 1)  > MAX_LENGTH:
-#                if param != 0:
-#                    curr_line.append(',')
-#                curr_line = Line(param_indent)
-#                lines.append(curr_line)
-#                curr_line.append(prefix)
-#                sublines = format_code_function_call(arg, param_indent+((len(prefix)*' ')))
-#            else:
-#                if param != 0 and len(curr_line.tokens) > 0:
-#                    curr_line.append(', ')
-#                if prefix:
-#                    curr_line.append(prefix)
-#                sublines = format_code_function_call(arg, len(curr_line)*' ')
-#            curr_line.extend(sublines[0].tokens)
-#            for subline in sublines[1:]:
-#                lines.append(subline)
-#                curr_line = subline
-#        else:
-#            attrs = '\n'.join(['getattr(i, %s) = %s'%(a, getattr(arg, a)) for a in dir(arg) if not a.startswith('_')])
-#            raise ValueError('Unknown token type: %s,\ninstance attrs: %s,\npublic:\n%s' % (arg, dir(arg), attrs))
-#    curr_line.append(')')
-#    return lines
-#
+class List(ExpressionFormatter):
+
+    ast_type = ast.List
+
+    def format_code(self, width, force=False):
+        block = CodeBlock([CodeLine(['['])])
+        expressions_list = ExpressionFormatterList([ExpressionFormatter.from_expr(v)
+                                           for v in self.expr.value.elts])
+        subblock = expressions_list.format_code(width=width-block.width, force=force)
+        block.merge(subblock)
+        block.lines[-1].append(']')
+        return block
+
 #def format_code_assigment(expr, indent):
 #    targets = [t.id for t in expr.targets]
 #    value_indent = sum([3+len(t) for t in targets], len(indent)) * ' '
@@ -293,5 +249,3 @@ class Dict(Expression):
 #        else:
 #            raise ValueError(type(e))
 #    return result
-#
-#
