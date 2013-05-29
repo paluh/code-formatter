@@ -134,3 +134,16 @@ class CallFormattingTestCase(unittest.TestCase):
         formatted = unicode(e.format_code(max(len(l) for l in expected.split('\n')),
                             force=True))
         self.assertEqual(unicode(formatted), expected)
+
+    def test_subscription(self):
+        code = 'x=d [ "a" ] '
+        self.assertEqual(format_code(code), "x = d['a']")
+
+    def test_subscription_with_nested_function_call(self):
+        code = ('dictionary[function_with_kwargs(argument_1=value, argument_2=value,'
+                                           'argument_3=value)]')
+        expected = ('dictionary[function_with_kwargs(argument_1=value,\n'
+                    '                                argument_2=value,\n'
+                    '                                argument_3=value)]')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)

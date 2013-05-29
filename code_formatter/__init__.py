@@ -12,9 +12,10 @@ class UnkownExpressionType(Exception):
     def __init__(self, expr):
         self.expr = expr
 
-    def __unicode__(self):
-        return 'Unkown expression type: %s; dir(expr) = %s' % (type(self.expr),
-                                                               dir(self.expr))
+    def __str__(self):
+        attrs = ', '.join('%s=%s' % (a, getattr(self.expr, a)) for a in dir(self.expr) if not a.startswith('_'))
+        return ('Unkown expression type: %s; dir(expr) = %s'
+                'attrs: %s' % (type(self.expr), dir(self.expr), attrs))
 
 class CodeLine(object):
 
@@ -232,7 +233,7 @@ class List(ExpressionFormatter):
     def format_code(self, width, force=False):
         block = CodeBlock([CodeLine(['['])])
         expressions_list = ExpressionFormatterList([ExpressionFormatter.from_expr(v)
-                                           for v in self.expr.value.elts])
+                                           for v in self.expr.elts])
         subblock = expressions_list.format_code(width=width-block.width, force=force)
         block.merge(subblock)
         block.lines[-1].append(']')
@@ -253,7 +254,22 @@ class Assignment(ExpressionFormatter):
         block.merge(value_formatter.format_code(width-block.width, force=force))
         return block
 
-def format_code(code, width):
+
+class Subscript(ExpressionFormatter):
+
+    ast_type = ast.Subscript
+
+    def format_code(self, width, force=False):
+        value_formatter = ExpressionFormatter.from_expr(self.expr.value)
+        block = value_formatter.format_code(width, force=force)
+        block.lines[-1].append('[')
+        index_formatter = ExpressionFormatter.from_expr(self.expr.slice.value)
+        block.merge(index_formatter.format_code(width-len(block.lines[-1])-1,
+                                                force=force))
+        block.lines[-1].append(']')
+        return block
+
+def format_code(code, width=80):
     tree = ast.parse(code)
     result = []
     for e in tree.body:
@@ -265,15 +281,3 @@ def format_code(code, width):
     # mambo jumbo :-P
     unicode(result[0])
     return u'\n'.join(unicode(e) for e in result)
-
-#        if isinstance(e, ast.Assign):
-#            result = format_code_assigment(e, indent)
-#        elif isinstance(e.value, ast.Call):
-#            result = format_code_function_call(e.value)
-#        else:
-#            raise ValueError(type(e))
-#    return result
-
-#def format_code_assigment(expr, indent):
-#
-#
