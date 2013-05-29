@@ -32,12 +32,22 @@ class AtomExpressionFormattersFormattingTestCase(unittest.TestCase):
                                                       '              u=9)', 2))
 
     def test_atoms_formating(self):
-        for code in ['8', '9.8', "'a'", 'instance.attribute']:
+        for code in ['8', '9.8', "'a'"]:
             expr = ExpressionFormatter.from_expr(ast.parse(code).body[0].value)
             self.assertEqual(code, unicode(expr.format_code(80)))
 
 
 class CallFormattingTestCase(unittest.TestCase):
+
+    def test_simple_attribute_formatting(self):
+        for code in ['instance.attribute', 'instance.attribute.inner']:
+            expr = ExpressionFormatter.from_expr(ast.parse(code).body[0].value)
+            self.assertEqual(code, unicode(expr.format_code(80)))
+
+    def test_method_call_formatting(self):
+        code = 'instance.method(   x,   y )'
+        formatted = format_code(code)
+        self.assertEqual(formatted, 'instance.method(x, y)')
 
     def test_args_alignment(self):
         code = 'function_with_args(argument_1,     argument_2,argument_3)'
@@ -147,3 +157,40 @@ class CallFormattingTestCase(unittest.TestCase):
                     '                                argument_3=value)]')
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
+
+    def test_simple_compare(self):
+        pass
+
+    def test_generator_alignment(self):
+        code = '(function(x) for x in iterable if x > 10)'
+        expected = ('(function(x)\n'
+                    ' for x in iterable\n'
+                    ' if x > 10)')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
+
+
+class CompareTestCase(unittest.TestCase):
+    """
+    comparison    ::=  or_expr ( comp_operator or_expr )*
+    comp_operator ::=  "<" | ">" | "==" | ">=" | "<=" | "<>" | "!="
+                       | "is" ["not"] | ["not"] "in"
+    """
+
+    def test_simple_comparison(self):
+        for opt in ['<' , '>' , '==' , '>=' , '<=' , '!=',
+                    'is', 'is not', 'in', 'not in']:
+            code = '(x %s\ny)' % opt
+            expected = 'x %s y' % opt
+            self.assertEqual(format_code(code, 2), expected)
+
+    def test_comparison_wrapping(self):
+        for opt in ['<' , '>' , '==' , '>=' , '<=' , '!=',
+                    'is', 'is not', 'in', 'not in']:
+            code = 'fun(x, y, z) %s fun(m, n, o)' % opt
+            expected = ('fun(x,\n'
+                        '    y,\n'
+                        '    z) %s fun(m,\n'
+                        '       %s     n,\n'
+                        '       %s     o)' % (opt, len(opt)*' ', len(opt)*' '))
+            self.assertEqual(format_code(code, 2), expected)
