@@ -1,7 +1,7 @@
 import ast
 import unittest
 
-from . import CodeBlock, CodeLine, ExpressionFormatter
+from . import CodeBlock, CodeLine, ExpressionFormatter, format_code
 
 
 class AtomExpressionFormattersFormattingTestCase(unittest.TestCase):
@@ -116,3 +116,21 @@ class CallFormattingTestCase(unittest.TestCase):
         formatted = unicode(d.format_code(max(len(l) for l in expected.split('\n')),
                             force=True))
         self.assertEqual(formatted, expected)
+
+    def test_assignment_alignment(self):
+        code = 'x=y=z=8'
+        expr = ast.parse(code).body[0]
+        formatted = ExpressionFormatter.from_expr(expr).format_code(80)
+        self.assertEqual(unicode(formatted), 'x = y = z = 8')
+
+    def test_assignment_with_subexpressions(self):
+        code = ('x=y=z=function_with_kwargs(argument_1=value, argument_2=value,'
+                                           'argument_3=value)')
+        expected =  ('x = y = z = function_with_kwargs(argument_1=value,\n'
+                     '                                 argument_2=value,\n'
+                     '                                 argument_3=value)')
+        expr = ast.parse(code).body[0]
+        e = ExpressionFormatter.from_expr(expr)
+        formatted = unicode(e.format_code(max(len(l) for l in expected.split('\n')),
+                            force=True))
+        self.assertEqual(unicode(formatted), expected)

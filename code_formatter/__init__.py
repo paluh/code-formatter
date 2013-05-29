@@ -7,6 +7,15 @@ class NotEnoughSpace(Exception):
     pass
 
 
+class UnkownExpressionType(Exception):
+
+    def __init__(self, expr):
+        self.expr = expr
+
+    def __unicode__(self):
+        return 'Unkown expression type: %s; dir(expr) = %s' % (type(self.expr),
+                                                               dir(self.expr))
+
 class CodeLine(object):
 
     INDENT = '    '
@@ -80,7 +89,10 @@ class ExpressionFormatter(object):
 
     @classmethod
     def from_expr(cls, expr):
-        return cls._a2e[type(expr)](expr)
+        try:
+            return cls._a2e[type(expr)](expr)
+        except KeyError:
+            raise UnkownExpressionType(expr)
 
 
 class Atom(ExpressionFormatter):
@@ -226,22 +238,34 @@ class List(ExpressionFormatter):
         block.lines[-1].append(']')
         return block
 
-#def format_code_assigment(expr, indent):
-#    targets = [t.id for t in expr.targets]
-#    value_indent = sum([3+len(t) for t in targets], len(indent)) * ' '
-#    if isinstance(expr.value, ast.Call):
-#        lines = format_code_function_call(expr.value, value_indent)
-#    else:
-#        # FIXME: we should try format_code primitives here
-#        raise ValueError()
-#    return [Line(indent, [' = '.join(targets), ' = ' ] + lines[0].tokens)] + lines[1:]
-#
-#
-#def format_code_code(code):
-#    c = textwrap.dedent(code)
-#    indent = (len(code.split('\n')[0]) - len(c.split('\n')[0]))*' '
-#    tree = ast.parse(c)
-#    for e in tree.body:
+
+class Assignment(ExpressionFormatter):
+
+    ast_type = ast.Assign
+
+    def format_code(self, width, force=False):
+        curr_line = CodeLine()
+        block = CodeBlock([curr_line])
+        for t in self.expr.targets:
+            curr_line.append(t.id)
+            curr_line.append(' = ')
+        value_formatter = ExpressionFormatter.from_expr(self.expr.value)
+        block.merge(value_formatter.format_code(width-block.width, force=force))
+        return block
+
+def format_code(code, width):
+    tree = ast.parse(code)
+    result = []
+    for e in tree.body:
+        try:
+            formatter = ExpressionFormatter.from_expr(e)
+        except UnkownExpressionType:
+            formatter = ExpressionFormatter.from_expr(e.value)
+        result.append(formatter.format_code(width, force=True))
+    # mambo jumbo :-P
+    unicode(result[0])
+    return u'\n'.join(unicode(e) for e in result)
+
 #        if isinstance(e, ast.Assign):
 #            result = format_code_assigment(e, indent)
 #        elif isinstance(e.value, ast.Call):
@@ -249,3 +273,7 @@ class List(ExpressionFormatter):
 #        else:
 #            raise ValueError(type(e))
 #    return result
+
+#def format_code_assigment(expr, indent):
+#
+#
