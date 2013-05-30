@@ -193,6 +193,43 @@ class GeneratorExpressionsTestCase(unittest.TestCase):
 
         self.assertEqual(format_code(code), expected)
 
+
+class DictionaryDisplaysTestCase(unittest.TestCase):
+    """
+    [5.2.7]
+    dict_display       ::=  "{" [key_datum_list | dict_comprehension] "}"
+    key_datum_list     ::=  key_datum ("," key_datum)* [","]
+    key_datum          ::=  expression ":" expression
+    dict_comprehension ::=  expression ":" expression comp_for
+    """
+    def test_alignment_of_simple_comprehension(self):
+        code = '{x: fun(x) for x in iterable}'
+        expected = ('{x: fun(x)\n'
+                    ' for x\n'
+                    ' in iterable}')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
+
+    def test_aligmnent_of_comprehension_with_condition(self):
+        code = '{x: fun(x) for x in iterable if x>0}'
+        expected = ('{x: fun(x)\n'
+                    ' for x in iterable\n'
+                    ' if x > 0}')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
+
+    def test_aligmnent_of_nested_comprehensions(self):
+        code = '{x: fun(x) for i in range(10) if (i+1)%2 for x in range(i) if x>5}'
+        expected = ('{x: fun(x)\n'
+                    ' for i in range(10)\n'
+                    ' if (i + 1) % 2\n'
+                    ' for x in range(i)\n'
+                    ' if x > 5}')
+        width = max(len(l) for l in expected.split('\n'))
+        #print '\n', expected
+        #print '\n', format_code(code, width)
+        self.assertEqual(format_code(code, width), expected)
+
 class BinaryArithmeticOperationsTestCase(unittest.TestCase):
     """
     [5.6]
@@ -242,14 +279,14 @@ class ComparisonsTestCase(unittest.TestCase):
                        | "is" ["not"] | ["not"] "in"
     """
 
-    def test_simple_comparison(self):
+    def test_alignment(self):
         for opt in ['<' , '>' , '==' , '>=' , '<=' , '!=',
                     'is', 'is not', 'in', 'not in']:
             code = '(x %s\ny)' % opt
             expected = 'x %s y' % opt
             self.assertEqual(format_code(code, 2), expected)
 
-    def test_comparison_wrapping(self):
+    def test_wrapping(self):
         for opt in ['<' , '>' , '==' , '>=' , '<=' , '!=',
                     'is', 'is not', 'in', 'not in']:
             code = 'fun(x, y, z) %s fun(m, n, o)' % opt
@@ -260,7 +297,7 @@ class ComparisonsTestCase(unittest.TestCase):
                         '       %s     o)' % (opt, len(opt)*' ', len(opt)*' '))
             self.assertEqual(format_code(code, 2), expected)
 
-    def test_multi_opt_comparison_wrapping(self):
+    def test_multi_opt_wrapping(self):
         for opt in ['<' , '>' , '==' , '>=' , '<=' , '!=',
                     'is', 'is not', 'in', 'not in']:
             code = 'fun(x, y, z) %s fun(m, n, o) %s fun(p, q, r)' % (opt, opt)
@@ -337,7 +374,6 @@ class ForTestCase(unittest.TestCase):
         code = ('for   p   in    (1,2,3):\n   p')
         expected = 'for p in 1, 2, 3:\n%sp' % CodeLine.INDENT
         self.assertEqual(format_code(code), expected)
-
 
 
 class SimpleStatement(unittest.TestCase):
