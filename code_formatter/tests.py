@@ -166,7 +166,16 @@ class CallFormattingTestCase(unittest.TestCase):
     def test_simple_compare(self):
         pass
 
-    def test_generator_alignment(self):
+
+class GeneratorExpressionsTestCase(unittest.TestCase):
+    """
+    [5.2.5, 5.2.6]
+    comp_for             ::=  "for" target_list "in" or_test [comp_iter]
+    comp_iter            ::=  comp_for | comp_if
+    comp_if              ::=  "if" expression_nocond [comp_iter]
+    generator_expression ::=  "(" expression comp_for ")"
+    """
+    def test_alignment(self):
         code = '(function(x) for x in iterable if x > 10)'
         expected = ('(function(x)\n'
                     ' for x in iterable\n'
@@ -174,6 +183,15 @@ class CallFormattingTestCase(unittest.TestCase):
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
 
+    def test_generator_inside_call_skips_brackets_when_possible(self):
+        code = 'function((x for x in iterable if x>10))'
+        expected = 'function(x for x in iterable if x > 10)'
+        self.assertEqual(format_code(code), expected)
+
+        code = 'function((x for x in iterable if x>10), y)'
+        expected = 'function((x for x in iterable if x > 10), y)'
+
+        self.assertEqual(format_code(code), expected)
 
 class BinaryArithmeticOperationsTestCase(unittest.TestCase):
     """
@@ -189,7 +207,14 @@ class BinaryArithmeticOperationsTestCase(unittest.TestCase):
         for op in self.OPERATORS:
             self.assertEqual(format_code('x   %s y' % op), 'x %s y' % op)
 
-    def test_subexpressions_brackets(self):
+    def test_wrapping(self):
+        for op in self.OPERATORS:
+            code = 'var1 %s var2 %s var3' % (op, op)
+            expected = '(var1 %s\n var2 %s\n var3)' % (op, op)
+            width = max(len(l) for l in expected.split('\n'))
+            self.assertEqual(format_code(code, width), expected)
+
+    def test_subexpressions_adds_brackets_when_neccessary(self):
         code = '(x+y+z)*(u+v+w)'
         expected = '(x + y + z) * (u + v + w)'
         self.assertEqual(format_code(code), expected)

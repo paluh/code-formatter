@@ -225,15 +225,17 @@ class BinaryOperation(ExpressionFormatter):
             try:
                 operator = ' %s ' % opt_formatter.operator
                 left_block = left_formatter.format_code(width-block.width-len(operator))
-                right_block = right_formatter.format_code(width-block.width-len(operator))
+                right_block = right_formatter.format_code(width - block.width -
+                                                          len(operator) -
+                                                          left_block.width)
                 block.merge(left_block)
                 block.append_tokens(operator)
                 block.merge(right_block)
             except NotEnoughSpace:
                 operator = ' %s' % opt_formatter.operator
-                left_block = left_formatter.format_code(width-len(indent)-len(operator),
+                left_block = left_formatter.format_code(width - len(indent) - len(operator),
                                                         force=force)
-                right_block = right_formatter.format_code(width-indent)
+                right_block = right_formatter.format_code(width-len(indent), force=force)
                 block.merge(left_block)
                 block.append_tokens(operator)
                 block.extend(right_block, indent)
@@ -245,7 +247,7 @@ class BinaryOperation(ExpressionFormatter):
                           BinaryOperation.from_ast(self.parent).priority > self.priority))
 
         block, right_subblock = _format_code(with_brackets)
-        if not with_brackets and block.height > 1 and right_subblock.height != block.height:
+        if not self.parent and block.height > 1 and right_subblock.height != block.height:
             block, _ = _format_code(True)
         if not force and block.width > width:
             raise NotEnoughSpace()
@@ -472,14 +474,15 @@ class Generator(ExpressionFormatter):
 
     ast_type = ast.GeneratorExp
 
-    def __init__(self, expr, parent=None, standalone=True):
+    def __init__(self, expr, parent=None):
         self.expr = expr
         self.parent = parent
-        self.standalone = standalone
 
     def format_code(self, width, force=False):
         value_formatter = ExpressionFormatter.from_ast(self.expr.elt, self.expr)
-        if self.standalone:
+        with_brackets = (not self.parent or not isinstance(self.parent, ast.Call) or
+                         len(self.parent.args) != 1)
+        if with_brackets:
             block = CodeBlock([CodeLine(['('])])
             indent = block.width * ' '
             block.merge(value_formatter.format_code(width, force=force))
@@ -537,7 +540,7 @@ class Generator(ExpressionFormatter):
                     block.lines.append(curr_line)
                     block.merge(iter_formatter.format_code(width, force=True))
             curr_line = block.lines[-1]
-        if self.standalone:
+        if with_brackets:
             curr_line.append(')')
         # FIXME: raise exception
         return block
