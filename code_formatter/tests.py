@@ -170,8 +170,9 @@ class CallFormattingTestCase(unittest.TestCase):
         self.assertEqual(format_code(code, width), expected)
 
 
-class CompareTestCase(unittest.TestCase):
+class ComparisonsTestCase(unittest.TestCase):
     """
+    [5.9]
     comparison    ::=  or_expr ( comp_operator or_expr )*
     comp_operator ::=  "<" | ">" | "==" | ">=" | "<=" | "<>" | "!="
                        | "is" ["not"] | ["not"] "in"
@@ -207,24 +208,52 @@ class CompareTestCase(unittest.TestCase):
             self.assertEqual(format_code(code, width), expected)
 
 
-class BooleanOperationTestCase(unittest.TestCase):
+class BinaryArithmeticOperationsTestCase(unittest.TestCase):
     """
+    [5.6]
+    m_expr ::=  u_expr | m_expr "*" u_expr | m_expr "//" u_expr | m_expr "/" u_expr
+                | m_expr "%" u_expr
+    a_expr ::=  m_expr | a_expr "+" m_expr | a_expr "-" m_expr
+    """
+
+    OPERATORS = ['*', '//', '/', '%', '+', '-']
+
+    def test_simple_alignment(self):
+        for op in self.OPERATORS:
+            self.assertEqual(format_code('x   %s y' % op), 'x %s y' % op)
+
+    def test_subexpressions_brackets(self):
+        code = '(x+y+z)*(u+v+w)'
+        expected = '(x + y + z) * (u + v + w)'
+        self.assertEqual(format_code(code), expected)
+
+        code = 'x+y+z*u+v+w'
+        expected = 'x + y + z * u + v + w'
+        self.assertEqual(format_code(code), expected)
+
+class BooleanOperationsTestCase(unittest.TestCase):
+    """
+    [5.10]
     or_test  ::=  and_test | or_test "or" and_test
     and_test ::=  not_test | and_test "and" not_test
     not_test ::=  comparison | "not" not_test
     """
-    def test_simple_alignemnt(self):
-        code = 'x   or y'
-        self.assertEqual(format_code(code), 'x or y')
+
+    BIN_OPERATORS = ['or', 'and']
+
+    def test_simple_alignment(self):
+        for op in self.BIN_OPERATORS:
+            self.assertEqual(format_code('x   %s y' % op), 'x %s y' % op)
 
     def test_wrapping(self):
-        code = 'x or y or z or v'
-        expected = ('(x or\n'
-                    ' y or\n'
-                    ' z or\n'
-                    ' v)')
-        width = max(len(l) for l in expected.split('\n'))
-        self.assertEqual(format_code(code, width), expected)
+        for op in ['or', 'and']:
+            code = 'x %(op)s y %(op)s z %(op)s v' % {'op': op}
+            expected = ('(x %(op)s\n'
+                        ' y %(op)s\n'
+                        ' z %(op)s\n'
+                        ' v)' % {'op': op})
+            width = max(len(l) for l in expected.split('\n'))
+            self.assertEqual(format_code(code, width), expected)
 
     def test_brackets_are_used_only_when_neccessary(self):
         code = 'x or fun(y,z,v)'
@@ -232,6 +261,11 @@ class BooleanOperationTestCase(unittest.TestCase):
                     '         v)')
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
+
+    def test_negation_alignment(self):
+        code = 'not     x'
+        expected = 'not x'
+        self.assertEqual(format_code(code), expected)
 
 
 class TupleTestCase(unittest.TestCase):
@@ -284,5 +318,3 @@ class SimpleStatement(unittest.TestCase):
                  | exec_stmt
     """
     pass
-
-

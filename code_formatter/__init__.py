@@ -47,7 +47,7 @@ class CodeBlock(object):
 
     @classmethod
     def from_tokens(cls, *tokens):
-        lines = [CodeLine(tokens)]
+        lines = [CodeLine(list(tokens))]
         return cls(lines)
 
     def extend(self, block, indentation=None):
@@ -60,7 +60,7 @@ class CodeBlock(object):
     def merge(self, block):
         lines = block.lines
         indent = len(self.lines[-1])*' '
-        self.lines[-1].extend(block.lines[0].tokens)
+        self.last_line.extend(block.lines[0].tokens)
         for original in lines[1:]:
             line = CodeLine([indent])
             line.extend(original.tokens)
@@ -178,7 +178,6 @@ for ast_type, operator in [(ast.Or, 'or'), (ast.And, 'and'),
     type(ast_type.__name__, (Op,), {'ast_type': ast_type,
                                     'operator': operator})
 
-
 class UnaryOperand(ExpressionFormatter):
 
     ast_type = ast.UnaryOp
@@ -192,6 +191,72 @@ class UnaryOperand(ExpressionFormatter):
         block = CodeBlock.from_tokens(operator)
         block.merge(value_block)
         return block
+
+
+
+class BinOp(Op):
+
+    priority = 0
+
+
+class BinaryOperation(ExpressionFormatter):
+
+    ast_type = ast.BinOp
+
+    @property
+    def priority(self):
+        return AstFormatter.from_ast(self.expr.op, self.expr).priority
+
+    def format_code(self, width, force=False):
+        opt_formatter = AstFormatter.from_ast(self.expr.op, self.expr)
+        left_formatter = ExpressionFormatter.from_ast(self.expr.left,
+                                                      parent=self.expr)
+        right_formatter = ExpressionFormatter.from_ast(self.expr.right,
+                                                       parent=self.expr)
+        def _format_code(with_brackets):
+            block = CodeBlock()
+            if with_brackets:
+                block.append_tokens('(')
+            indent = block.width*' '
+            try:
+                operator = ' %s ' % opt_formatter.operator
+                left_block = left_formatter.format_code(width-block.width-len(operator))
+                right_block = right_formatter.format_code(width-block.width-len(operator))
+                block.merge(left_block)
+                block.append_tokens(operator)
+                block.merge(right_block)
+            except NotEnoughSpace:
+                operator = ' %s' % opt_formatter.operator
+                left_block = left_formatter.format_code(width-len(indent)-len(operator),
+                                                        force=force)
+                right_block = right_formatter.format_code(width-indent)
+                block.merge(left_block)
+                block.append_tokens(operator)
+                block.extend(right_block, indent)
+            if with_brackets:
+                block.append_tokens(')')
+            return block, right_block
+        with_brackets = (self.parent and
+                         (isinstance(self.parent, ast.BinOp) and
+                          BinaryOperation.from_ast(self.parent).priority > self.priority))
+
+        block, right_subblock = _format_code(with_brackets)
+        if not with_brackets and block.height > 1 and right_subblock.height != block.height:
+            block, _ = _format_code(True)
+        if not force and block.width > width:
+            raise NotEnoughSpace()
+        return block
+
+
+for ast_type, operator, priority in [(ast.Mult, '*', 1),
+                                     (ast.FloorDiv, '//', 1),
+                                     (ast.Div, '/', 1),
+                                     (ast.Mod, '%', 1),
+                                     (ast.Add, '+', 0),
+                                     (ast.Sub, '-', 0)]:
+    type(ast_type.__name__, (BinOp,), {'ast_type': ast_type,
+                                       'operator': operator,
+                                       'priority': priority})
 
 
 class BooleanOperation(ExpressionFormatter):
