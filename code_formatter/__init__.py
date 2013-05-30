@@ -13,7 +13,9 @@ class UnknownNodeType(Exception):
         self.expr = expr
 
     def __str__(self):
-        attrs = ', '.join('%s=%s' % (a, getattr(self.expr, a)) for a in dir(self.expr) if not a.startswith('_'))
+        attrs = ', '.join('%s=%s' % (a, getattr(self.expr, a))
+                          for a in dir(self.expr)
+                          if not a.startswith('_'))
         return ('Unkown expression type: %s;\n\ndir(expr) = %s\n\n'
                 'attrs: %s' % (type(self.expr), dir(self.expr), attrs))
 
@@ -52,9 +54,11 @@ class CodeBlock(object):
 
     def extend(self, block, indentation=None):
         if indentation:
-            self.lines.extend(CodeLine([indentation] + l.tokens) for l in block.lines)
+            self.lines.extend((CodeLine([indentation] + l.tokens)
+                               for l in block.lines))
         else:
-            self.lines.extend(CodeLine(l.tokens) for l in block.lines)
+            self.lines.extend((CodeLine(l.tokens)
+                               for l in block.lines))
         return self
 
     def merge(self, block):
@@ -544,7 +548,8 @@ class Tuple(ExpressionFormatter):
     ast_type = ast.Tuple
 
     def format_code(self, width, force=False):
-        with_brackets = isinstance(self.parent, (ast.Tuple, ast.Call, ast.List)) or len(self.expr.elts) < 2
+        with_brackets = (isinstance(self.parent, (ast.Tuple, ast.Call, ast.List, ast.BinOp)) or
+                         len(self.expr.elts) < 2)
         block = CodeBlock()
         expressions = [ExpressionFormatter.from_ast(v, self.expr)
                        for v in self.expr.elts]
@@ -581,12 +586,14 @@ class For(AstFormatter):
     def format_code(self, width, force=False):
         in_ = ' in '
         block = CodeBlock([CodeLine(['for '])])
-        target_formatter = ExpressionFormatter.from_ast(self.expr.target, self.expr)
-        block.merge(target_formatter.format_code(width-block.width-len(in_),
+        target_formatter = ExpressionFormatter.from_ast(self.expr.target,
+                                                        self.expr)
+        block.merge(target_formatter.format_code(width - block.width - len(in_),
                                                  force=force))
         block.append_token(in_)
         iter_formatter = ExpressionFormatter.from_ast(self.expr.iter, self.expr)
-        block.merge(iter_formatter.format_code(width-block.width, force=force))
+        block.merge(iter_formatter.format_code(width - block.width,
+                                               force=force))
         block.append_token(':')
         for a in self.expr.body:
             formatter = AstFormatter.from_ast(a)

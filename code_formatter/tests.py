@@ -10,19 +10,24 @@ class AtomExpressionFormattersFormattingTestCase(unittest.TestCase):
         return '\n'.join((CodeLine.INDENT*level + l) for l in code.split('\n'))
 
     def test_line_formatting(self):
-        line = CodeLine([CodeLine.INDENT, CodeLine.INDENT, 'x = ', 'fun(', 'z=8', ','])
+        line = CodeLine([CodeLine.INDENT, CodeLine.INDENT,
+                         'x = ', 'fun(', 'z=8', ','])
         self.assertEqual(unicode(line), self._indent('x = fun(z=8,', 2))
 
     def test_block_formatting(self):
-        lines = [CodeLine([CodeLine.INDENT, CodeLine.INDENT, 'x = ', 'fun(', 'z=8', ',']),
-                 CodeLine([CodeLine.INDENT, CodeLine.INDENT, '        ', 'y=9)'])]
+        lines = [CodeLine([CodeLine.INDENT, CodeLine.INDENT, 'x = ',
+                           'fun(', 'z=8', ',']),
+                 CodeLine([CodeLine.INDENT, CodeLine.INDENT,
+                           '        ', 'y=9)'])]
         block = CodeBlock(lines)
         self.assertEqual(unicode(block), self._indent('x = fun(z=8,\n'
                                                       '        y=9)', 2))
 
     def test_block_merge(self):
-        block = CodeBlock([CodeLine([CodeLine.INDENT, CodeLine.INDENT, 'x = ', 'fun(', 'z=8', ',']),
-                           CodeLine([CodeLine.INDENT, CodeLine.INDENT, '        ', 'y='])])
+        block = CodeBlock([CodeLine([CodeLine.INDENT, CodeLine.INDENT,
+                                     'x = ', 'fun(', 'z=8', ',']),
+                           CodeLine([CodeLine.INDENT, CodeLine.INDENT,
+                                     '        ', 'y='])])
 
         subblock = CodeBlock([CodeLine(['fun(v=8,']),
                               CodeLine(['    u=9)'])])
@@ -170,6 +175,40 @@ class CallFormattingTestCase(unittest.TestCase):
         self.assertEqual(format_code(code, width), expected)
 
 
+class BinaryArithmeticOperationsTestCase(unittest.TestCase):
+    """
+    [5.6]
+    m_expr ::=  u_expr | m_expr "*" u_expr | m_expr "//" u_expr | m_expr "/" u_expr
+                | m_expr "%" u_expr
+    a_expr ::=  m_expr | a_expr "+" m_expr | a_expr "-" m_expr
+    """
+
+    OPERATORS = ['*', '//', '/', '%', '+', '-']
+
+    def test_simple_alignment(self):
+        for op in self.OPERATORS:
+            self.assertEqual(format_code('x   %s y' % op), 'x %s y' % op)
+
+    def test_subexpressions_brackets(self):
+        code = '(x+y+z)*(u+v+w)'
+        expected = '(x + y + z) * (u + v + w)'
+        self.assertEqual(format_code(code), expected)
+
+        code = 'x+y+z*u+v+w'
+        expected = 'x + y + z * u + v + w'
+        self.assertEqual(format_code(code), expected)
+
+    def test_string_formatting_operator_forces_brackets_on_parameters_tuple(self):
+        code = "'value: %x, %y'%(1,2)"
+        expected = "'value: %x, %y' % (1, 2)"
+        self.assertEqual(format_code(code), expected)
+
+    def test_string_formatting_operator_preserves_parameter_without_brackets(self):
+        code = "'value: %x'%1"
+        expected = "'value: %x' % 1"
+        self.assertEqual(format_code(code), expected)
+
+
 class ComparisonsTestCase(unittest.TestCase):
     """
     [5.9]
@@ -207,29 +246,6 @@ class ComparisonsTestCase(unittest.TestCase):
             width = max(len(l) for l in expected.split('\n'))
             self.assertEqual(format_code(code, width), expected)
 
-
-class BinaryArithmeticOperationsTestCase(unittest.TestCase):
-    """
-    [5.6]
-    m_expr ::=  u_expr | m_expr "*" u_expr | m_expr "//" u_expr | m_expr "/" u_expr
-                | m_expr "%" u_expr
-    a_expr ::=  m_expr | a_expr "+" m_expr | a_expr "-" m_expr
-    """
-
-    OPERATORS = ['*', '//', '/', '%', '+', '-']
-
-    def test_simple_alignment(self):
-        for op in self.OPERATORS:
-            self.assertEqual(format_code('x   %s y' % op), 'x %s y' % op)
-
-    def test_subexpressions_brackets(self):
-        code = '(x+y+z)*(u+v+w)'
-        expected = '(x + y + z) * (u + v + w)'
-        self.assertEqual(format_code(code), expected)
-
-        code = 'x+y+z*u+v+w'
-        expected = 'x + y + z * u + v + w'
-        self.assertEqual(format_code(code), expected)
 
 class BooleanOperationsTestCase(unittest.TestCase):
     """
