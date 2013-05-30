@@ -115,23 +115,6 @@ class CallFormattingTestCase(unittest.TestCase):
                                     '                     argument_2=value,\n'
                                     '                     argument_3=value)')
 
-    def test_dict_aligment(self):
-        code = "{'key_1': 1,     'key_2'  : 2   ,key_var: 3}"
-        expr = ast.parse(code).body[0].value
-        d = ExpressionFormatter.from_ast(expr)
-        formatted = unicode(d.format_code(80, force=True))
-        self.assertEqual(formatted, "{'key_1': 1, 'key_2': 2, key_var: 3}")
-
-    def test_dict_kwargs(self):
-        code = "{'k1': 1,  'k2'  : 2  , v: 3}"
-        expr = ast.parse(code).body[0].value
-        d = ExpressionFormatter.from_ast(expr)
-        expected = ("{'k1': 1, 'k2': 2,\n"
-                    " v: 3}")
-        formatted = unicode(d.format_code(max(len(l) for l in expected.split('\n')),
-                            force=True))
-        self.assertEqual(formatted, expected)
-
     def test_assignment_alignment(self):
         code = 'x=y=z=8'
         expr = ast.parse(code).body[0]
@@ -163,8 +146,44 @@ class CallFormattingTestCase(unittest.TestCase):
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
 
-    def test_simple_compare(self):
-        pass
+
+class ListDisplaysTestCase(unittest.TestCase):
+    # FIXME: test old_lambda_form branch
+    """
+    [5.2.4]
+    list_display        ::=  "[" [expression_list | list_comprehension] "]"
+    list_comprehension  ::=  expression list_for
+    list_for            ::=  "for" target_list "in" old_expression_list [list_iter]
+    old_expression_list ::=  old_expression [("," old_expression)+ [","]]
+    old_expression      ::=  or_test | old_lambda_form
+    list_iter           ::=  list_for | list_if
+    list_if             ::=  "if" old_expression [list_iter]
+    """
+    def test_expression_list_alignment(self):
+        code = '[   1 , 2,   3,]'
+        expected = '[1, 2, 3]'
+        self.assertEqual(format_code(code), expected)
+
+    def test_expression_list_wrapping(self):
+        code = '[   1 , 2,   3,]'
+        expected = '[1, 2,\n 3]'
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
+
+    def test_simple_list_comprehension_alignment(self):
+        code = '[ x   for   x  in  iterable ]'
+        expected = '[x for x in iterable]'
+        self.assertEqual(format_code(code), expected)
+
+    def test_nested_comprehensions_wrapping(self):
+        code = '[function(x) for i in range(10) if (i+1)%2 for x in range(i) if x>5]'
+        expected = ('[function(x)\n'
+                    ' for i in range(10)\n'
+                    ' if (i + 1) % 2\n'
+                    ' for x in range(i)\n'
+                    ' if x > 5]')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
 
 
 class GeneratorExpressionsTestCase(unittest.TestCase):
@@ -202,7 +221,7 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
     key_datum          ::=  expression ":" expression
     dict_comprehension ::=  expression ":" expression comp_for
     """
-    def test_alignment_of_simple_comprehension(self):
+    def test_simple_comprehension_alignment(self):
         code = '{x: fun(x) for x in iterable}'
         expected = ('{x: fun(x)\n'
                     ' for x\n'
@@ -210,7 +229,7 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
 
-    def test_aligmnent_of_comprehension_with_condition(self):
+    def test_comprehension_with_condition_wrapping(self):
         code = '{x: fun(x) for x in iterable if x>0}'
         expected = ('{x: fun(x)\n'
                     ' for x in iterable\n'
@@ -218,7 +237,15 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
 
-    def test_aligmnent_of_nested_comprehensions(self):
+    def test_nested_comprehensions_alignment(self):
+        code = '{x: fun(x) for i in range(10) if (i+1)%2 for x in range(i) if x>5}'
+        expected = ('{x: fun(x) for i in range(10) if (i + 1) % 2 '
+                    'for x in range(i) if x > 5}')
+        #print '\n', expected
+        #print '\n', format_code(code, width)
+        self.assertEqual(format_code(code, len(expected)), expected)
+
+    def test_nested_comprehensions_wrapping(self):
         code = '{x: fun(x) for i in range(10) if (i+1)%2 for x in range(i) if x>5}'
         expected = ('{x: fun(x)\n'
                     ' for i in range(10)\n'
@@ -226,9 +253,24 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
                     ' for x in range(i)\n'
                     ' if x > 5}')
         width = max(len(l) for l in expected.split('\n'))
-        #print '\n', expected
-        #print '\n', format_code(code, width)
         self.assertEqual(format_code(code, width), expected)
+
+    def test_key_datum_list_alignment(self):
+        code = '{x: y,    z: s,   u   : v}'
+        expected = '{x: y, z: s, u: v}'
+        self.assertEqual(format_code(code), expected)
+
+    def test_key_datum_list_wrapping(self):
+        code = "{'k1': 1,  'k2'  : 2  , v: 3}"
+        expr = ast.parse(code).body[0].value
+        d = ExpressionFormatter.from_ast(expr)
+        expected = ("{'k1': 1, 'k2': 2,\n"
+                    " v: 3}")
+        formatted = unicode(d.format_code(max(len(l) for l in expected.split('\n')),
+                            force=True))
+        self.assertEqual(formatted, expected)
+
+
 
 class BinaryArithmeticOperationsTestCase(unittest.TestCase):
     """

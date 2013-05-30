@@ -413,8 +413,9 @@ class Dict(ExpressionFormatter):
 
     def format_code(self, width, force=False):
         block = CodeBlock([CodeLine(['{'])])
-        expressions = [Dict.Item(k,v, self.expr) for k,v in zip(self.expr.keys,
-                                                                self.expr.values)]
+        expressions = [Dict.Item(k, v, self.expr)
+                       for k, v in zip(self.expr.keys,
+                                       self.expr.values)]
         subblock = format_list_of_expressions(expressions=expressions,
                                               width=width-block.width, force=force)
         block.merge(subblock)
@@ -428,12 +429,42 @@ class List(ExpressionFormatter):
 
     def format_code(self, width, force=False):
         block = CodeBlock([CodeLine(['['])])
-        expressions = [ExpressionFormatter.from_ast(v, self.expr) for v in self.expr.elts]
+        expressions = [ExpressionFormatter.from_ast(v, self.expr)
+                       for v in self.expr.elts]
         subblock = format_list_of_expressions(expressions=expressions,
                                               width=width-block.width,
                                               force=force)
         block.merge(subblock)
         block.lines[-1].append(']')
+        return block
+
+
+class ListComprehension(ExpressionFormatter):
+
+    ast_type = ast.ListComp
+
+    def format_code(self, width, force=False):
+        block = CodeBlock.from_tokens('[')
+        indent = block.width * ' '
+        elt_formatter = ExpressionFormatter.from_ast(self.expr.elt,
+                                                     parent=self.expr)
+        elt_block = elt_formatter.format_code(width - block.width,
+                                              force=force)
+        block.merge(elt_block)
+        try:
+            generators_block = format_generators(self.expr.generators,
+                                                 width - block.width,
+                                                 blank_line=False,
+                                                 parent=self.expr)
+            block.merge(generators_block)
+        except NotEnoughSpace:
+            generators_block = format_generators(self.expr.generators,
+                                                 width - len(indent),
+                                                 parent=self.expr,
+                                                 blank_line=True,
+                                                 force=force)
+            block.extend(generators_block, indent)
+        block.append_token(']')
         return block
 
 
@@ -569,7 +600,8 @@ def format_generators(generators, width, parent, blank_line=False, force=False):
                                                         parent=parent)
         iter_formatter = ExpressionFormatter.from_ast(generator.iter,
                                                       parent=parent)
-        ifs_formatters = [ExpressionFormatter.from_ast(if_, parent=parent) for if_ in generator.ifs]
+        ifs_formatters = [ExpressionFormatter.from_ast(if_, parent=parent)
+                          for if_ in generator.ifs]
 
         formatters = chain([(target_formatter, 'for'), (iter_formatter, 'in')],
                            izip_longest(ifs_formatters, [], fillvalue='if'))
