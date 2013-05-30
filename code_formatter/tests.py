@@ -213,6 +213,25 @@ class GeneratorExpressionsTestCase(unittest.TestCase):
         self.assertEqual(format_code(code), expected)
 
 
+class SetDisplaysTestCase(unittest.TestCase):
+    """
+    [5.2.8]
+    set_display ::=  "{" (expression_list | comprehension) "}"
+    """
+    def test_simple_comprehension_alignment(self):
+        code = '{x for x in iterable}'
+        expected = ('{x for x in iterable}')
+        self.assertEqual(format_code(code), expected)
+
+    def test_comprehension_wrapping(self):
+        code = '{function(x) for x in iterable if x>0}'
+        expected = ('{function(x)\n'
+                    ' for x in iterable\n'
+                    ' if x > 0}')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
+
+
 class DictionaryDisplaysTestCase(unittest.TestCase):
     """
     [5.2.7]
@@ -221,7 +240,7 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
     key_datum          ::=  expression ":" expression
     dict_comprehension ::=  expression ":" expression comp_for
     """
-    def test_simple_comprehension_alignment(self):
+    def test_simple_comprehension_wrapping(self):
         code = '{x: fun(x) for x in iterable}'
         expected = ('{x: fun(x)\n'
                     ' for x\n'

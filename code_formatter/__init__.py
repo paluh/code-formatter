@@ -468,6 +468,35 @@ class ListComprehension(ExpressionFormatter):
         return block
 
 
+class SetComprehension(ExpressionFormatter):
+
+    ast_type = ast.SetComp
+
+    def format_code(self, width, force=False):
+        block = CodeBlock.from_tokens('{')
+        indent = block.width * ' '
+        elt_formatter = ExpressionFormatter.from_ast(self.expr.elt,
+                                                     parent=self.expr)
+        elt_block = elt_formatter.format_code(width - block.width,
+                                              force=force)
+        block.merge(elt_block)
+        try:
+            generators_block = format_generators(self.expr.generators,
+                                                 width - block.width,
+                                                 blank_line=False,
+                                                 parent=self.expr)
+            block.merge(generators_block)
+        except NotEnoughSpace:
+            generators_block = format_generators(self.expr.generators,
+                                                 width - len(indent),
+                                                 parent=self.expr,
+                                                 blank_line=True,
+                                                 force=force)
+            block.extend(generators_block, indent)
+        block.append_token('}')
+        return block
+
+
 class Assignment(ExpressionFormatter):
 
     ast_type = ast.Assign
