@@ -44,11 +44,6 @@ class AtomExpressionFormattersFormattingTestCase(unittest.TestCase):
 
 class CallFormattingTestCase(unittest.TestCase):
 
-    def test_simple_attribute_formatting(self):
-        for code in ['instance.attribute', 'instance.attribute.inner']:
-            expr = ExpressionFormatter.from_ast(ast.parse(code).body[0].value)
-            self.assertEqual(code, unicode(expr.format_code(80)))
-
     def test_method_call_formatting(self):
         code = 'instance.method(   x,   y )'
         formatted = format_code(code)
@@ -289,6 +284,19 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
                             force=True))
         self.assertEqual(formatted, expected)
 
+
+class AttributeRefTestCase(unittest.TestCase):
+    """
+    [5.3.1]
+    primary ::=  atom | attributeref | subscription | slicing | call
+    attributeref ::=  primary "." identifier
+    """
+
+    def test_formatting(self):
+        for code, expected in [('instance.attribute', 'instance.attribute'),
+                               ('nested.instance.attribute', 'nested.instance.attribute'),
+                               ('[1,2,3,4][0].imag', '[1, 2, 3, 4][0].imag')]:
+            self.assertEqual(format_code(code), expected)
 
 
 class BinaryArithmeticOperationsTestCase(unittest.TestCase):
