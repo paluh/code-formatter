@@ -422,6 +422,17 @@ class BooleanOperationsTestCase(unittest.TestCase):
         self.assertEqual(format_code(code), expected)
 
 
+class ConditionalExpressionsTestCase(unittest.TestCase):
+    """
+    [5.11]
+    conditional_expression ::=  or_test ["if" or_test "else" expression]
+    expression             ::=  conditional_expression | lambda_form
+    """
+    def test_alignment(self):
+        self.assertEqual(format_code('x if    c   else y'),
+                         'x if c else y')
+
+
 class TupleTestCase(unittest.TestCase):
     """
     tuple ::=  expression ( "," expression )* ","
@@ -471,6 +482,7 @@ class SimpleStatementsTestCase(unittest.TestCase):
                     | global_stmt
                     | exec_stmt
     """
+
     def test_return_statement(self):
         """
         [6.7]

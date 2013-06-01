@@ -502,6 +502,27 @@ class SetComprehension(ExpressionFormatter):
         return block
 
 
+class IfExpressionFormatter(ExpressionFormatter):
+
+    ast_type = ast.IfExp
+
+    def format_code(self, width, force=False):
+        body_formatter = ExpressionFormatter.from_ast(self.expr.body,
+                                                      parent=self.expr)
+        block = body_formatter.format_code(width, force=force)
+        test_formatter = ExpressionFormatter.from_ast(self.expr.test,
+                                                      parent=self.expr)
+        block.append_tokens(' ', 'if', ' ')
+        test_block = test_formatter.format_code(width-block.width, force=force)
+        block.merge(test_block)
+        orelse_formatter = ExpressionFormatter.from_ast(self.expr.orelse,
+                                                        parent=self.expr)
+        block.append_tokens(' ', 'else', ' ')
+        orelse_block = orelse_formatter.format_code(width - block.width,
+                                                    force=force)
+        block.merge(orelse_block)
+        return block
+
 class Assignment(ExpressionFormatter):
 
     ast_type = ast.Assign
