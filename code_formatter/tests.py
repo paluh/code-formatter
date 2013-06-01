@@ -31,7 +31,7 @@ class AtomExpressionFormattersFormattingTestCase(unittest.TestCase):
 
         subblock = CodeBlock([CodeLine(['fun(v=8,']),
                               CodeLine(['    u=9)'])])
-        block.merge(subblock)
+        block.merge(subblock, separator='')
         self.assertEqual(unicode(block), self._indent('x = fun(z=8,\n'
                                                       '        y=fun(v=8,\n'
                                                       '              u=9)', 2))
