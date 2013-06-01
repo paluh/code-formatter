@@ -208,25 +208,6 @@ class GeneratorExpressionsTestCase(unittest.TestCase):
         self.assertEqual(format_code(code), expected)
 
 
-class SetDisplaysTestCase(unittest.TestCase):
-    """
-    [5.2.8]
-    set_display ::=  "{" (expression_list | comprehension) "}"
-    """
-    def test_simple_comprehension_alignment(self):
-        code = '{x for x in iterable}'
-        expected = ('{x for x in iterable}')
-        self.assertEqual(format_code(code), expected)
-
-    def test_comprehension_wrapping(self):
-        code = '{function(x) for x in iterable if x>0}'
-        expected = ('{function(x)\n'
-                    ' for x in iterable\n'
-                    ' if x > 0}')
-        width = max(len(l) for l in expected.split('\n'))
-        self.assertEqual(format_code(code, width), expected)
-
-
 class DictionaryDisplaysTestCase(unittest.TestCase):
     """
     [5.2.7]
@@ -283,6 +264,25 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
         formatted = unicode(d.format_code(max(len(l) for l in expected.split('\n')),
                             force=True))
         self.assertEqual(formatted, expected)
+
+
+class SetDisplaysTestCase(unittest.TestCase):
+    """
+    [5.2.8]
+    set_display ::=  "{" (expression_list | comprehension) "}"
+    """
+    def test_simple_comprehension_alignment(self):
+        code = '{x for x in iterable}'
+        expected = ('{x for x in iterable}')
+        self.assertEqual(format_code(code), expected)
+
+    def test_comprehension_wrapping(self):
+        code = '{function(x) for x in iterable if x>0}'
+        expected = ('{function(x)\n'
+                    ' for x in iterable\n'
+                    ' if x > 0}')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
 
 
 class AttributeRefTestCase(unittest.TestCase):
@@ -445,22 +445,30 @@ class ForTestCase(unittest.TestCase):
         self.assertEqual(format_code(code), expected)
 
 
-class SimpleStatement(unittest.TestCase):
+class SimpleStatementsTestCase(unittest.TestCase):
     """
+    [6]
      simple_stmt ::=  expression_stmt
-                 | assert_stmt
-                 | assignment_stmt
-                 | augmented_assignment_stmt
-                 | pass_stmt
-                 | del_stmt
-                 | print_stmt
-                 | return_stmt
-                 | yield_stmt
-                 | raise_stmt
-                 | break_stmt
-                 | continue_stmt
-                 | import_stmt
-                 | global_stmt
-                 | exec_stmt
+                    | assert_stmt
+                    | assignment_stmt
+                    | augmented_assignment_stmt
+                    | pass_stmt
+                    | del_stmt
+                    | print_stmt
+                    | return_stmt
+                    | yield_stmt
+                    | raise_stmt
+                    | break_stmt
+                    | continue_stmt
+                    | import_stmt
+                    | global_stmt
+                    | exec_stmt
     """
-    pass
+    def test_return_statement(self):
+        """
+        [6.7]
+        return_stmt ::=  "return" [expression_list]
+        """
+        code = 'return x+x'
+        expected = 'return x + x'
+        self.assertEqual(format_code(code), expected)

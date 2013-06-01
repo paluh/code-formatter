@@ -124,7 +124,9 @@ class AstFormatter(object):
     @classmethod
     def from_ast(cls, expr, parent=None, **extra):
         try:
-            return cls._n2f[type(expr)](expr, parent=parent, **extra)
+            FormatterClass = cls._n2f[type(expr)]
+            assert issubclass(FormatterClass, cls)
+            return FormatterClass(expr, parent=parent, **extra)
         except KeyError:
             raise UnknownNodeType(expr)
 
@@ -738,6 +740,22 @@ class PassFormatter(StatementFormatter):
             raise NotEnoughSpace
         return block
 
+
+class ReturnFormatter(StatementFormatter):
+
+    ast_type = ast.Return
+
+    def format_code(self, width, force=False):
+        block = CodeBlock.from_tokens('return', ' ')
+        expression_formatter = ExpressionFormatter.from_ast(self.expr.value)
+        expression_block = expression_formatter.format_code(width - block.width,
+                                                            force=force)
+        block.merge(expression_block)
+        if block.width > width:
+            raise NotEnoughSpace
+        return block
+
+
 class For(AstFormatter):
 
     ast_type = ast.For
@@ -766,11 +784,11 @@ def _format_code(code, width=80, AstFormatter=AstFormatter):
     tree = ast.parse(code)
     result = []
     for e in tree.body:
-        formatter = ExpressionFormatter.from_ast(e)
+        formatter = AstFormatter.from_ast(e)
         result.append(formatter.format_code(width, force=True))
     return result
 
 def format_code(code, width=80, AstFormatter=AstFormatter):
-    result = _format_code(code, width, AstFormatterMetaclass)
+    result = _format_code(code, width, AstFormatter=AstFormatter)
     unicode(result[0])
     return u'\n'.join(unicode(e) for e in result)
