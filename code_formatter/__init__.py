@@ -456,14 +456,13 @@ class ListComprehension(ExpressionFormatter):
         try:
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width,
-                                                 blank_line=False,
                                                  parent=self.expr)
+            block.append_token(' ')
             block.merge(generators_block)
         except NotEnoughSpace:
             generators_block = format_generators(self.expr.generators,
                                                  width - len(indent),
                                                  parent=self.expr,
-                                                 blank_line=True,
                                                  force=force)
             block.extend(generators_block, indent)
         block.append_token(']')
@@ -485,14 +484,13 @@ class SetComprehension(ExpressionFormatter):
         try:
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width,
-                                                 blank_line=False,
                                                  parent=self.expr)
+            block.append_token(' ')
             block.merge(generators_block)
         except NotEnoughSpace:
             generators_block = format_generators(self.expr.generators,
                                                  width - len(indent),
                                                  parent=self.expr,
-                                                 blank_line=True,
                                                  force=force)
             block.extend(generators_block, indent)
         block.append_token('}')
@@ -624,9 +622,9 @@ class Generator(ExpressionFormatter):
         return block
 
 
-def format_generators(generators, width, parent, blank_line=False, force=False):
+def format_generators(generators, width, parent, force=False):
     block = CodeBlock()
-    for generator in generators:
+    for generator_number, generator in enumerate(generators):
         target_formatter = ExpressionFormatter.from_ast(generator.target,
                                                         parent=parent)
         iter_formatter = ExpressionFormatter.from_ast(generator.iter,
@@ -638,17 +636,15 @@ def format_generators(generators, width, parent, blank_line=False, force=False):
                            izip_longest(ifs_formatters, [], fillvalue='if'))
         for part, (formatter, separator) in enumerate(formatters):
             try:
-                if part == 0 and blank_line:
-                    s = '%s ' % separator
-                else:
-                    s = ' %s ' % separator
+                s = (' %s ' if part + generator_number > 0 else '%s ') % separator
                 formatter_block = formatter.format_code(width -
                                                         len(block.last_line) -
                                                         len(s))
                 block.append_token(s)
                 block.merge(formatter_block)
             except NotEnoughSpace:
-                s = '%s ' % separator
+                if part + generator_number > 0:
+                    s = '%s ' % separator
                 formatter_block = formatter.format_code(width - len(s),
                                                         force=force)
                 block.lines.append(CodeLine([s]))
@@ -679,14 +675,13 @@ class DictComprehension(ExpressionFormatter):
         try:
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width,
-                                                 blank_line=False,
                                                  parent=self.expr)
+            block.append_token(' ')
             block.merge(generators_block)
         except NotEnoughSpace:
             generators_block = format_generators(self.expr.generators,
                                                  width - len(indent),
                                                  parent=self.expr,
-                                                 blank_line=True,
                                                  force=force)
             block.extend(generators_block, indent)
         block.append_token('}')

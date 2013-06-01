@@ -236,8 +236,6 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
         code = '{x: fun(x) for i in range(10) if (i+1)%2 for x in range(i) if x>5}'
         expected = ('{x: fun(x) for i in range(10) if (i + 1) % 2 '
                     'for x in range(i) if x > 5}')
-        #print '\n', expected
-        #print '\n', format_code(code, width)
         self.assertEqual(format_code(code, len(expected)), expected)
 
     def test_nested_comprehensions_wrapping(self):
@@ -264,6 +262,15 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
         formatted = unicode(d.format_code(max(len(l) for l in expected.split('\n')),
                             force=True))
         self.assertEqual(formatted, expected)
+
+    def test_key_datum_list_half_wrapping(self):
+        code = '{process_id: status for process_id, status in services_status if status}'
+        expected = ('{process_id: status for process_id, status\n'
+                    '                    in services_status if status}')
+        width = max(len(l) for l in expected.split('\n'))
+        #print '\n', expected
+        #print '\n', format_code(code, width)
+        self.assertEqual(format_code(code, width), expected)
 
 
 class SetDisplaysTestCase(unittest.TestCase):
@@ -472,3 +479,4 @@ class SimpleStatementsTestCase(unittest.TestCase):
         code = 'return x+x'
         expected = 'return x + x'
         self.assertEqual(format_code(code), expected)
+
