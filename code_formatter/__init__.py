@@ -1,6 +1,5 @@
 import ast
 from itertools import chain, izip_longest
-import re
 
 
 class NotEnoughSpace(Exception):
@@ -27,8 +26,8 @@ class CodeLine(object):
     def __init__(self, tokens=None):
         self.tokens = tokens or []
 
-    def indent(self, indentation):
-        self.tokens.insert(0, indentation)
+    def indent(self, indent):
+        self.tokens.insert(0, indent)
         return self
 
     def append(self, token):
@@ -36,9 +35,6 @@ class CodeLine(object):
 
     def extend(self, tokens):
         return self.tokens.extend(tokens)
-
-    def is_blank(self):
-        return all(re.match('^\s*$', t) for t in self.tokens)
 
     def __len__(self):
         return sum((len(t) for t in self.tokens))
@@ -57,9 +53,9 @@ class CodeBlock(object):
         lines = [CodeLine(list(tokens))]
         return cls(lines)
 
-    def extend(self, block, indentation=None):
-        if indentation:
-            self.lines.extend((CodeLine([indentation] + l.tokens)
+    def extend(self, block, indent=None):
+        if indent:
+            self.lines.extend((CodeLine([indent] + l.tokens)
                                for l in block.lines))
         else:
             self.lines.extend((CodeLine(l.tokens)
@@ -76,10 +72,6 @@ class CodeBlock(object):
             line = CodeLine([indent])
             line.extend(original.tokens)
             self.lines.append(line)
-        return self
-
-    def append_token(self, token):
-        self.last_line.append(token)
         return self
 
     def append_tokens(self, *tokens):
@@ -471,7 +463,7 @@ class ListComprehension(ExpressionFormatter):
                                                  parent=self.expr,
                                                  force=force)
             block.extend(generators_block, indent)
-        block.append_token(']')
+        block.append_tokens(']')
         return block
 
 
@@ -498,11 +490,11 @@ class SetComprehension(ExpressionFormatter):
                                                  parent=self.expr,
                                                  force=force)
             block.extend(generators_block, indent)
-        block.append_token('}')
+        block.append_tokens('}')
         return block
 
 
-class IfExpressionFormatter(ExpressionFormatter):
+class IfExpression(ExpressionFormatter):
 
     ast_type = ast.IfExp
 
@@ -523,23 +515,8 @@ class IfExpressionFormatter(ExpressionFormatter):
         block.merge(orelse_block)
         return block
 
-class Assignment(ExpressionFormatter):
 
-    ast_type = ast.Assign
-
-    def format_code(self, width, force=False):
-        curr_line = CodeLine()
-        block = CodeBlock([curr_line])
-        for t in self.expr.targets:
-            curr_line.append(t.id)
-            curr_line.append(' = ')
-        value_formatter = ExpressionFormatter.from_ast(self.expr.value, self.expr)
-        block.merge(value_formatter.format_code(width - block.width,
-                                                force=force))
-        return block
-
-
-class Subscript(ExpressionFormatter):
+class Subscription(ExpressionFormatter):
 
     ast_type = ast.Subscript
 
@@ -552,6 +529,14 @@ class Subscript(ExpressionFormatter):
                                                 force=force))
         block.lines[-1].append(']')
         return block
+
+
+class Sice(ExpressionFormatter):
+
+    ast_type = ast.Slice
+
+    def format_code(self, width, force=False):
+        pass
 
 
 class Compare(ExpressionFormatter):
@@ -600,7 +585,7 @@ class Generator(ExpressionFormatter):
             block.extend(generators_block, indent)
 
         if with_brackets:
-            block.append_token(')')
+            block.append_tokens(')')
         # FIXME: raise exception
         return block
 
@@ -654,7 +639,7 @@ class DictComprehension(ExpressionFormatter):
         value_block = value_formatter.format_code(width - block.width -
                                                   len(separator), force=force)
         block.merge(key_block)
-        block.append_token(separator)
+        block.append_tokens(separator)
         block.merge(value_block)
 
         try:
@@ -668,7 +653,7 @@ class DictComprehension(ExpressionFormatter):
                                                  parent=self.expr,
                                                  force=force)
             block.extend(generators_block, indent)
-        block.append_token('}')
+        block.append_tokens('}')
         return block
 
 
@@ -684,12 +669,12 @@ class Tuple(ExpressionFormatter):
         expressions = [ExpressionFormatter.from_ast(v, self.expr)
                        for v in self.expr.elts]
         if with_brackets:
-            block.append_token('(')
+            block.append_tokens('(')
         expression_block = format_list_of_expressions(expressions,
                                                       width-block.width,
                                                       force=force)
         if expression_block.height > 1 and not with_brackets:
-            block.append_token('(')
+            block.append_tokens('(')
             with_brackets = True
             expression_block = format_list_of_expressions(expressions,
                                                           width-block.width,
@@ -698,9 +683,9 @@ class Tuple(ExpressionFormatter):
         # FIXME: to be 'super' consistent we should check last line
         #        and enforce reformatting... or change API somehow
         if len(self.expr.elts) == 1:
-            block.append_token(',')
+            block.append_tokens(',')
         if with_brackets:
-            block.append_token(')')
+            block.append_tokens(')')
         return block
 
 
@@ -751,7 +736,7 @@ class For(AstFormatter):
         iter_formatter = ExpressionFormatter.from_ast(self.expr.iter, self.expr)
         block.merge(iter_formatter.format_code(width - block.width - 1,
                                                force=force), separator=' ')
-        block.append_token(':')
+        block.append_tokens(':')
         for a in self.expr.body:
             formatter = AstFormatter.from_ast(a)
             block.extend(formatter.format_code(width-len(CodeLine.INDENT),
@@ -759,6 +744,48 @@ class For(AstFormatter):
         if not force and block.width > width:
             raise NotEnoughSpace()
         return block
+
+
+class Assignment(StatementFormatter):
+
+    ast_type = ast.Assign
+
+    def format_code(self, width, force=False):
+        block = CodeBlock()
+        for target in self.expr.targets:
+            target_formatter = ExpressionFormatter.from_ast(target,
+                                                            parent=self.expr)
+
+            block.merge(target_formatter.format_code(width - block.width - 3,
+                                                     force=force))
+            block.append_tokens(' = ')
+        value_formatter = ExpressionFormatter.from_ast(self.expr.value, self.expr)
+        block.merge(value_formatter.format_code(width - block.width,
+                                                force=force))
+        return block
+
+
+
+
+class KandRAstFormatter(AstFormatter):
+
+    _n2f = dict(AstFormatter._n2f)
+
+
+class KandRDict(KandRAstFormatter, Dict):
+
+    def format_code(self, width, force=False):
+        block = CodeBlock([CodeLine(['{'])])
+        expressions = [Dict.Item(k, v, self.expr)
+                       for k, v in zip(self.expr.keys,
+                                       self.expr.values)]
+        subblock = format_list_of_expressions(expressions=expressions,
+                                              width=width-block.width, force=force)
+        block.merge(subblock)
+        block.lines[-1].append('}')
+        return block
+
+
 
 def _format_code(code, width=80, AstFormatter=AstFormatter):
     tree = ast.parse(code)

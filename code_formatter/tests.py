@@ -1,7 +1,8 @@
 import ast
+import textwrap
 import unittest
 
-from . import CodeBlock, CodeLine, ExpressionFormatter, format_code
+from . import CodeBlock, CodeLine, ExpressionFormatter, format_code, KandRAstFormatter
 
 
 class AtomExpressionFormattersFormattingTestCase(unittest.TestCase):
@@ -101,6 +102,7 @@ class CallFormattingTestCase(unittest.TestCase):
         formatted = unicode(call.format_code(80))
         self.assertEqual(formatted, 'function_with_kwargs(argument_1=value, argument_2=value, '
                                                          'argument_3=value)')
+
     def test_kwargs_wrapping(self):
         code = 'function_with_kwargs(argument_1=value,     argument_2=value,argument_3=value)'
         expr = ast.parse(code).body[0].value
@@ -109,24 +111,6 @@ class CallFormattingTestCase(unittest.TestCase):
         self.assertEqual(formatted, 'function_with_kwargs(argument_1=value,\n'
                                     '                     argument_2=value,\n'
                                     '                     argument_3=value)')
-
-    def test_assignment_alignment(self):
-        code = 'x=y=z=8'
-        expr = ast.parse(code).body[0]
-        formatted = ExpressionFormatter.from_ast(expr).format_code(80)
-        self.assertEqual(unicode(formatted), 'x = y = z = 8')
-
-    def test_assignment_with_subexpressions(self):
-        code = ('x=y=z=function_with_kwargs(argument_1=value, argument_2=value,'
-                                           'argument_3=value)')
-        expected =  ('x = y = z = function_with_kwargs(argument_1=value,\n'
-                     '                                 argument_2=value,\n'
-                     '                                 argument_3=value)')
-        expr = ast.parse(code).body[0]
-        e = ExpressionFormatter.from_ast(expr)
-        formatted = unicode(e.format_code(max(len(l) for l in expected.split('\n')),
-                            force=True))
-        self.assertEqual(unicode(formatted), expected)
 
     def test_subscription(self):
         code = 'x=d [ "a" ] '
@@ -272,6 +256,36 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
         #print '\n', format_code(code, width)
         self.assertEqual(format_code(code, width), expected)
 
+    def test_key_datum_list_KandR_wrapping(self):
+        code = textwrap.dedent("""\
+            {"process_type=icecast&service_id=1": {"/": {"listeners": [],
+                                                        "metadata": "Hang Massive - Once Again",
+                                                        "mime": "audio/mpeg"}},
+            "process_type=icecast&service_id=2": {"/": {"listeners": [],
+                                                        "metadata": "Hang Massive - Once Again",
+                                                        "mime": "application/ogg"}}}""")
+        expected = textwrap.dedent("""\
+        {
+            "process_type=icecast&service_id=1": {
+                "/": {
+                    "listeners": [],
+                    "metadata": "Hang Massive - Once Again",
+                    "mime": "audio/mpeg"
+                }
+            },
+            "process_type=icecast&service_id=2": {
+                "/": {
+                    "listeners": [],
+                    "metadata": "Hang Massive - Once Again",
+                    "mime": "application/ogg"
+                }
+            }
+        }""")
+
+        width = max(len(l) for l in expected.split('\n'))
+        formatted = format_code(code, width=width, AstFormatter=KandRAstFormatter)
+        self.assertEqual(expected, formatted)
+
 
 class SetDisplaysTestCase(unittest.TestCase):
     """
@@ -291,6 +305,11 @@ class SetDisplaysTestCase(unittest.TestCase):
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
 
+    def test_alignment(self):
+        code = "{ 'a', 'b' }"
+        expected = "{'a', 'b'}"
+        self.assertEqual(format_code(code), expected)
+
 
 class AttributeRefTestCase(unittest.TestCase):
     """
@@ -304,6 +323,10 @@ class AttributeRefTestCase(unittest.TestCase):
                                ('nested.instance.attribute', 'nested.instance.attribute'),
                                ('[1,2,3,4][0].imag', '[1, 2, 3, 4][0].imag')]:
             self.assertEqual(format_code(code), expected)
+
+    def test_attribute_assignment(self):
+        self.assertEqual(format_code('instance.attribute   =  x'),
+                         'instance.attribute = x')
 
 
 class BinaryArithmeticOperationsTestCase(unittest.TestCase):
@@ -463,13 +486,87 @@ class ForTestCase(unittest.TestCase):
         self.assertEqual(format_code(code), expected)
 
 
+class ExpressionStatementTestCase(unittest.TestCase):
+    """
+    [6.1]
+    expression_stmt ::=  expression_list
+    """
+    def test_alignment(self):
+        code = '3,8+9,fun(x,y)'
+        expected = '3, 8+9, fun(x, y)'
+        self.assertEqual(format_code(code), expected)
+
+    def test_wrapping(self):
+        code = '3*8+10,8+9,fun(x,y)'
+        expected = ('(3 * 8 + 10,\n'
+                    ' 8+9,\n'
+                    ' fun(x, y))')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
+
+
+class AssignmentTestCase(unittest.TestCase):
+    """
+    [6.2]
+    assignment_stmt ::=  (target_list "=")+ (expression_list | yield_expression)
+    target_list     ::=  target ("," target)* [","]
+    target          ::=  identifier
+                         | "(" target_list ")"
+                         | "[" target_list "]"
+                         | attributeref
+                         | subscription
+                         | slicing
+    """
+
+    def test_identifires_target_list_aligment(self):
+        code = '(s,t,u) = x'
+        expected = 's, t, u = x'
+        self.assertEqual(format_code(code), expected)
+
+    def test_identifiers_target_list_wrapping(self):
+        code = 'var1, var2, var3 = x'
+        expected = ('(var1,\n'
+                    ' var2,\n'
+                    ' var3) = x')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
+
+    def test_attributeref_target_list_alignment(self):
+        code = '(i.s,i.t,i.u) = x'
+        expected = 'i.s, i.t, i.u = x'
+        self.assertEqual(format_code(code), expected)
+
+    def test_subscription_target_list_alignment(self):
+        code = '(i[ s ],i[t],i[u]) = x'
+        expected = 'i[s], i[t], i[u] = x'
+        self.assertEqual(format_code(code), expected)
+
+    def test_slicing_target_list_alignment(self):
+        code = '(i[ s :  ],i[t : u],i[:]) = x'
+        expected = 'i[s:], i[t:u], i[:] = x'
+        self.assertEqual(format_code(code), expected)
+
+    def test_multi_target_list_alignment(self):
+        code = 's,t=u,v=z=x'
+        self.assertEqual(format_code(code), 's, t = u, v = z = x')
+
+
+class AugmentAssignmentTestCase(unittest.TestCase):
+    """
+    [6.2.1]
+    augmented_assignment_stmt ::=  augtarget augop (expression_list | yield_expression)
+    augtarget                 ::=  identifier | attributeref | subscription | slicing
+    augop                     ::=  "+=" | "-=" | "*=" | "/=" | "//=" | "%=" | "**="
+                                   | ">>=" | "<<=" | "&=" | "^=" | "|="
+    """
+    def test_aligment(self):
+        raise NotImplementedError()
+
+
 class SimpleStatementsTestCase(unittest.TestCase):
     """
-    [6]
-     simple_stmt ::=  expression_stmt
-                    | assert_stmt
-                    | assignment_stmt
-                    | augmented_assignment_stmt
+    [6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10, 6.11]
+     simple_stmt ::=  assert_stmt
                     | pass_stmt
                     | del_stmt
                     | print_stmt
@@ -491,4 +588,5 @@ class SimpleStatementsTestCase(unittest.TestCase):
         code = 'return x+x'
         expected = 'return x + x'
         self.assertEqual(format_code(code), expected)
+
 
