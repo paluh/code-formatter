@@ -318,6 +318,12 @@ class AttributeRefTestCase(unittest.TestCase):
     attributeref ::=  primary "." identifier
     """
 
+    d = {
+        'aalsdkfjalsdfkja': {'c': 1,
+                             'd': 2},
+        'b': 2
+    }
+
     def test_formatting(self):
         for code, expected in [('instance.attribute', 'instance.attribute'),
                                ('nested.instance.attribute', 'nested.instance.attribute'),
@@ -455,6 +461,20 @@ class ConditionalExpressionsTestCase(unittest.TestCase):
         self.assertEqual(format_code('x if    c   else y'),
                          'x if c else y')
 
+class LambdasTestCase(unittest.TestCase):
+    # FIXME: test old_lambda_form branch
+    """
+    [5.12] - parameter_list related tests are
+             placed in FuncionDefinitionTestCase
+
+    lambda_form     ::=  "lambda" [parameter_list]: expression
+    old_lambda_form ::=  "lambda" [parameter_list]: old_expression
+    """
+    def test_aligment(self):
+        code = 'lambda x,y,z:x+y+z'
+        expected = 'lambda x, y, z: x + y + z'
+        self.assertEqual(format_code(code), expected)
+
 
 class TupleTestCase(unittest.TestCase):
     """
@@ -589,4 +609,38 @@ class SimpleStatementsTestCase(unittest.TestCase):
         expected = 'return x + x'
         self.assertEqual(format_code(code), expected)
 
+
+class FunctionDefinitionTestCase(unittest.TestCase):
+    """
+    [7.6]
+    decorated      ::=  decorators (classdef | funcdef)
+    decorators     ::=  decorator+
+    decorator      ::=  "@" dotted_name ["(" [argument_list [","]] ")"] NEWLINE
+    funcdef        ::=  "def" funcname "(" [parameter_list] ")" ":" suite
+    dotted_name    ::=  identifier ("." identifier)*
+    parameter_list ::=  (defparameter ",")*
+                        (  "*" identifier ["," "**" identifier]
+                        | "**" identifier
+                        | defparameter [","] )
+    defparameter   ::=  parameter ["=" expression]
+    sublist        ::=  parameter ("," parameter)* [","]
+    parameter      ::=  identifier | "(" sublist ")"
+    funcname       ::=  identifier
+    """
+    def test_identifiers_parameter_list_alignment(self):
+        code = ('def fun(x,y,z):\n'
+                '    pass')
+        expected = ('def fun(x, y, z):\n'
+                    '    pass')
+        self.assertEqual(format_code(code), expected)
+
+    def test_identifiers_parameter_list_wrapping(self):
+        code = ('def fun(x,y,z):\n'
+                '    pass')
+        expected = ('def fun(x,\n'
+                    '        y,\n'
+                    '        z):\n'
+                    '    pass')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
 

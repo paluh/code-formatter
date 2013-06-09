@@ -392,7 +392,7 @@ class Call(ExpressionFormatter):
         return block
 
 
-class Dict(ExpressionFormatter):
+class DictFormatter(ExpressionFormatter):
 
     ast_type = ast.Dict
 
@@ -414,7 +414,7 @@ class Dict(ExpressionFormatter):
 
     def format_code(self, width, force=False):
         block = CodeBlock([CodeLine(['{'])])
-        expressions = [Dict.Item(k, v, self.expr)
+        expressions = [DictFormatter.Item(k, v, self.expr)
                        for k, v in zip(self.expr.keys,
                                        self.expr.values)]
         subblock = format_list_of_expressions(expressions=expressions,
@@ -424,7 +424,7 @@ class Dict(ExpressionFormatter):
         return block
 
 
-class List(ExpressionFormatter):
+class ListFormatter(ExpressionFormatter):
 
     ast_type = ast.List
 
@@ -440,7 +440,7 @@ class List(ExpressionFormatter):
         return block
 
 
-class ListComprehension(ExpressionFormatter):
+class ListComprehensionFormatter(ExpressionFormatter):
 
     ast_type = ast.ListComp
 
@@ -467,7 +467,7 @@ class ListComprehension(ExpressionFormatter):
         return block
 
 
-class SetComprehension(ExpressionFormatter):
+class SetComprehensionFormatter(ExpressionFormatter):
 
     ast_type = ast.SetComp
 
@@ -689,6 +689,46 @@ class Tuple(ExpressionFormatter):
         return block
 
 
+class ParameterListFormatter(AstFormatter):
+
+    ast_type = ast.arguments
+
+    def format_code(self, width, force=False):
+        block = CodeBlock()
+        for n, arg in enumerate(self.expr.args):
+            # FIXME: move to next line
+            arg_formatter = AstFormatter.from_ast(arg)
+            try:
+                arg_block = arg_formatter.format_code(width - block.width - 2,
+                                                      force=False)
+                if n > 0:
+                    block.append_tokens(',', ' ')
+                block.merge(arg_block)
+            except NotEnoughSpace:
+                if n > 0:
+                    block.append_tokens(',')
+                arg_block = arg_formatter.format_code(width, force=force)
+                block.extend(arg_block)
+        return block
+
+
+class LambdaFormatter(ExpressionFormatter):
+
+    ast_type = ast.Lambda
+
+    def format_code(self, width, force=False):
+        block = CodeBlock.from_tokens('lambda', ' ')
+        parameter_list_formatter = AstFormatter.from_ast(self.expr.args)
+        block.merge(parameter_list_formatter.format_code(width-block.width))
+        block.append_tokens(':', ' ')
+        subexpression_formatter = AstFormatter.from_ast(self.expr.body)
+        block.merge(subexpression_formatter.format_code(width - block.width,
+                                                        force=force))
+        if block.width > width:
+            raise NotEnoughSpace()
+        return block
+
+
 class StatementFormatter(AstFormatter):
 
     pass
@@ -721,7 +761,7 @@ class ReturnFormatter(StatementFormatter):
         return block
 
 
-class For(AstFormatter):
+class ForFormatter(StatementFormatter):
 
     ast_type = ast.For
 
@@ -746,7 +786,7 @@ class For(AstFormatter):
         return block
 
 
-class Assignment(StatementFormatter):
+class AssignmentFormatter(StatementFormatter):
 
     ast_type = ast.Assign
 
@@ -765,6 +805,25 @@ class Assignment(StatementFormatter):
         return block
 
 
+class FunctionDefinitionFormatter(StatementFormatter):
+
+    ast_type = ast.FunctionDef
+
+    def format_code(self, width, force=False):
+        block = CodeBlock.from_tokens('def', ' ', self.expr.name, '(')
+        parameter_list_formatter = AstFormatter.from_ast(self.expr.args)
+        # FIXME: this will be precise formatting when we move to new
+        #        format_code API: format_code(block_width, first_line_width=None,
+        #                                     suffix=None, force=False):
+        block.merge(parameter_list_formatter.format_code(width-block.width))
+        block.append_tokens('):')
+        for subexpression in self.expr.body:
+            subexpression_formatter = AstFormatter.from_ast(subexpression)
+            block.extend(subexpression_formatter.format_code(width - len(CodeLine.INDENT),
+                                                             force=force), CodeLine.INDENT)
+        if block.width > width:
+            raise NotEnoughSpace()
+        return block
 
 
 class KandRAstFormatter(AstFormatter):
@@ -772,11 +831,11 @@ class KandRAstFormatter(AstFormatter):
     _n2f = dict(AstFormatter._n2f)
 
 
-class KandRDict(KandRAstFormatter, Dict):
+class KandRDict(KandRAstFormatter, DictFormatter):
 
     def format_code(self, width, force=False):
         block = CodeBlock([CodeLine(['{'])])
-        expressions = [Dict.Item(k, v, self.expr)
+        expressions = [DictFormatter.Item(k, v, self.expr)
                        for k, v in zip(self.expr.keys,
                                        self.expr.values)]
         subblock = format_list_of_expressions(expressions=expressions,
