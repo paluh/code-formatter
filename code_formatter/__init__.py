@@ -1,6 +1,5 @@
 import ast
 from itertools import chain, izip_longest
-from operator import attrgetter
 
 
 class NotEnoughSpace(Exception):
@@ -382,11 +381,29 @@ class Call(ExpressionFormatter):
             block.merge(expression_block)
             return block
 
+    class StarArgsFormatter(object):
+
+        def __init__(self, subexpression, prefix):
+            self.subexpression = subexpression
+            self.prefix = prefix
+
+        def format_code(self, width, force=False):
+            block = CodeBlock.from_tokens(self.prefix)
+            subexpression_formatter = ExpressionFormatter.from_ast(self.subexpression)
+            block.merge(subexpression_formatter.format_code(width - block.width,
+                                                            force=force))
+            return block
+
+
     def format_code(self, width, force=False):
         block = ExpressionFormatter.from_ast(self.expr.func).format_code(width, force=force)
         block.lines[-1].append('(')
-        expressions = [ExpressionFormatter.from_ast(e, self.expr)
-                       for e in chain(self.expr.args, self.expr.keywords)]
+        expressions = [ExpressionFormatter.from_ast(e, self.expr) for e in self.expr.args]
+        if self.expr.starargs:
+            expressions.append(Call.StarArgsFormatter(self.expr.starargs, '*'))
+        expressions += [ExpressionFormatter.from_ast(e, self.expr) for e in self.expr.keywords]
+        if self.expr.kwargs:
+            expressions.append(Call.StarArgsFormatter(self.expr.kwargs, '**'))
         subblock = format_list_of_expressions(expressions, width-block.width, force=force)
         block.merge(subblock)
         block.lines[-1].append(')')
@@ -807,7 +824,7 @@ class ImportFormatterBase(StatementFormatter):
     def format_aliases(self, width, force):
         block = CodeBlock()
         aliases = sorted([ImportFormatterBase.AliasFormatter.from_ast(alias)
-                          for alias in self.expr.names], key=attrgetter('name'))
+                          for alias in self.expr.names], key=lambda a: a.name.lower())
         aliases_block = format_list_of_expressions(aliases, width,
                                                    force)
         if aliases_block.height > 1:
