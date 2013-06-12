@@ -1,5 +1,6 @@
 import ast
 from itertools import chain, izip_longest
+from operator import attrgetter
 
 
 class NotEnoughSpace(Exception):
@@ -464,6 +465,26 @@ class ListComprehensionFormatter(ExpressionFormatter):
                                                  force=force)
             block.extend(generators_block, indent)
         block.append_tokens(']')
+        if not force and block.width > width:
+            raise NotEnoughSpace()
+        return block
+
+
+class SetFormatter(ExpressionFormatter):
+
+    ast_type = ast.Set
+
+    def format_code(self, width, force=False):
+        block = CodeBlock([CodeLine(['{'])])
+        expressions = [ExpressionFormatter.from_ast(v, self.expr)
+                       for v in self.expr.elts]
+        subblock = format_list_of_expressions(expressions=expressions,
+                                              width=width-block.width,
+                                              force=force)
+        block.merge(subblock)
+        block.lines[-1].append('}')
+        if not force and block.width > width:
+            raise NotEnoughSpace()
         return block
 
 
@@ -663,7 +684,8 @@ class Tuple(ExpressionFormatter):
 
     def format_code(self, width, force=False):
         with_brackets = (isinstance(self.parent, (ast.Tuple, ast.Call,
-                                                  ast.List, ast.BinOp)) or
+                                                  ast.List, ast.BinOp,
+                                                  ast.ListComp)) or
                          len(self.expr.elts) < 2)
         block = CodeBlock()
         expressions = [ExpressionFormatter.from_ast(v, self.expr)
@@ -717,14 +739,17 @@ class LambdaFormatter(ExpressionFormatter):
     ast_type = ast.Lambda
 
     def format_code(self, width, force=False):
-        block = CodeBlock.from_tokens('lambda', ' ')
+        block = CodeBlock.from_tokens('lambda')
         parameter_list_formatter = AstFormatter.from_ast(self.expr.args)
-        block.merge(parameter_list_formatter.format_code(width-block.width))
+        parameter_list_block = parameter_list_formatter.format_code(width-block.width)
+        if parameter_list_block.width > 0:
+            block.append_tokens(' ')
+            block.merge(parameter_list_formatter.format_code(width-block.width))
         block.append_tokens(':', ' ')
         subexpression_formatter = AstFormatter.from_ast(self.expr.body)
         block.merge(subexpression_formatter.format_code(width - block.width,
                                                         force=force))
-        if block.width > width:
+        if not force and block.width > width:
             raise NotEnoughSpace()
         return block
 
@@ -740,7 +765,7 @@ class PassFormatter(StatementFormatter):
 
     def format_code(self, width, force=False):
         block = CodeBlock.from_tokens('pass')
-        if block.width > width:
+        if not force and block.width > width:
             raise NotEnoughSpace
         return block
 
@@ -756,8 +781,67 @@ class ReturnFormatter(StatementFormatter):
                                                             block.width - 1,
                                                             force=force)
         block.merge(expression_block, separator=' ')
-        if block.width > width:
+        if not force and block.width > width:
             raise NotEnoughSpace
+        return block
+
+
+class ImportFormatterBase(StatementFormatter):
+
+    class AliasFormatter(StatementFormatter):
+
+        ast_type = ast.alias
+
+        @property
+        def name(self):
+            return self.expr.name
+
+        def format_code(self, width, force=False):
+            block = CodeBlock.from_tokens(self.expr.name)
+            if self.expr.asname:
+                block.append_tokens('as', ' ', self.expr.asname)
+            if not force and block.width > width:
+                raise NotEnoughSpace()
+            return block
+
+    def format_aliases(self, width, force):
+        block = CodeBlock()
+        aliases = sorted([ImportFormatterBase.AliasFormatter.from_ast(alias)
+                          for alias in self.expr.names], key=attrgetter('name'))
+        aliases_block = format_list_of_expressions(aliases, width,
+                                                   force)
+        if aliases_block.height > 1:
+            block.append_tokens('(')
+            aliases_block = format_list_of_expressions(aliases, width-block.width,
+                                                       force=force)
+            block.merge(aliases_block)
+            block.append_tokens(')')
+        else:
+            block.merge(aliases_block)
+        return block
+
+
+class ImportFormatter(ImportFormatterBase):
+
+    ast_type = ast.Import
+
+    def format_code(self, width, force=False):
+        block = CodeBlock.from_tokens('import', ' ')
+        block.merge(self.format_aliases(width-block.width, force=force))
+        if not force and block.width > width:
+            raise NotEnoughSpace()
+        return block
+
+
+class ImportFromFormatter(ImportFormatterBase):
+
+    ast_type = ast.ImportFrom
+
+    def format_code(self, width, force=False):
+        block = CodeBlock.from_tokens('from', ' ', self.expr.module, ' ', 'import', ' ')
+        block.merge(self.format_aliases(width-block.width, force=force))
+        if not force and block.width > width:
+            raise NotEnoughSpace()
         return block
 
 
@@ -821,7 +905,7 @@ class FunctionDefinitionFormatter(StatementFormatter):
             subexpression_formatter = AstFormatter.from_ast(subexpression)
             block.extend(subexpression_formatter.format_code(width - len(CodeLine.INDENT),
                                                              force=force), CodeLine.INDENT)
-        if block.width > width:
+        if not force and block.width > width:
             raise NotEnoughSpace()
         return block
 

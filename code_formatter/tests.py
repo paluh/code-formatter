@@ -1,8 +1,7 @@
 import ast
-import textwrap
 import unittest
 
-from . import CodeBlock, CodeLine, ExpressionFormatter, format_code, KandRAstFormatter
+from . import CodeBlock, CodeLine, ExpressionFormatter, format_code
 
 
 class AtomExpressionFormattersFormattingTestCase(unittest.TestCase):
@@ -164,6 +163,10 @@ class ListDisplaysTestCase(unittest.TestCase):
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
 
+    def test_tuple_brackets_are_preserved(self):
+        code = '[(x, y) for (x, y) in iterable]'
+        self.assertEqual(format_code(code), code)
+
 
 class GeneratorExpressionsTestCase(unittest.TestCase):
     """
@@ -256,35 +259,36 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
         #print '\n', format_code(code, width)
         self.assertEqual(format_code(code, width), expected)
 
-    def test_key_datum_list_KandR_wrapping(self):
-        code = textwrap.dedent("""\
-            {"process_type=icecast&service_id=1": {"/": {"listeners": [],
-                                                        "metadata": "Hang Massive - Once Again",
-                                                        "mime": "audio/mpeg"}},
-            "process_type=icecast&service_id=2": {"/": {"listeners": [],
-                                                        "metadata": "Hang Massive - Once Again",
-                                                        "mime": "application/ogg"}}}""")
-        expected = textwrap.dedent("""\
-        {
-            "process_type=icecast&service_id=1": {
-                "/": {
-                    "listeners": [],
-                    "metadata": "Hang Massive - Once Again",
-                    "mime": "audio/mpeg"
-                }
-            },
-            "process_type=icecast&service_id=2": {
-                "/": {
-                    "listeners": [],
-                    "metadata": "Hang Massive - Once Again",
-                    "mime": "application/ogg"
-                }
-            }
-        }""")
+    # FIXME: separate other formatters tests
+    #def test_key_datum_list_KandR_wrapping(self):
+    #    code = textwrap.dedent("""\
+    #        {"process_type=icecast&service_id=1": {"/": {"listeners": [],
+    #                                                    "metadata": "Hang Massive - Once Again",
+    #                                                    "mime": "audio/mpeg"}},
+    #        "process_type=icecast&service_id=2": {"/": {"listeners": [],
+    #                                                    "metadata": "Hang Massive - Once Again",
+    #                                                    "mime": "application/ogg"}}}""")
+    #    expected = textwrap.dedent("""\
+    #    {
+    #        "process_type=icecast&service_id=1": {
+    #            "/": {
+    #                "listeners": [],
+    #                "metadata": "Hang Massive - Once Again",
+    #                "mime": "audio/mpeg"
+    #            }
+    #        },
+    #        "process_type=icecast&service_id=2": {
+    #            "/": {
+    #                "listeners": [],
+    #                "metadata": "Hang Massive - Once Again",
+    #                "mime": "application/ogg"
+    #            }
+    #        }
+    #    }""")
 
-        width = max(len(l) for l in expected.split('\n'))
-        formatted = format_code(code, width=width, AstFormatter=KandRAstFormatter)
-        self.assertEqual(expected, formatted)
+    #    width = max(len(l) for l in expected.split('\n'))
+    #    formatted = format_code(code, width=width, AstFormatter=KandRAstFormatter)
+    #    self.assertEqual(expected, formatted)
 
 
 class SetDisplaysTestCase(unittest.TestCase):
@@ -309,6 +313,13 @@ class SetDisplaysTestCase(unittest.TestCase):
         code = "{ 'a', 'b' }"
         expected = "{'a', 'b'}"
         self.assertEqual(format_code(code), expected)
+
+    def test_wrapping(self):
+        code = "{ 'a', 'b' }"
+        expected = ("{'a',\n"
+                    " 'b'}")
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
 
 
 class AttributeRefTestCase(unittest.TestCase):
@@ -475,6 +486,11 @@ class LambdasTestCase(unittest.TestCase):
         expected = 'lambda x, y, z: x + y + z'
         self.assertEqual(format_code(code), expected)
 
+    def test_aligment_without_args(self):
+        code = 'lambda : 8'
+        expected = 'lambda: 8'
+        self.assertEqual(format_code(code), expected)
+
 
 class TupleTestCase(unittest.TestCase):
     """
@@ -513,13 +529,13 @@ class ExpressionStatementTestCase(unittest.TestCase):
     """
     def test_alignment(self):
         code = '3,8+9,fun(x,y)'
-        expected = '3, 8+9, fun(x, y)'
+        expected = '3, 8 + 9, fun(x, y)'
         self.assertEqual(format_code(code), expected)
 
     def test_wrapping(self):
         code = '3*8+10,8+9,fun(x,y)'
         expected = ('(3 * 8 + 10,\n'
-                    ' 8+9,\n'
+                    ' 8 + 9,\n'
                     ' fun(x, y))')
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
@@ -585,29 +601,76 @@ class AugmentAssignmentTestCase(unittest.TestCase):
 
 class SimpleStatementsTestCase(unittest.TestCase):
     """
-    [6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10, 6.11]
-     simple_stmt ::=  assert_stmt
-                    | pass_stmt
-                    | del_stmt
-                    | print_stmt
-                    | return_stmt
-                    | yield_stmt
-                    | raise_stmt
-                    | break_stmt
-                    | continue_stmt
-                    | import_stmt
-                    | global_stmt
-                    | exec_stmt
+    [6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10, 6.11, 6.13]
+    simple_stmt ::=  assert_stmt
+                     | pass_stmt
+                     | del_stmt
+                     | print_stmt
+                     | return_stmt
+                     | yield_stmt
+                     | raise_stmt
+                     | break_stmt
+                     | continue_stmt
+                     | global_stmt
+                     | exec_stmt
     """
 
     def test_return_statement(self):
         """
-        [6.7]
         return_stmt ::=  "return" [expression_list]
         """
         code = 'return x+x'
         expected = 'return x + x'
         self.assertEqual(format_code(code), expected)
+
+
+class ImportStatementTestCase(unittest.TestCase):
+    """
+    [6.12]
+    import_stmt     ::=  "import" module ["as" name] ( "," module ["as" name] )*
+                         | "from" relative_module "import" identifier ["as" name]
+                         ( "," identifier ["as" name] )*
+                         | "from" relative_module "import" "(" identifier ["as" name]
+                         ( "," identifier ["as" name] )* [","] ")"
+                         | "from" module "import" "*"
+    module          ::=  (identifier ".")* identifier
+    relative_module ::=  "."* module | "."+
+    name            ::=  identifier
+    """
+
+    def test_simple_form_alignment(self):
+        code = 'import    module'
+        expected = 'import module'
+        self.assertEqual(format_code(code), expected)
+
+    def test_from_form_aligment(self):
+        code = 'from  module  import Class1  , Class2 , Class3'
+        expected = 'from module import Class1, Class2, Class3'
+        self.assertEqual(format_code(code), expected)
+
+    def test_simple_form_sorting(self):
+        code = 'import module3, module2, module1'
+        expected = 'import module1, module2, module3'
+        self.assertEqual(format_code(code), expected)
+
+    def test_from_form_sorting(self):
+        code = 'from  module  import Class3, Class2 , Class1'
+        expected = 'from module import Class1, Class2, Class3'
+        self.assertEqual(format_code(code), expected)
+
+    def test_simple_form_wrapping(self):
+        code = 'import    module1, module2, module3, module4'
+        expected = ('import (module1, module2,\n'
+                    '        module3, module4)')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
+
+    def test_from_form_wrapping(self):
+        code = 'from module import Class1, Class2, Class3, Class4'
+        expected = ('from module import (Class1, Class2,\n'
+                    '                    Class3, Class4)')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
 
 
 class FunctionDefinitionTestCase(unittest.TestCase):
