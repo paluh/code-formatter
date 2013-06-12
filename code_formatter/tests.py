@@ -648,6 +648,11 @@ class ImportStatementTestCase(unittest.TestCase):
         expected = 'from module import Class1, Class2, Class3'
         self.assertEqual(format_code(code), expected)
 
+    def test_from_form_with_asterisk_alignment(self):
+        code = 'from  module  import *'
+        expected = 'from module import *'
+        self.assertEqual(format_code(code), expected)
+
     def test_simple_form_sorting(self):
         code = 'import module3, module2, module1'
         expected = 'import module1, module2, module3'
