@@ -414,6 +414,34 @@ class BinaryArithmeticOperationsTestCase(unittest.TestCase):
         self.assertEqual(format_code(code), expected)
 
 
+class BinaryBitwiseOperation(unittest.TestCase):
+    """
+    [5.8]
+    and_expr ::=  shift_expr | and_expr "&" shift_expr
+    xor_expr ::=  and_expr | xor_expr "^" and_expr
+    or_expr  ::=  xor_expr | or_expr "|" xor_expr
+    """
+
+    def test_alignment(self):
+        code = '8  |  4'
+        expected = '8 | 4'
+        self.assertEqual(format_code(code), expected)
+
+    def test_wrapping(self):
+        code = '88 | 44'
+        expected = ('(88 |\n'
+                    ' 44)')
+        width = max(len(l) for l in expected.split('\n'))
+        #print '\n', expected
+        #print '\n', format_code(code, width)
+        self.assertEqual(format_code(code, width), expected)
+
+    def test_brackets_usage(self):
+        code = '(((8 | 4) & (8 | 7)) ^ 3)'
+        expected = '((8 | 4) & (8 | 7)) ^ 3'
+        self.assertEqual(format_code(code), expected)
+
+
 class ComparisonsTestCase(unittest.TestCase):
     """
     [5.9]
@@ -451,6 +479,21 @@ class ComparisonsTestCase(unittest.TestCase):
                                                                               'spc': len(opt)*' '})
             width = max(len(l) for l in expected.split('\n'))
             self.assertEqual(format_code(code, width), expected)
+
+    def test_brackets_usage_with_mixed_expression(self):
+        code = '(x < y) | (z < v)'
+        expected = ('((x < y) |\n'
+                    ' (z < v))')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
+
+
+    def test_brackets_usage_in_assignemnt(self):
+        code = 'r = (x < y) | (z < v)'
+        expected = ('r = ((x < y) |\n'
+                    '     (z < v))')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
 
 
 class BooleanOperationsTestCase(unittest.TestCase):

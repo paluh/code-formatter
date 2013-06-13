@@ -119,7 +119,7 @@ class AstFormatter(object):
     def from_ast(cls, expr, parent=None, **extra):
         try:
             FormatterClass = cls._n2f[type(expr)]
-            assert issubclass(FormatterClass, cls)
+            assert issubclass(FormatterClass, cls), ('%s is not subclass of %s' % (cls, FormatterClass))
             return FormatterClass(expr, parent=parent, **extra)
         except KeyError:
             raise UnknownNodeType(expr)
@@ -173,28 +173,28 @@ class Operator(Atom):
         return self.operator
 
 
-for ast_type, operator, priority in [(ast.Mult, '*', 6),
-                                     (ast.FloorDiv, '//', 6),
-                                     (ast.Div, '/', 6),
-                                     (ast.Mod, '%', 6),
-                                     (ast.Add, '+', 5),
-                                     (ast.Sub, '-', 5),
-                                     (ast.BitXor, '^', 4),
-                                     (ast.BitAnd, '&', 3),
-                                     (ast.BitOr, '|', 2),
-                                     (ast.Gt, '>', 1),
-                                     (ast.GtE, '>=', 1),
-                                     (ast.Lt, '<', 1),
-                                     (ast.LtE, '<=', 1),
-                                     (ast.Eq, '==', 1),
-                                     (ast.NotEq, '!=', 1),
-                                     (ast.Is, 'is', 1),
-                                     (ast.IsNot, 'is not', 1),
-                                     (ast.In, 'in', 1),
-                                     (ast.NotIn, 'not in', 1),
-                                     (ast.Or, 'or', 0),
-                                     (ast.And, 'and', 0),
-                                     (ast.Not, 'not', 0)]:
+for priority, ast_type, operator in [(6, ast.Mult, '*'),
+                                     (6, ast.FloorDiv, '//'),
+                                     (6, ast.Div, '/'),
+                                     (6, ast.Mod, '%'),
+                                     (5, ast.Add, '+'),
+                                     (5, ast.Sub, '-'),
+                                     (4, ast.BitXor, '^'),
+                                     (3, ast.BitAnd, '&'),
+                                     (2, ast.BitOr, '|'),
+                                     (1, ast.Gt, '>'),
+                                     (1, ast.GtE, '>='),
+                                     (1, ast.Lt, '<'),
+                                     (1, ast.LtE, '<='),
+                                     (1, ast.Eq, '=='),
+                                     (1, ast.NotEq, '!='),
+                                     (1, ast.Is, 'is'),
+                                     (1, ast.IsNot, 'is not'),
+                                     (1, ast.In, 'in'),
+                                     (1, ast.NotIn, 'not in'),
+                                     (0, ast.Or, 'or'),
+                                     (0, ast.And, 'and'),
+                                     (0, ast.Not, 'not')]:
     type(ast_type.__name__, (Operator,), {'ast_type': ast_type,
                                        'operator': operator,
                                        'priority': priority})
@@ -210,7 +210,7 @@ class OperationFormatter(ExpressionFormatter):
         with_brackets = False
         if self.parent:
             # FIXME: parent should be already Formatter instance
-            parent_formatter = ExpressionFormatter.from_ast(self.parent)
+            parent_formatter = AstFormatter.from_ast(self.parent)
             with_brackets = (isinstance(parent_formatter, OperationFormatter) and
                              parent_formatter.priority > self.priority)
         return with_brackets
@@ -279,12 +279,12 @@ class BinaryArithmeticOperation(OperationFormatter):
             return block, right_block
         with_brackets = self.should_force_brackets()
         block, right_subblock = _format_code(with_brackets)
-        if not self.parent and block.height > 1 and right_subblock.height != block.height:
+        if ((not self.parent or not isinstance(AstFormatter.from_ast(self.parent), OperationFormatter)) and
+                block.height > 1 and right_subblock.height != block.height):
             block, _ = _format_code(True)
         if not force and block.width > width:
             raise NotEnoughSpace()
         return block
-
 
 
 class Compare(OperationFormatter):
@@ -316,6 +316,10 @@ class Compare(OperationFormatter):
 class BooleanOperation(OperationFormatter):
 
     ast_type = ast.BoolOp
+
+    @property
+    def priority(self):
+        return AstFormatter.from_ast(self.expr.op, self.expr).priority
 
     def format_code(self, width, force=False):
         def _format_code(with_brackets):
@@ -724,7 +728,7 @@ class DictComprehension(ExpressionFormatter):
         return block
 
 
-class Tuple(ExpressionFormatter):
+class TupleFormatter(ExpressionFormatter):
 
     ast_type = ast.Tuple
 
