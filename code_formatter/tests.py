@@ -185,8 +185,6 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
         expected = ('{process_id: status for process_id, status\n'
                     '                    in services_status if status}')
         width = max(len(l) for l in expected.split('\n'))
-        #print '\n', expected
-        #print '\n', format_code(code, width)
         self.assertEqual(format_code(code, width), expected)
 
     # FIXME: separate other formatters tests
@@ -429,17 +427,18 @@ class ComparisonsTestCase(unittest.TestCase):
                     'is', 'is not', 'in', 'not in']:
             code = '(x %s\ny)' % opt
             expected = 'x %s y' % opt
-            self.assertEqual(format_code(code, 2), expected)
+            self.assertEqual(format_code(code), expected)
 
     def test_wrapping(self):
         for opt in ['<' , '>' , '==' , '>=' , '<=' , '!=',
                     'is', 'is not', 'in', 'not in']:
             code = 'fun(x, y, z) %s fun(m, n, o)' % opt
+            operator_spacing = len(opt) * ' '
             expected = ('fun(x,\n'
                         '    y,\n'
                         '    z) %s fun(m,\n'
                         '       %s     n,\n'
-                        '       %s     o)' % (opt, len(opt)*' ', len(opt)*' '))
+                        '       %s     o)' % (opt, operator_spacing, operator_spacing))
             self.assertEqual(format_code(code, 2), expected)
 
     def test_multi_opt_wrapping(self):

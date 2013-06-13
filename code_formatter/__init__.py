@@ -164,29 +164,66 @@ class Name(Atom):
         return unicode(self.expr.id)
 
 
-class Op(Atom):
+class Operator(Atom):
+
+    operator = None
+    priority = 0
 
     def _format_code(self):
         return self.operator
 
 
-for ast_type, operator in [(ast.Gt, '>'), (ast.GtE, '>='),
-                           (ast.Lt, '<'), (ast.LtE, '<='),
-                           (ast.Eq, '=='), (ast.NotEq, '!='),
-                           (ast.Is, 'is'), (ast.IsNot, 'is not'),
-                           (ast.In, 'in'), (ast.NotIn, 'not in')]:
-    type(ast_type.__name__, (Op,), {'ast_type': ast_type,
-                                    'operator': operator})
+for ast_type, operator, priority in [(ast.Mult, '*', 6),
+                                     (ast.FloorDiv, '//', 6),
+                                     (ast.Div, '/', 6),
+                                     (ast.Mod, '%', 6),
+                                     (ast.Add, '+', 5),
+                                     (ast.Sub, '-', 5),
+                                     (ast.BitXor, '^', 4),
+                                     (ast.BitAnd, '&', 3),
+                                     (ast.BitOr, '|', 2),
+                                     (ast.Gt, '>', 1),
+                                     (ast.GtE, '>=', 1),
+                                     (ast.Lt, '<', 1),
+                                     (ast.LtE, '<=', 1),
+                                     (ast.Eq, '==', 1),
+                                     (ast.NotEq, '!=', 1),
+                                     (ast.Is, 'is', 1),
+                                     (ast.IsNot, 'is not', 1),
+                                     (ast.In, 'in', 1),
+                                     (ast.NotIn, 'not in', 1),
+                                     (ast.Or, 'or', 0),
+                                     (ast.And, 'and', 0),
+                                     (ast.Not, 'not', 0)]:
+    type(ast_type.__name__, (Operator,), {'ast_type': ast_type,
+                                       'operator': operator,
+                                       'priority': priority})
 
-for ast_type, operator in [(ast.Or, 'or'), (ast.And, 'and'),
-                           (ast.Not, 'not')]:
-    type(ast_type.__name__, (Op,), {'ast_type': ast_type,
-                                    'operator': operator})
 
-class UnaryOperand(ExpressionFormatter):
+class OperationFormatter(ExpressionFormatter):
+
+    @property
+    def priority(self):
+        raise NotImplementedError()
+
+    def should_force_brackets(self):
+        with_brackets = False
+        if self.parent:
+            # FIXME: parent should be already Formatter instance
+            parent_formatter = ExpressionFormatter.from_ast(self.parent)
+            with_brackets = (isinstance(parent_formatter, OperationFormatter) and
+                             parent_formatter.priority > self.priority)
+        return with_brackets
+
+
+class UnaryOperation(OperationFormatter):
 
     ast_type = ast.UnaryOp
     operator = None
+
+    @property
+    def priority(self):
+        return AstFormatter.from_ast(self.expr.op).priority
 
     def format_code(self, width, force=False):
         op_formatter = AstFormatter.from_ast(self.expr.op)
@@ -200,12 +237,7 @@ class UnaryOperand(ExpressionFormatter):
         return block
 
 
-class BinOp(Op):
-
-    priority = 0
-
-
-class BinaryOperation(ExpressionFormatter):
+class BinaryArithmeticOperation(OperationFormatter):
 
     ast_type = ast.BinOp
 
@@ -245,10 +277,7 @@ class BinaryOperation(ExpressionFormatter):
             if with_brackets:
                 block.append_tokens(')')
             return block, right_block
-        with_brackets = (self.parent and
-                         (isinstance(self.parent, ast.BinOp) and
-                          BinaryOperation.from_ast(self.parent).priority > self.priority))
-
+        with_brackets = self.should_force_brackets()
         block, right_subblock = _format_code(with_brackets)
         if not self.parent and block.height > 1 and right_subblock.height != block.height:
             block, _ = _format_code(True)
@@ -257,18 +286,34 @@ class BinaryOperation(ExpressionFormatter):
         return block
 
 
-for ast_type, operator, priority in [(ast.Mult, '*', 1),
-                                     (ast.FloorDiv, '//', 1),
-                                     (ast.Div, '/', 1),
-                                     (ast.Mod, '%', 1),
-                                     (ast.Add, '+', 0),
-                                     (ast.Sub, '-', 0)]:
-    type(ast_type.__name__, (BinOp,), {'ast_type': ast_type,
-                                       'operator': operator,
-                                       'priority': priority})
+
+class Compare(OperationFormatter):
+
+    ast_type = ast.Compare
+
+    @property
+    def priority(self):
+        return ExpressionFormatter.from_ast(self.expr.ops[0]).priority
+
+    def format_code(self, width, force=False):
+        block = CodeBlock()
+        with_brackets = self.should_force_brackets()
+        if with_brackets:
+            block.append_tokens('(')
+        block.merge(ExpressionFormatter.from_ast(self.expr.left).format_code(width-block.width, force=force))
+        for operator, comparator in zip(self.expr.ops, self.expr.comparators):
+            block.merge(ExpressionFormatter.from_ast(operator).format_code(width-block.width-1,
+                                                                            force=force), separator=' ')
+            block.merge(ExpressionFormatter.from_ast(comparator).format_code(width-block.width,
+                                                                              force=force), separator=' ')
+        if with_brackets:
+            block.append_tokens(')')
+        if not force and block.width > width:
+            raise NotEnoughSpace()
+        return block
 
 
-class BooleanOperation(ExpressionFormatter):
+class BooleanOperation(OperationFormatter):
 
     ast_type = ast.BoolOp
 
@@ -303,9 +348,7 @@ class BooleanOperation(ExpressionFormatter):
             if with_brackets:
                 block.append_tokens(')')
             return block, value_block
-        with_brackets = (self.parent and
-                         not isinstance(self.parent,
-                                        (ast.For, ast.Assign)))
+        with_brackets = self.should_force_brackets()
         block, last_subblock = _format_code(with_brackets)
         if not with_brackets and block.height > 1 and last_subblock.height != block.height:
             block, _ = _format_code(True)
@@ -575,20 +618,6 @@ class Sice(ExpressionFormatter):
 
     def format_code(self, width, force=False):
         pass
-
-
-class Compare(ExpressionFormatter):
-
-    ast_type = ast.Compare
-
-    def format_code(self, width, force=False):
-        block = ExpressionFormatter.from_ast(self.expr.left).format_code(width, force=force)
-        for operator, comparator in zip(self.expr.ops, self.expr.comparators):
-            block.merge(ExpressionFormatter.from_ast(operator).format_code(width-block.width-1,
-                                                                            force=force), separator=' ')
-            block.merge(ExpressionFormatter.from_ast(comparator).format_code(width-block.width,
-                                                                              force=force), separator=' ')
-        return block
 
 
 class Generator(ExpressionFormatter):
