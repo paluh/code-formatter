@@ -749,6 +749,29 @@ class ImportStatementTestCase(unittest.TestCase):
         self.assertEqual(format_code(code, width), expected)
 
 
+class IfTestCase(unittest.TestCase):
+    """
+    [7.1]
+    if_stmt ::=  "if" expression ":" suite
+                 ( "elif" expression ":" suite )*
+                 ["else" ":" suite]
+    """
+    def test_if_alignment(self):
+        code = 'if    x >   8: pass'
+        expected = ('if x > 8:\n'
+                    '    pass')
+        self.assertEqual(format_code(code), expected)
+
+    def test_if_wrapping(self):
+        code = 'if x > 8 and y % 2 == 3:    pass'
+        expected = ('if (x > 8 and\n'
+                    '    y % 2 == 3):\n'
+                    '    pass')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)
+
+
+
 class FunctionDefinitionTestCase(unittest.TestCase):
     """
     [7.6]

@@ -268,7 +268,8 @@ class BinaryArithmeticOperation(OperationFormatter):
                 block.merge(right_block, separator=' ')
             except NotEnoughSpace:
                 operator = '%s' % opt_formatter.operator
-                left_block = left_formatter.format_code(width - len(indent) - len(operator) - 1,
+                left_block = left_formatter.format_code(width - len(indent) -
+                                                        len(operator) - 1,
                                                         force=force)
                 right_block = right_formatter.format_code(width-len(indent), force=force)
                 block.merge(left_block)
@@ -279,8 +280,11 @@ class BinaryArithmeticOperation(OperationFormatter):
             return block, right_block
         with_brackets = self.should_force_brackets()
         block, right_subblock = _format_code(with_brackets)
-        if ((not self.parent or not isinstance(AstFormatter.from_ast(self.parent), OperationFormatter)) and
-                block.height > 1 and right_subblock.height != block.height):
+        if ((not self.parent or
+             not isinstance(AstFormatter.from_ast(self.parent),
+                            (OperationFormatter, Call))) and
+            block.height > 1 and
+            right_subblock.height != block.height):
             block, _ = _format_code(True)
         if not force and block.width > width:
             raise NotEnoughSpace()
@@ -344,8 +348,7 @@ class BooleanOperation(OperationFormatter):
                     block.merge(value_block, separator=' ')
                 except NotEnoughSpace:
                     value_block = value_formatter.format_code(width -
-                                                              len(indent) -
-                                                              len(operator) - 1,
+                                                              len(indent) - 1,
                                                               force=force)
                     block.append_tokens(' ', opt_formatter.operator)
                     block.extend(value_block, indent)
@@ -621,7 +624,7 @@ class Sice(ExpressionFormatter):
     ast_type = ast.Slice
 
     def format_code(self, width, force=False):
-        pass
+        raise NotImplementedError()
 
 
 class Generator(ExpressionFormatter):
@@ -939,6 +942,25 @@ class AssignmentFormatter(StatementFormatter):
         return block
 
 
+class IfFormatter(StatementFormatter):
+
+    ast_type = ast.If
+
+    def format_code(self, width, force=False):
+        block = CodeBlock.from_tokens('if', ' ')
+        test_formatter = ExpressionFormatter.from_ast(self.expr.test, self.expr)
+        block.merge(test_formatter.format_code(width-block.width-1))
+        block.append_tokens(':')
+        for subexpression in self.expr.body:
+            subexpression_formatter = AstFormatter.from_ast(subexpression,
+                                                            parent=self.expr)
+            block.extend(subexpression_formatter.format_code(width - len(CodeLine.INDENT),
+                                                             force=force), CodeLine.INDENT)
+        #if not force and block.width > width:
+        #    raise NotEnoughSpace()
+        return block
+
+
 class FunctionDefinitionFormatter(StatementFormatter):
 
     ast_type = ast.FunctionDef
@@ -946,9 +968,10 @@ class FunctionDefinitionFormatter(StatementFormatter):
     def format_code(self, width, force=False):
         block = CodeBlock.from_tokens('def', ' ', self.expr.name, '(')
         parameter_list_formatter = AstFormatter.from_ast(self.expr.args)
-        # FIXME: this will be precise formatting when we move to new
+        # FIXME: This will be precise formatting when we move to new
         #        format_code API: format_code(block_width, first_line_width=None,
         #                                     suffix=None, force=False):
+        #        currently we are ignoring closing bracket width
         block.merge(parameter_list_formatter.format_code(width-block.width))
         block.append_tokens('):')
         for subexpression in self.expr.body:
