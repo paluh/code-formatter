@@ -109,19 +109,10 @@ class AstFormatter(object):
 
     def get_formatter(self, expr):
         return self.formatters[type(expr)](expr=expr, formatters=self.formatters,
-                                           parent=self.expr)
+                                           parent=self)
 
     def format_code(self, width, force=False):
         raise NotImplementedError()
-
-    #@classmethod
-    #def from_ast(cls, expr, parent=None, **extra):
-    #    try:
-    #        FormatterClass = cls._n2f[type(expr)]
-    #        assert issubclass(FormatterClass, cls), ('%s is not subclass of %s' % (cls, FormatterClass))
-    #        return FormatterClass(expr, parent=parent, **extra)
-    #    except KeyError:
-    #        raise UnknownNodeType(expr)
 
 
 @register
@@ -213,11 +204,8 @@ class OperationFormatter(ExpressionFormatter):
     def should_force_brackets(self):
         with_brackets = False
         if self.parent:
-            # FIXME: parent should be already Formatter instance
-            #        and we SHOULDN'T GUESS which formatter to choose
-            parent_formatter = self.get_formatter(self.parent)
-            with_brackets = (isinstance(parent_formatter, OperationFormatter) and
-                             parent_formatter.priority > self.priority)
+            with_brackets = (isinstance(self.parent, OperationFormatter) and
+                             self.parent.priority > self.priority)
         return with_brackets
 
 
@@ -278,7 +266,7 @@ class BinaryArithmeticOperation(OperationFormatter):
         with_brackets = self.should_force_brackets()
         block, right_subblock = _format_code(with_brackets)
         if ((not self.parent or
-             not isinstance(self.get_formatter(self.parent),
+             not isinstance(self.parent,
                             (OperationFormatter, Call))) and
             block.height > 1 and
             right_subblock.height != block.height):
@@ -534,13 +522,13 @@ class ListComprehensionFormatter(ExpressionFormatter):
         try:
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width - 1,
-                                                 parent=self.expr,
+                                                 parent=self,
                                                  formatters=self.formatters)
             block.merge(generators_block, separator=' ')
         except NotEnoughSpace:
             generators_block = format_generators(self.expr.generators,
                                                  width - len(indent),
-                                                 parent=self.expr,
+                                                 parent=self,
                                                  formatters=self.formatters,
                                                  force=force)
             block.extend(generators_block, indent)
@@ -584,13 +572,13 @@ class SetComprehensionFormatter(ExpressionFormatter):
         try:
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width - 1,
-                                                 parent=self.expr,
+                                                 parent=self,
                                                  formatters=self.formatters)
             block.merge(generators_block, separator=' ')
         except NotEnoughSpace:
             generators_block = format_generators(self.expr.generators,
                                                  width - len(indent),
-                                                 parent=self.expr,
+                                                 parent=self,
                                                  formatters=self.formatters,
                                                  force=force)
             block.extend(generators_block, indent)
@@ -655,8 +643,8 @@ class Generator(ExpressionFormatter):
 
     def format_code(self, width, force=False):
         value_formatter = self.get_formatter(self.expr.elt)
-        with_brackets = (not self.parent or not isinstance(self.parent, ast.Call) or
-                         len(self.parent.args) != 1)
+        with_brackets = (not self.parent or not isinstance(self.parent, Call) or
+                         len(self.parent.expr.args) != 1)
         if with_brackets:
             block = CodeBlock([CodeLine(['('])])
             indent = block.width * ' '
@@ -667,13 +655,13 @@ class Generator(ExpressionFormatter):
         try:
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width - 1,
-                                                 parent=self.expr,
+                                                 parent=self,
                                                  formatters=self.formatters)
             block.merge(generators_block, separator=' ')
         except NotEnoughSpace:
             generators_block = format_generators(self.expr.generators,
                                                  width - len(indent),
-                                                 parent=self.expr,
+                                                 parent=self,
                                                  formatters=self.formatters,
                                                  force=force)
             block.extend(generators_block, indent)
@@ -737,13 +725,13 @@ class DictComprehension(ExpressionFormatter):
         try:
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width - 1,
-                                                 parent=self.expr,
+                                                 parent=self,
                                                  formatters=self.formatters)
             block.merge(generators_block, separator=' ')
         except NotEnoughSpace:
             generators_block = format_generators(self.expr.generators,
                                                  width - len(indent),
-                                                 parent=self.expr,
+                                                 parent=self,
                                                  formatters=self.formatters,
                                                  force=force)
             block.extend(generators_block, indent)
@@ -757,9 +745,9 @@ class TupleFormatter(ExpressionFormatter):
     ast_type = ast.Tuple
 
     def format_code(self, width, force=False):
-        with_brackets = (isinstance(self.parent, (ast.Tuple, ast.Call,
-                                                  ast.List, ast.BinOp,
-                                                  ast.ListComp)) or
+        with_brackets = (isinstance(self.parent.expr, (ast.Tuple, ast.Call,
+                                                       ast.List, ast.BinOp,
+                                                       ast.ListComp)) or
                          len(self.expr.elts) < 2)
         block = CodeBlock()
         expressions = [self.get_formatter(v)
