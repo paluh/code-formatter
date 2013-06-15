@@ -1,7 +1,6 @@
-import ast
 import unittest
 
-from . import CodeBlock, CodeLine, ExpressionFormatter, format_code
+from . import CodeBlock, CodeLine, format_code
 
 
 class AtomExpressionFormattersFormattingTestCase(unittest.TestCase):
@@ -38,8 +37,7 @@ class AtomExpressionFormattersFormattingTestCase(unittest.TestCase):
 
     def test_atoms_formating(self):
         for code in ['8', '9.8', "'a'"]:
-            expr = ExpressionFormatter.from_ast(ast.parse(code).body[0].value)
-            self.assertEqual(code, unicode(expr.format_code(80)))
+            self.assertEqual(format_code(code), code)
 
     # FIXME: move these tests "somewhere"
     def test_subscription(self):
@@ -172,13 +170,10 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
 
     def test_key_datum_list_wrapping(self):
         code = "{'k1': 1,  'k2'  : 2  , v: 3}"
-        expr = ast.parse(code).body[0].value
-        d = ExpressionFormatter.from_ast(expr)
         expected = ("{'k1': 1, 'k2': 2,\n"
                     " v: 3}")
-        formatted = unicode(d.format_code(max(len(l) for l in expected.split('\n')),
-                            force=True))
-        self.assertEqual(formatted, expected)
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width=width), expected)
 
     def test_key_datum_list_half_wrapping(self):
         code = '{process_id: status for process_id, status in services_status if status}'
@@ -298,65 +293,55 @@ class CallsTestCase(unittest.TestCase):
 
     def test_positional_arguments_alignment(self):
         code = 'function_with_args(argument_1,     argument_2,argument_3)'
-        expr = ast.parse(code).body[0].value
-        call = ExpressionFormatter.from_ast(expr)
-        formatted = unicode(call.format_code(80))
+        formatted = format_code(code)
         self.assertEqual(formatted, 'function_with_args(argument_1, argument_2, '
                                                        'argument_3)')
 
     def test_positional_arguments_wrapping(self):
         code = 'function_with_args(argument_1,     argument_2,argument_3)'
-        expr = ast.parse(code).body[0].value
-        call = ExpressionFormatter.from_ast(expr)
-        formatted = unicode(call.format_code(30))
-        self.assertEqual(formatted, 'function_with_args(argument_1,\n'
-                                    '                   argument_2,\n'
-                                    '                   argument_3)')
+        expected = ('function_with_args(argument_1,\n'
+                    '                   argument_2,\n'
+                    '                   argument_3)')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width=width), expected)
 
     def test_wrapping_positional_arguments_expressions(self):
         code = ('function_with_args(nested_function_with_args(argument_1,argument_2,argument_3),'
                                    'nested_function_with_args(argument_4,argument_5,argument_6))')
-        expr = ast.parse(code).body[0].value
-        call = ExpressionFormatter.from_ast(expr)
-        formatted = unicode(call.format_code(30, force=True))
         expected = ('function_with_args(nested_function_with_args(argument_1,\n'
                     '                                             argument_2,\n'
                     '                                             argument_3),\n'
                     '                   nested_function_with_args(argument_4,\n'
                     '                                             argument_5,\n'
                     '                                             argument_6))')
+        width = max(len(l) for l in expected.split('\n'))
+        formatted = format_code(code, width=width)
         self.assertEqual(formatted, expected)
 
     def test_wrapping_positional_arguments_with_subexpressions(self):
         code = ('function_with_args(param_1, param_2, nested(argument_1,argument_2,argument_3),'
                                    'param_3, nested(argument_4,argument_5,argument_6), param_4)')
-        expr = ast.parse(code).body[0].value
-        call = ExpressionFormatter.from_ast(expr)
         expected = ('function_with_args(param_1, param_2, nested(argument_1,\n'
                     '                                            argument_2,\n'
                     '                                            argument_3),\n'
                     '                   param_3, nested(argument_4, argument_5,\n'
                     '                                   argument_6), param_4)')
         width = max(len(l) for l in expected.split('\n'))
-        formatted = unicode(call.format_code(width, force=True))
-        self.assertEqual(formatted, expected)
+        self.assertEqual(format_code(code, width=width), expected)
 
     def test_keyword_arguments_alignment(self):
         code = 'function_with_kwargs(argument_1=value,     argument_2=value,argument_3=value)'
-        expr = ast.parse(code).body[0].value
-        call = ExpressionFormatter.from_ast(expr)
-        formatted = unicode(call.format_code(80))
+        formatted = format_code(code)
         self.assertEqual(formatted, 'function_with_kwargs(argument_1=value, argument_2=value, '
                                                          'argument_3=value)')
 
     def test_keyword_arguments_wrapping(self):
         code = 'function_with_kwargs(argument_1=value,     argument_2=value,argument_3=value)'
-        expr = ast.parse(code).body[0].value
-        call = ExpressionFormatter.from_ast(expr)
-        formatted = unicode(call.format_code(20, force=True))
-        self.assertEqual(formatted, 'function_with_kwargs(argument_1=value,\n'
-                                    '                     argument_2=value,\n'
-                                    '                     argument_3=value)')
+        expected = ('function_with_kwargs(argument_1=value,\n'
+                    '                     argument_2=value,\n'
+                    '                     argument_3=value)')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width=width), expected)
 
     def test_asterisk_identifier_alignmet(self):
         code = 'function( * args )'
