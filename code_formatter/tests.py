@@ -791,3 +791,12 @@ class FunctionDefinitionTestCase(unittest.TestCase):
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
 
+    def test_identifiers_parameter_list_wrapping_with_multiple_params_per_line(self):
+        code = ('def fun(x,y,z,u,v,w,t):\n'
+                '    pass')
+        expected = ('def fun(x, y, z,\n'
+                    '        u, v, w,\n'
+                    '        t):\n'
+                    '    pass')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width), expected)

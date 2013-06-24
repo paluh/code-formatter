@@ -383,24 +383,22 @@ class Attribute(ExpressionFormatter):
 
 
 def format_list_of_expressions(expressions, width, force=False):
-    curr_line = CodeLine([])
-    block = CodeBlock([curr_line])
-
+    block = CodeBlock()
     for param, expr in enumerate(expressions):
         try:
-            free_space = width - len(block.lines[-1])
+            free_space = width - len(block.last_line)
             if param > 0:
                 separator = ', '
                 free_space = free_space - len(separator)
             subblock = expr.format_code(free_space, force=param==0)
             if param > 0:
-                curr_line.append(separator)
+                block.last_line.append(separator)
             block.merge(subblock)
         except NotEnoughSpace:
-            subblock = expr.format_code(width, force=True)
-            curr_line.append(',')
+            subblock = expr.format_code(width, force=force)
+            if param > 0:
+                block.last_line.append(',')
             block.extend(subblock)
-        curr_line = block.lines[-1]
         if not force and block.width > width:
             raise NotEnoughSpace()
     return block
@@ -780,20 +778,25 @@ class ParameterListFormatter(AstFormatter):
 
     def format_code(self, width, force=False):
         block = CodeBlock()
-        for n, arg in enumerate(self.expr.args):
+        for param, arg in enumerate(self.expr.args):
             # FIXME: move to next line
             arg_formatter = self.get_formatter(arg)
             try:
-                arg_block = arg_formatter.format_code(width - block.width - 2,
+                separator = ', '
+                free_space = width - len(block.last_line) - len(separator)
+                arg_block = arg_formatter.format_code(free_space,
                                                       force=False)
-                if n > 0:
-                    block.append_tokens(',', ' ')
+                if param > 0:
+                    block.append_tokens(separator)
                 block.merge(arg_block)
             except NotEnoughSpace:
-                if n > 0:
-                    block.append_tokens(',')
+                separator = ','
                 arg_block = arg_formatter.format_code(width, force=force)
+                if param > 0:
+                    block.append_tokens(',')
                 block.extend(arg_block)
+        if not force and block.width > width:
+            raise NotEnoughSpace()
         return block
 
 
