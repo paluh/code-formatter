@@ -776,16 +776,33 @@ class ParameterListFormatter(AstFormatter):
 
     ast_type = ast.arguments
 
+    class KwargFormatter(object):
+
+        def __init__(self, parameter, expression, parent):
+            self.parameter = parameter
+            self.expression = expression
+            self.parent = parent
+
+        def format_code(self, width, force=False):
+            parameter_formatter = self.parent.get_formatter(self.parameter)
+            expression_formatter = self.parent.get_formatter(self.expression)
+            block = parameter_formatter.format_code(width-1)
+            block.append_tokens('=')
+            block.merge(expression_formatter.format_code(width - block.width,
+                                                         force=force))
+            return block
+
     def format_code(self, width, force=False):
         block = CodeBlock()
-        for param, arg in enumerate(self.expr.args):
+        args_formatters = [self.get_formatter(arg) for arg in self.expr.args[:len(self.expr.args)-len(self.expr.defaults)]]
+        args_formatters += [ParameterListFormatter.KwargFormatter(arg, default, self) for arg, default in zip(self.expr.args[len(args_formatters):], self.expr.defaults)]
+
+        for param, arg_formatter in enumerate(args_formatters):
             # FIXME: move to next line
-            arg_formatter = self.get_formatter(arg)
             try:
                 separator = ', '
                 free_space = width - len(block.last_line) - len(separator)
-                arg_block = arg_formatter.format_code(free_space,
-                                                      force=False)
+                arg_block = arg_formatter.format_code(free_space, force=False)
                 if param > 0:
                     block.append_tokens(separator)
                 block.merge(arg_block)
@@ -910,7 +927,11 @@ class ImportFromFormatter(ImportFormatterBase):
     ast_type = ast.ImportFrom
 
     def format_code(self, width, force=False):
-        block = CodeBlock.from_tokens('from', ' ', self.expr.module, ' ', 'import', ' ')
+        block = CodeBlock.from_tokens('from', ' ', '.' * self.expr.level)
+        if self.expr.module:
+            block.append_tokens(self.expr.module)
+        block.append_tokens(' ', 'import', ' ')
+
         block.merge(self.format_aliases(width-block.width, force=force))
         if not force and block.width > width:
             raise NotEnoughSpace()

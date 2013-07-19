@@ -709,6 +709,16 @@ class ImportStatementTestCase(unittest.TestCase):
         expected = 'from module import *'
         self.assertEqual(format_code(code), expected)
 
+    def test_from_form_with_relative_imports_alignment(self):
+        code = 'from  ..module  import *'
+        expected = 'from ..module import *'
+        self.assertEqual(format_code(code), expected)
+
+    def test_from_current_package_form_aligment(self):
+        code = 'from . import Class2   , Class1'
+        expected = 'from . import Class1, Class2'
+        self.assertEqual(format_code(code), expected)
+
     def test_simple_form_sorting(self):
         code = 'import module3, Module2, module1'
         expected = 'import module1, Module2, module3'
@@ -800,3 +810,17 @@ class FunctionDefinitionTestCase(unittest.TestCase):
                     '    pass')
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
+
+    def test_defparameters_list_alignment(self):
+        code = ('def fun(x=1,y=2,z=3):\n'
+                '    pass')
+        expected = ('def fun(x=1, y=2, z=3):\n'
+                    '    pass')
+        self.assertEqual(format_code(code), expected)
+
+    def test_mixed_parameters_list_alignment(self):
+        code = ('def fun(x,y,z=3):\n'
+                '    pass')
+        expected = ('def fun(x, y, z=3):\n'
+                    '    pass')
+        self.assertEqual(format_code(code), expected)
