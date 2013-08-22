@@ -451,10 +451,12 @@ class Call(ExpressionFormatter):
         # FIXME: introduce permutation of formatting
         expressions = [self.get_formatter(e) for e in self.expr.args]
         if self.expr.starargs:
-            expressions.append(Call.StarArgsFormatter(self.expr.starargs, '*', formatters=self.formatters))
+            expressions.append(Call.StarArgsFormatter(self.expr.starargs, '*',
+                                                      formatters=self.formatters))
         expressions += [self.get_formatter(e) for e in self.expr.keywords]
         if self.expr.kwargs:
-            expressions.append(Call.StarArgsFormatter(self.expr.kwargs, '**', formatters=self.formatters))
+            expressions.append(Call.StarArgsFormatter(self.expr.kwargs, '**',
+                                                      formatters=self.formatters))
         subblock = format_list_of_expressions(expressions, width-block.width, force=force)
         block.merge(subblock)
         block.lines[-1].append(')')
@@ -471,7 +473,8 @@ class DictFormatter(ExpressionFormatter):
         def __init__(self, key, value, parent, formatters):
             self.formatters = formatters
             self.key = self.formatters[type(key)](key, parent=parent, formatters=formatters)
-            self.value = self.formatters[type(value)](value, parent=parent, formatters=formatters)
+            self.value = self.formatters[type(value)](value, parent=parent,
+                                                      formatters=formatters)
 
         def format_code(self, width, force=False):
             # FIXME: search for solution on failure
@@ -619,21 +622,52 @@ class Subscription(ExpressionFormatter):
     def format_code(self, width, force=False):
         value_formatter = self.get_formatter(self.expr.value)
         block = value_formatter.format_code(width, force=force)
-        block.lines[-1].append('[')
-        index_formatter = self.get_formatter(self.expr.slice.value)
-        block.merge(index_formatter.format_code(width - len(block.lines[-1]) - 1,
+        slice_formatter = self.get_formatter(self.expr.slice)
+        block.merge(slice_formatter.format_code(width - len(block.lines[-1]),
                                                 force=force))
-        block.lines[-1].append(']')
         return block
 
 
 @register
-class Sice(ExpressionFormatter):
+class SliceFormatter(ExpressionFormatter):
 
     ast_type = ast.Slice
 
     def format_code(self, width, force=False):
-        raise NotImplementedError()
+        block = CodeBlock.from_tokens('[')
+        if self.expr.lower:
+            lower_formatter = self.get_formatter(self.expr.lower)
+            block.merge(lower_formatter.format_code(width-block.width-1))
+        block.append_tokens(':')
+
+        if self.expr.upper:
+            upper_formatter = self.get_formatter(self.expr.upper)
+            block.merge(upper_formatter.format_code(width-block.width-1))
+
+        if self.expr.step:
+            block.append_tokens(':')
+            step_formatter = self.get_formatter(self.expr.step)
+            block.merge(step_formatter.format_code(width-block.width-1))
+
+        block.append_tokens(']')
+        if not force and block.width > width:
+            raise NotEnoughSpace()
+        return block
+
+
+@register
+class IndexFormatter(ExpressionFormatter):
+
+    ast_type = ast.Index
+
+    def format_code(self, width, force=False):
+        block = CodeBlock.from_tokens('[')
+        value_formatter = self.get_formatter(self.expr.value)
+        block.merge(value_formatter.format_code(width - 2, force=force))
+        block.append_tokens(']')
+        if not force and block.width > width:
+            raise NotEnoughSpace()
+        return block
 
 
 @register
@@ -801,8 +835,13 @@ class ParameterListFormatter(AstFormatter):
 
     def format_code(self, width, force=False):
         block = CodeBlock()
-        args_formatters = [self.get_formatter(arg) for arg in self.expr.args[:len(self.expr.args)-len(self.expr.defaults)]]
-        args_formatters += [ParameterListFormatter.KwargFormatter(arg, default, self) for arg, default in zip(self.expr.args[len(args_formatters):], self.expr.defaults)]
+        args_formatters = [self.get_formatter(arg)
+                           for arg in self.expr.args[:(len(self.expr.args) -
+                                                       len(self.expr.defaults))]]
+        args_formatters += [ParameterListFormatter.KwargFormatter(arg, default, self)
+                            for (arg, default)
+                            in zip(self.expr.args[len(args_formatters):],
+                                   self.expr.defaults)]
 
         for param, arg_formatter in enumerate(args_formatters):
             # FIXME: move to next line
@@ -1079,6 +1118,7 @@ class FunctionDefinitionFormatter(StatementFormatter):
 
 
 def _format_code(code, width, formatters):
+    """Returns CodeBlock instance as result"""
     tree = ast.parse(code)
     result = []
     for e in tree.body:
@@ -1087,6 +1127,6 @@ def _format_code(code, width, formatters):
     return result
 
 def format_code(code, width=80, formatters=_formatters.copy()):
+    """Returns string as a result"""
     result = _format_code(code, width=width, formatters=formatters)
-    unicode(result[0])
     return u'\n'.join(unicode(e) for e in result)

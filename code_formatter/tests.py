@@ -239,6 +239,42 @@ class AttributeRefTestCase(unittest.TestCase):
                          'instance.attribute = x')
 
 
+class SlicingTestCase(unittest.TestCase):
+    """
+    [5.3.3]
+    slicing          ::=  simple_slicing | extended_slicing
+    simple_slicing   ::=  primary "[" short_slice "]"
+    extended_slicing ::=  primary "[" slice_list "]"
+    slice_list       ::=  slice_item ("," slice_item)* [","]
+    slice_item       ::=  expression | proper_slice | ellipsis
+    proper_slice     ::=  short_slice | long_slice
+    short_slice      ::=  [lower_bound] ":" [upper_bound]
+    long_slice       ::=  short_slice ":" [stride]
+    lower_bound      ::=  expression
+    upper_bound      ::=  expression
+    stride           ::=  expression
+    ellipsis         ::=  "..."
+    """
+
+    def test_simple_expression_slice_alignemnt(self):
+        self.assertEqual(format_code('x [ y ]'), 'x[y]')
+
+    def test_tuple_expression_slice_alignemnt(self):
+        self.assertEqual(format_code('x [ y, z ]'), 'x[y, z]')
+
+    def test_short_slice_alignment(self):
+        self.assertEqual(format_code('x [ y : z ]'), 'x[y:z]')
+
+    def test_short_slice_without_upper_alignment(self):
+        self.assertEqual(format_code('x [ y : ]'), 'x[y:]')
+
+    def test_short_slice_without_lower_alignment(self):
+        self.assertEqual(format_code('x [ : z ]'), 'x[:z]')
+
+    def test_long_slice_alignment(self):
+        self.assertEqual(format_code('x [ y : z : 1 ]'), 'x[y:z:1]')
+
+
 class CallsTestCase(unittest.TestCase):
     """
     [5.3.4]
@@ -260,6 +296,10 @@ class CallsTestCase(unittest.TestCase):
         code = 'instance.method(   x,   y )'
         formatted = format_code(code)
         self.assertEqual(formatted, 'instance.method(x, y)')
+
+    def test_tuple_args_preserves_brackets(self):
+        code = 'fun((x,),(y,z))'
+        self.assertEqual(format_code(code), 'fun((x,), (y, z))')
 
     def test_positional_arguments_alignment(self):
         code = 'function_with_args(argument_1,     argument_2,argument_3)'
@@ -518,33 +558,25 @@ class LambdasTestCase(unittest.TestCase):
         self.assertEqual(format_code(code), expected)
 
 
-class TupleTestCase(unittest.TestCase):
+class ExpressionListTestCase(unittest.TestCase):
     """
-    tuple ::=  expression ( "," expression )* ","
+    [5.13, 6.1]
+    expression_list ::=  expression ( "," expression )* [","]
+    expression_stmt ::=  expression_list
     """
 
-    def test_single_element_tuple_formatting(self):
+    def test_single_element_alignment(self):
         code = 'x,'
         self.assertEqual(format_code(code), '(x,)')
 
-    def test_tuple_inside_call_preservse_brackets(self):
-        code = 'fun((x,),(y,z))'
-        self.assertEqual(format_code(code), 'fun((x,), (y, z))')
-
-    def test_tuple_inside_tuple_preservse_brackets(self):
-        code = '((x,),(y,z))'
-        self.assertEqual(format_code(code), '(x,), (y, z)')
-
-
-class ExpressionStatementTestCase(unittest.TestCase):
-    """
-    [6.1]
-    expression_stmt ::=  expression_list
-    """
-    def test_alignment(self):
+    def test_comlex_expression_alignment(self):
         code = '3,8+9,fun(x,y)'
         expected = '3, 8 + 9, fun(x, y)'
         self.assertEqual(format_code(code), expected)
+
+    def test_nested_expression_list_preserves_brackets(self):
+        code = '((x,),(y,z))'
+        self.assertEqual(format_code(code), '(x,), (y, z)')
 
     def test_wrapping(self):
         code = '3*8+10,8+9,fun(x,y)'
