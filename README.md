@@ -7,11 +7,11 @@ I'm trying to cover Python 2.7 at first, but some language constructs are still 
 
 ## Puprose
 
-This project contains basic code formatter which operates on Python AST tree (for more info check `ast` package). It can be used as AST pretty printer or simple code formatter, __but__ you have to know that there as serious limitiations and it shouldn't be considered as fully "automatic" tool for project code validation/correction:
+This project contains basic code formatter which operates on Python AST tree (for more info check `ast` package). It can be used as AST pretty printer or simple code formatter, __but__ you have to know that there are serious limitiations of this approach and it shouldn't be considered as fully "automatic" tool for project code validation/correction:
 
 * it can be used only for complete and correct Python statements
 
-* comments are skiped in ast (not docstrings but literal comments)
+* comments are skiped in AST (not docstrings but literal comments), so they are missing in formatted results
 
 * as far as I know AST can be generated only for "current" version of Python (for example if you are running Python 3.3 you can't process/format statements from Python 2.7 which contains incompatibile constructs)
 
