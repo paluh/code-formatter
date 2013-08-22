@@ -3,6 +3,7 @@ import unittest
 from . import CodeBlock, CodeLine, format_code
 
 
+# FIXME: Move this testcase to structure provided by "The Python Language Reference"
 class AtomExpressionFormattersFormattingTestCase(unittest.TestCase):
 
     def _indent(self, code, level):
@@ -181,37 +182,6 @@ class DictionaryDisplaysTestCase(unittest.TestCase):
                     '                    in services_status if status}')
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
-
-    # FIXME: separate other formatters tests
-    #def test_key_datum_list_KandR_wrapping(self):
-    #    code = textwrap.dedent("""\
-    #        {"process_type=icecast&service_id=1": {"/": {"listeners": [],
-    #                                                    "metadata": "Hang Massive - Once Again",
-    #                                                    "mime": "audio/mpeg"}},
-    #        "process_type=icecast&service_id=2": {"/": {"listeners": [],
-    #                                                    "metadata": "Hang Massive - Once Again",
-    #                                                    "mime": "application/ogg"}}}""")
-    #    expected = textwrap.dedent("""\
-    #    {
-    #        "process_type=icecast&service_id=1": {
-    #            "/": {
-    #                "listeners": [],
-    #                "metadata": "Hang Massive - Once Again",
-    #                "mime": "audio/mpeg"
-    #            }
-    #        },
-    #        "process_type=icecast&service_id=2": {
-    #            "/": {
-    #                "listeners": [],
-    #                "metadata": "Hang Massive - Once Again",
-    #                "mime": "application/ogg"
-    #            }
-    #        }
-    #    }""")
-
-    #    width = max(len(l) for l in expected.split('\n'))
-    #    formatted = format_code(code, width=width, AstFormatter=KandRAstFormatter)
-    #    self.assertEqual(expected, formatted)
 
 
 class SetDisplaysTestCase(unittest.TestCase):
@@ -566,18 +536,6 @@ class TupleTestCase(unittest.TestCase):
         self.assertEqual(format_code(code), '(x,), (y, z)')
 
 
-class ForTestCase(unittest.TestCase):
-    """
-    for_stmt ::=  "for" target_list "in" expression_list ":" suite
-                  ["else" ":" suite]
-    """
-
-    def test_simple_for_statement(self):
-        code = ('for   p   in    (1,2,3):\n   p')
-        expected = 'for p in 1, 2, 3:\n%sp' % CodeLine.INDENT
-        self.assertEqual(format_code(code), expected)
-
-
 class ExpressionStatementTestCase(unittest.TestCase):
     """
     [6.1]
@@ -651,8 +609,18 @@ class AugmentAssignmentTestCase(unittest.TestCase):
     augop                     ::=  "+=" | "-=" | "*=" | "/=" | "//=" | "%=" | "**="
                                    | ">>=" | "<<=" | "&=" | "^=" | "|="
     """
-    def test_aligment(self):
-        raise NotImplementedError()
+    def test_simple_statement_aligment(self):
+        for augop in ['+=', '-=', '*=', '/=', '//=', '%=', '**=', '>>=', '<<=', '&=', '^=', '|=']:
+            code = 'x   %s   y' % augop
+            expected = 'x %s y' % augop
+            self.assertEqual(format_code(code), expected)
+
+    def test_simple_statement_wrapping(self):
+        code = 'x += [1,2,3,4]'
+        expected = ('x += [1, 2,\n'
+                    '      3, 4]')
+        width = max(len(l) for l in expected.split('\n'))
+        self.assertEqual(format_code(code, width=width), expected)
 
 
 class SimpleStatementsTestCase(unittest.TestCase):
@@ -669,14 +637,18 @@ class SimpleStatementsTestCase(unittest.TestCase):
                      | continue_stmt
                      | global_stmt
                      | exec_stmt
+        return_stmt ::=  "return" [expression_list]
+        raise_stmt ::=  "raise" [expression ["," expression ["," expression]]]
     """
 
     def test_return_statement(self):
-        """
-        return_stmt ::=  "return" [expression_list]
-        """
         code = 'return x+x'
         expected = 'return x + x'
+        self.assertEqual(format_code(code), expected)
+
+    def test_raise_simple_statement(self):
+        code = "raise   Exception('oh no!')"
+        expected = "raise Exception('oh no!')"
         self.assertEqual(format_code(code), expected)
 
 
@@ -765,6 +737,18 @@ class IfTestCase(unittest.TestCase):
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
 
+
+class ForTestCase(unittest.TestCase):
+    """
+    [7.3]
+    for_stmt ::=  "for" target_list "in" expression_list ":" suite
+                  ["else" ":" suite]
+    """
+
+    def test_simple_for_statement(self):
+        code = ('for   p   in    (1,2,3):\n   p')
+        expected = 'for p in 1, 2, 3:\n%sp' % CodeLine.INDENT
+        self.assertEqual(format_code(code), expected)
 
 
 class FunctionDefinitionTestCase(unittest.TestCase):

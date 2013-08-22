@@ -94,11 +94,15 @@ class CodeBlock(object):
         return '\n'.join(unicode(l) for l in self.lines)
 
 
+# It's better to avoid metaclasses in this case - simple register is sufficient and
+# you customize it really easily - for example:
+# my_formatters = dict(code_formatter._formatters, **{Operator: CustomOperatorFormatter})
 _formatters = {}
 
 def register(cls):
     _formatters[cls.ast_type] = cls
     return cls
+
 
 class AstFormatter(object):
 
@@ -166,12 +170,15 @@ class Operator(Atom):
 
 ast_operator2priority = {}
 
-for priority, ast_type, operator in [(6, ast.Mult, '*'),
-                                     (6, ast.FloorDiv, '//'),
-                                     (6, ast.Div, '/'),
-                                     (6, ast.Mod, '%'),
-                                     (5, ast.Add, '+'),
-                                     (5, ast.Sub, '-'),
+for priority, ast_type, operator in [(8, ast.Pow, '**'),
+                                     (7, ast.Mult, '*'),
+                                     (7, ast.FloorDiv, '//'),
+                                     (7, ast.Div, '/'),
+                                     (7, ast.Mod, '%'),
+                                     (6, ast.Add, '+'),
+                                     (6, ast.Sub, '-'),
+                                     (5, ast.RShift, '>>'),
+                                     (5, ast.LShift, '<<'),
                                      (4, ast.BitXor, '^'),
                                      (3, ast.BitAnd, '&'),
                                      (2, ast.BitOr, '|'),
@@ -872,6 +879,34 @@ class ReturnFormatter(StatementFormatter):
         return block
 
 
+@register
+class RaiseFormatter(StatementFormatter):
+
+    ast_type = ast.Raise
+
+    def format_code(self, width, force=False):
+        block = CodeBlock.from_tokens('raise')
+        type_formatter = self.get_formatter(self.expr.type)
+        type_block = type_formatter.format_code(width - block.width - 1,
+                                                force=force)
+        block.merge(type_block, separator=' ')
+        if self.expr.inst or self.expr.tback:
+            if self.expr.inst:
+                inst_block = self.get_formatter(self.expr.inst).format_code(width - block.width - 2,
+                                                                            force=force)
+                block.merge(inst_block, separator=', ')
+            else:
+                block.append_tokens(',', ' ', 'None')
+            if self.expr.tback:
+                tback_block = self.get_formatter(self.expr.tback).format_code(width - block.width - 2,
+                                                                              force=force)
+                block.merge(tback_block, separator=', ')
+
+        if not force and block.width > width:
+            raise NotEnoughSpace
+        return block
+
+
 class ImportFormatterBase(StatementFormatter):
 
     @register
@@ -981,6 +1016,25 @@ class AssignmentFormatter(StatementFormatter):
                                                 force=force))
         return block
 
+@register
+class AugAssigment(StatementFormatter):
+
+    ast_type = ast.AugAssign
+
+    def format_code(self, width, force=False):
+        block = CodeBlock()
+        target_formatter = self.get_formatter(self.expr.target)
+        operator_formatter = self.get_formatter(self.expr.op)
+        value_formatter = self.get_formatter(self.expr.value)
+
+        block.merge(target_formatter.format_code(width, force=force))
+        block.merge(operator_formatter.format_code(width - block.width,
+                                                   force=force), separator=' ')
+        block.append_tokens('=')
+        block.merge(value_formatter.format_code(width - block.width, force=force),
+                    separator=' ')
+        return block
+
 
 @register
 class IfFormatter(StatementFormatter):
@@ -1023,24 +1077,6 @@ class FunctionDefinitionFormatter(StatementFormatter):
             raise NotEnoughSpace()
         return block
 
-
-#class KandRAstFormatter(AstFormatter):
-#
-#    _n2f = dict(AstFormatter._n2f)
-#
-#
-#class KandRDict(KandRAstFormatter, DictFormatter):
-#
-#    def format_code(self, width, force=False):
-#        block = CodeBlock([CodeLine(['{'])])
-#        expressions = [DictFormatter.Item(k, v, self.expr)
-#                       for k, v in zip(self.expr.keys,
-#                                       self.expr.values)]
-#        subblock = format_list_of_expressions(expressions=expressions,
-#                                              width=width-block.width, force=force)
-#        block.merge(subblock)
-#        block.lines[-1].append('}')
-#        return block
 
 def _format_code(code, width, formatters):
     tree = ast.parse(code)
