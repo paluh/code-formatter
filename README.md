@@ -29,7 +29,6 @@ One of main principles of this project is to make this library easily extensible
          s=fun2(x=9,
                 y=10,
                 z=20))
-    >>> print code_formatter.format_code('fun1(f=8, s=fun2(x=9, y=10, z=20))', width=5)
     >>> print code_formatter.format_code('fun1(f=8, s=fun2(x=9, y=10, z=20))', width=10, force=False)
     Traceback (most recent call last):
     ...
