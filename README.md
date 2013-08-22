@@ -39,7 +39,7 @@ One of main principles of this project is to make this library easily extensible
 You can easily customize single or bunch of formatters - subclass given formatter and override it's `format_code` method. Then you can use it as follows:
 
     >>> my_formatters = dict(code_formatter._formatters)
-    >>> my_formatters[code_formatter.OperatorFormatter] = CustomOperatorFormatter
+    >>> my_formatters[code_formatter.OperatorFormatter] = MyOperatorFormatter
     >>> code_formatter.format_code(code, formatters=my_formatters)
 
 
