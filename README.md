@@ -34,6 +34,14 @@ One of main principles of this project is to make this library easily extensible
     ...
     code_formatter.NotEnoughSpace
 
+### Customizing formatters
+
+You can easily customize single or bunch of formatters - subclass given formatter and override it's `format_code` method. Then you can use it as follows:
+
+    >>> my_formatters = dict(code_formatter._formatters)
+    >>> my_formatters[code_formatter.OperatorFormatter] = CustomOperatorFormatter
+    >>> code_formatter.format_code(code, formatters=my_formatters)
+
 
 ### Example of very ugly Vim plugin
 This simple (and ugly) plugin allows you to format single python statement (not single line). Just place your cursor on first line of statements and call `:python format_code(80)` (or make some convenient mapping for this action - you can check my proposition below).

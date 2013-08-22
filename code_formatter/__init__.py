@@ -95,8 +95,8 @@ class CodeBlock(object):
 
 
 # It's better to avoid metaclasses in this case - simple register is sufficient and
-# you customize it really easily - for example:
-# my_formatters = dict(code_formatter._formatters, **{Operator: CustomOperatorFormatter})
+# you can customize it really easily - check API usage examples in README.md
+
 _formatters = {}
 
 def register(cls):
@@ -137,7 +137,7 @@ class ExpressionFormatter(AstFormatter):
     pass
 
 
-class Atom(ExpressionFormatter):
+class AtomFormatter(ExpressionFormatter):
 
     ast_type = None
 
@@ -152,7 +152,7 @@ class Atom(ExpressionFormatter):
 
 
 @register
-class Name(Atom):
+class NameFormatter(AtomFormatter):
 
     ast_type = ast.Name
 
@@ -160,7 +160,7 @@ class Name(Atom):
         return unicode(self.expr.id)
 
 
-class Operator(Atom):
+class OperatorFormatter(AtomFormatter):
 
     operator = None
     priority = 0
@@ -196,7 +196,7 @@ for priority, ast_type, operator in [(8, ast.Pow, '**'),
                                      (0, ast.And, 'and'),
                                      (0, ast.Not, 'not')]:
     ast_operator2priority[ast_type] = priority
-    register(type(ast_type.__name__, (Operator,),
+    register(type(ast_type.__name__, (OperatorFormatter,),
                   {'ast_type': ast_type,
                    'operator': operator,
                    'priority': priority}))
@@ -217,7 +217,7 @@ class OperationFormatter(ExpressionFormatter):
 
 
 @register
-class UnaryOperation(OperationFormatter):
+class UnaryOperationFormatter(OperationFormatter):
 
     ast_type = ast.UnaryOp
     operator = None
@@ -235,7 +235,7 @@ class UnaryOperation(OperationFormatter):
 
 
 @register
-class BinaryArithmeticOperation(OperationFormatter):
+class BinaryArithmeticOperationFormatter(OperationFormatter):
 
     ast_type = ast.BinOp
 
@@ -284,7 +284,7 @@ class BinaryArithmeticOperation(OperationFormatter):
 
 
 @register
-class Compare(OperationFormatter):
+class CompareFormatter(OperationFormatter):
 
     ast_type = ast.Compare
 
@@ -318,7 +318,7 @@ class Compare(OperationFormatter):
 
 
 @register
-class BooleanOperation(OperationFormatter):
+class BooleanOperationFormatter(OperationFormatter):
 
     ast_type = ast.BoolOp
 
@@ -361,25 +361,25 @@ class BooleanOperation(OperationFormatter):
 
 
 @register
-class Num(Atom):
+class NumFormatter(AtomFormatter):
 
     ast_type = ast.Num
 
     def _format_code(self):
-        return unicode(self.expr.n)
+        return repr(self.expr.n)
 
 
 @register
-class Str(Atom):
+class StrFormatter(AtomFormatter):
 
     ast_type = ast.Str
 
     def _format_code(self):
-        return unicode("'%s'" % self.expr.s)
+        return repr(self.expr.s)
 
 
 @register
-class Attribute(ExpressionFormatter):
+class AttributeFormatter(ExpressionFormatter):
 
     ast_type = ast.Attribute
 
@@ -595,7 +595,7 @@ class SetComprehensionFormatter(ExpressionFormatter):
 
 
 @register
-class IfExpression(ExpressionFormatter):
+class IfExpressionFormatter(ExpressionFormatter):
 
     ast_type = ast.IfExp
 
@@ -615,7 +615,7 @@ class IfExpression(ExpressionFormatter):
 
 
 @register
-class Subscription(ExpressionFormatter):
+class SubscriptionFormatter(ExpressionFormatter):
 
     ast_type = ast.Subscript
 
@@ -671,7 +671,7 @@ class IndexFormatter(ExpressionFormatter):
 
 
 @register
-class Generator(ExpressionFormatter):
+class GeneratorFormatter(ExpressionFormatter):
 
     ast_type = ast.GeneratorExp
 
@@ -743,7 +743,7 @@ def format_generators(generators, width, parent, formatters, force=False):
 
 
 @register
-class DictComprehension(ExpressionFormatter):
+class DictComprehensionFormatter(ExpressionFormatter):
 
     ast_type = ast.DictComp
 
@@ -1056,7 +1056,7 @@ class AssignmentFormatter(StatementFormatter):
         return block
 
 @register
-class AugAssigment(StatementFormatter):
+class AugAssigmentFormatter(StatementFormatter):
 
     ast_type = ast.AugAssign
 
