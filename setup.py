@@ -3,8 +3,6 @@ try:
 except ImportError:
     from distutils.core import setup
 
-REQUIREMENTS = []
-DEPENDENCY_LINKS = []
 setup(
     name='code-formatter',
     author='Tomasz Rybarczyk',
@@ -13,11 +11,11 @@ setup(
         'Programming Language :: Python'
     ],
     description='',
-    dependency_links=DEPENDENCY_LINKS,
-    install_requires=REQUIREMENTS,
-    url='https://bitbucket.org/paluh/code-formatter',
+    dependency_links=[],
+    install_requires=[],
+    url='https://github.com/paluh/code-formatter',
     packages=['code_formatter'],
     scripts=[],
     zip_safe=False,
-    version = '2013.5.1',
+    version = '2013.8.1',
 )
