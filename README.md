@@ -7,13 +7,13 @@ I'm trying to cover Python 2.7 at first, but some language constructs are still 
 
 ## Puprose
 
-This project contains basic code formatter which operates on Python AST tree (for more info check `ast` package). It can be used as AST pretty printer or simple code formatter, __but__ you have to know that there are serious limitiations of this approach and it shouldn't be considered as fully "automatic" tool for project code validation/correction:
+This project contains basic code formatter which operates on Python AST tree (for more info check `ast` package). It can be used as AST pretty printer or simple code formatter, __but__ you have to know that there are serious limitations of this approach and it shouldn't be considered as fully "automatic" tool for project code validation/correction:
 
 * it can be used only for complete and correct Python statements
 
 * comments are skiped in AST (not docstrings but literal comments), so they are missing in formatted results
 
-* as far as I know AST can be generated only for "current" version of Python (for example if you are running Python 3.3 you can't process/format statements from Python 2.7 which contains incompatibile constructs)
+* as far as I know AST can be generated only for "current" version of Python (for example if you are running Python 3.3 you can't process/format statements from Python 2.7 which contains incompatible constructs)
 
 
 One of main principles of this project is to make this library easily extensible (everybody should be able to customize single formatter), so if you see any obstacles in current design just fill an github issue.
@@ -36,7 +36,7 @@ One of main principles of this project is to make this library easily extensible
 
 
 ### Example of very ugly Vim plugin
-This simple (and ugly) plugin allows you to format single python statement (not single line). Just place your cursor on first line of statements and call `:python format_code(80)` (or make some convinient mapping for this action - you can check my proposition below).
+This simple (and ugly) plugin allows you to format single python statement (not single line). Just place your cursor on first line of statements and call `:python format_code(80)` (or make some convenient mapping for this action - you can check my proposition below).
 
     python << endpython
     import code_formatter
@@ -88,7 +88,7 @@ My mappings for this plugin allow to change width dynamically (you can easily tr
 
 ### Contributing
 
-I'm TDD fanatic so if you are going to provide some custom formatters please provide apropriate tests for them.
+I'm TDD fanatic so if you are going to provide some custom formatters please provide appropriate tests for them.
 
 ### Bug reporting
 
