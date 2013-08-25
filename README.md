@@ -1,6 +1,6 @@
 # Python AST code formatter
 
-Currently I'm only experimenting this code/idea and using it as a base for my Vim plugin. Be prepared for API changes. If you want something really stable check: codegen, PythonTidy or autopep8.
+Currently I'm only experimenting with this code/idea and using it as a base for my Vim plugin. Be prepared for API changes. If you want something really stable check: codegen, PythonTidy or autopep8.
 
 I'm trying to cover Python 2.7 at first, but some language constructs are still missing. If you want to check what has been already implemented I'm documenting each test with section number from "The Python Language Reference" (version 2.7): http://docs.python.org/2/reference/index.html.
 
@@ -44,43 +44,10 @@ You can easily customize single or bunch of formatters - subclass given formatte
 
 
 ### Example of very ugly Vim plugin
-This simple (and ugly) plugin allows you to format single python statement (not single line). Just place your cursor on first line of statements and call `:python format_code(80)` (or make some convenient mapping for this action - you can check my proposition below).
 
-    python << endpython
-    import code_formatter
-    import textwrap
-    reload(code_formatter)
+In `examples` directory you can find simple (and ugly) plugin which allows you to format single python statement in Vim. If you want to check this script drop it into your vim plugins directory for python ($VIMHOME/ftplugins/python/code\_formatter.vim)
 
-    def _format_code(lines, max_width):
-        width = max(len(l) for l in lines)
-        code = textwrap.dedent('\n'.join(lines))
-        indent = (width - max(len(l) for l in code.split('\n')))
-        formated = code_formatter._format_code(code, formatters=code_formatter._formatters,
-                                               width=max_width - indent)
-        indent = indent*' '
-        return [unicode(l.indent(indent)).encode('utf-8') for block in formated for l in block.lines]
-
-    def format_code(max_width):
-        x = vim.current.window.cursor[0]-1
-        for y in range(x+1, len(vim.current.buffer)+1):
-            lines = vim.current.buffer[x:y]
-            try:
-                width = max(len(l) for l in lines)
-                code = textwrap.dedent('\n'.join(lines))
-                indent = (width - max(len(l) for l in code.split('\n')))
-                vim.current.buffer[x:y] = _format_code(lines + ['%s    pass' % (indent*' ')],
-                                                       max_width)[:-1]
-            except SyntaxError:
-                try:
-                    vim.current.buffer[x:y] = _format_code(lines, max_width)
-                except SyntaxError:
-                    continue
-                else:
-                    break
-            else:
-                break
-    endpython
-
+To use it place your cursor on a first line of statements and call `:python format_code(80)` (or make some convenient mapping for this action - you can check my proposition below).
 
 My mappings for this plugin allow to change width dynamically (you can easily try different formattings):
 
