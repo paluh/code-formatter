@@ -1,5 +1,6 @@
 import ast
 from itertools import chain, izip_longest
+import textwrap
 
 
 class NotEnoughSpace(Exception):
@@ -73,6 +74,10 @@ class CodeBlock(object):
             line.extend(original.tokens)
             self.lines.append(line)
         return self
+
+    def append_lines(self, *lines):
+        for line in lines:
+            self.lines.append(line)
 
     def append_tokens(self, *tokens):
         self.last_line.extend(tokens)
@@ -370,12 +375,29 @@ class NumFormatter(AtomFormatter):
 
 
 @register
-class StrFormatter(AtomFormatter):
+class StringFormatter(ExpressionFormatter):
 
     ast_type = ast.Str
 
-    def _format_code(self):
-        return repr(self.expr.s)
+    def format_code(self, width, force=False):
+        block = CodeBlock()
+        # textwrap raises an exception on negative width and we... don't :-P
+        lines = textwrap.wrap(self.expr.s,
+                              width=1 if width - 1 < 1 else width - 1,
+                              expand_tabs=False, replace_whitespace=False,
+                              fix_sentence_endings=False, break_long_words=False,
+                              drop_whitespace=False)
+        print lines
+        if len(lines) > 1:
+            block.append_tokens('(')
+            block.append_tokens(repr(lines[0]))
+            block.append_lines(*(CodeLine([' ', repr(l)]) for l in lines[1:]))
+            block.append_tokens(')')
+        else:
+            block.append_tokens(repr(lines[0]))
+        if not force and block.width > width:
+            raise NotEnoughSpace()
+        return block
 
 
 @register

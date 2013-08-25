@@ -54,6 +54,25 @@ class AtomExpressionFormattersFormattingTestCase(unittest.TestCase):
         width = max(len(l) for l in expected.split('\n'))
         self.assertEqual(format_code(code, width), expected)
 
+
+class LiteralsTestCase(unittest.TestCase):
+    """
+    [5.2.2]
+    literal ::=  stringliteral | integer | longinteger
+                 | floatnumber | imagnumber
+    """
+    def test_string_quotes_escaping(self):
+        code = '\'"test"\''
+        self.assertEqual(format_code(code), code)
+
+    def test_string_wrapping(self):
+        code = "'test of text wrap'"
+        expected = ("('test of '\n"
+                    " 'text wrap')")
+        width = max(len(l) for l in expected.split('\n')) - 1
+        self.assertEqual(format_code(code, width), expected)
+
+
 class ListDisplaysTestCase(unittest.TestCase):
     # FIXME: test old_lambda_form branch
     """
