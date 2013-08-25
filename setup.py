@@ -26,6 +26,7 @@ setup(
     url='https://github.com/paluh/code-formatter',
     packages=['code_formatter'],
     scripts=[],
+    test_suite='code_formatter.tests',
     zip_safe=False,
     version = '2013.8.1',
 )

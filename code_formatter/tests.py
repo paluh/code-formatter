@@ -870,3 +870,4 @@ class ClassDefinitionTestCase(FormatterTestCase):
                     '        Base4):\n'
                     '    pass')
         self.assertFormats(code, expected)
+
