@@ -382,12 +382,14 @@ class StringFormatter(ExpressionFormatter):
     def format_code(self, width, force=False):
         block = CodeBlock()
         # textwrap raises an exception on negative width and we... don't :-P
-        lines = textwrap.wrap(self.expr.s,
-                              width=1 if width - 1 < 1 else width - 1,
-                              expand_tabs=False, replace_whitespace=False,
-                              fix_sentence_endings=False, break_long_words=False,
-                              drop_whitespace=False)
-        print lines
+        format_lines = lambda s, w: textwrap.wrap(s, width=w, expand_tabs=False,
+                                                  replace_whitespace=False,
+                                                  fix_sentence_endings=False,
+                                                  break_long_words=False,
+                                                  drop_whitespace=False)
+        lines = format_lines(self.expr.s, width if width > 0 else 1)
+        if len(lines) > 1:
+            lines = format_lines(self.expr.s, width-2 if width-2 > 0 else 1)
         if len(lines) > 1:
             block.append_tokens('(')
             block.append_tokens(repr(lines[0]))
@@ -1130,6 +1132,30 @@ class FunctionDefinitionFormatter(StatementFormatter):
         #        currently we are ignoring closing bracket width
         block.merge(parameter_list_formatter.format_code(width-block.width))
         block.append_tokens('):')
+        for subexpression in self.expr.body:
+            subexpression_formatter = self.get_formatter(subexpression)
+            block.extend(subexpression_formatter.format_code(width - len(CodeLine.INDENT),
+                                                             force=force), CodeLine.INDENT)
+        if not force and block.width > width:
+            raise NotEnoughSpace()
+        return block
+
+
+@register
+class ClassDefinitionFormater(StatementFormatter):
+
+    ast_type = ast.ClassDef
+
+    def format_code(self, width, force=False):
+        block = CodeBlock.from_tokens('class', ' ', self.expr.name)
+        if self.expr.bases:
+            block.append_tokens('(')
+            bases = [self.formatters[type(b)](b, self.formatters, parent=self) for b in self.expr.bases]
+            bases_block = format_list_of_expressions(bases, width - block.width - 2,
+                                                     force)
+            block.merge(bases_block)
+            block.append_tokens(')')
+        block.append_tokens(':')
         for subexpression in self.expr.body:
             subexpression_formatter = self.get_formatter(subexpression)
             block.extend(subexpression_formatter.format_code(width - len(CodeLine.INDENT),

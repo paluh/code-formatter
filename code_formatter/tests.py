@@ -65,12 +65,19 @@ class LiteralsTestCase(unittest.TestCase):
         code = '\'"test"\''
         self.assertEqual(format_code(code), code)
 
-    def test_string_wrapping(self):
+    def test_string_simple_wrapping(self):
         code = "'test of text wrap'"
         expected = ("('test of '\n"
                     " 'text wrap')")
         width = max(len(l) for l in expected.split('\n')) - 1
         self.assertEqual(format_code(code, width), expected)
+
+    def test_string_wrapping_preserves_comments_blocks(self):
+        code = ('class A(object):\n'
+                '    """class A multiline\n'
+                '       docstring"""\n'
+                '    pass')
+        self.assertEqual(format_code(code), code)
 
 
 class ListDisplaysTestCase(unittest.TestCase):
@@ -859,3 +866,26 @@ class FunctionDefinitionTestCase(unittest.TestCase):
         expected = ('def fun(x, y, z=3):\n'
                     '    pass')
         self.assertEqual(format_code(code), expected)
+
+
+class ClassDefinitionTestCase(unittest.TestCase):
+    """
+    [7.7]
+    classdef    ::=  "class" classname [inheritance] ":" suite
+    inheritance ::=  "(" [expression_list] ")"
+    classname   ::=  identifier
+    """
+    def test_definition_alignment(self):
+        code = 'class     A:\n    pass'
+        self.assertEqual(format_code(code), 'class A:\n    pass')
+
+    def test_definition_with_inheritance_alignment(self):
+        code = 'class    A(  Base1, Base2,    Base3, Base4    ):\n    pass'
+        expected = ('class A(Base1,\n'
+                    '        Base2,\n'
+                    '        Base3,\n'
+                    '        Base4):\n'
+                    '    pass')
+        width = max(len(l) for l in expected.split('\n'))
+        print format_code(code, width)
+        self.assertEqual(format_code(code, width), expected)
