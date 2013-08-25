@@ -1,9 +1,5 @@
-Python AST code formatter
+Python AST code formatter [![Build Status](https://travis-ci.org/paluh/code-formatter.png?branch=master)](https://travis-ci.org/paluh/code-formatter) [![Coverage Status](https://coveralls.io/repos/paluh/code-formatter/badge.png?branch=master)](https://coveralls.io/r/paluh/code-formatter?branch=master)
 ==========================
-
-[![Build Status](https://travis-ci.org/paluh/code-formatter.png?branch=master)](https://travis-ci.org/paluh/code-formatter) [![Coverage Status](https://coveralls.io/repos/paluh/code-formatter/badge.png?branch=master)](https://coveralls.io/r/paluh/code-formatter?branch=master)
-
-------
 
 Currently I'm only experimenting with this code/idea and using it as a base for my Vim plugin. Be prepared for API changes. If you want something really stable check: codegen, PythonTidy or autopep8.
 
