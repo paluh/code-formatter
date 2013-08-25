@@ -19,10 +19,8 @@ class UnknownNodeType(Exception):
         attrs = ', '.join('%s=%s' % (a, getattr(self.expr, a))
                           for a in dir(self.expr)
                           if not a.startswith('_'))
-        return (('Unkown expression type: %s;\n'
-                 '\n'
-                 'dir(expr) = %s\n'
-                 '\n'
+        return (('Unkown expression type: %s;\n\n'
+                 'dir(expr) = %s\n\n'
                  'attrs: %s') % (type(self.expr),
                                  dir(self.expr), attrs))
 
@@ -1181,10 +1179,6 @@ class FunctionDefinitionFormatter(StatementFormatter):
     def format_code(self, width, force=False):
         block = CodeBlock.from_tokens('def', ' ', self.expr.name, '(')
         parameter_list_formatter = self.get_formatter(self.expr.args)
-        # FIXME: This will be precise formatting when we move to new
-        #        format_code API: format_code(block_width, first_line_width=None,
-        #                                     suffix=None, force=False):
-        #        currently we are ignoring closing bracket width
         block.merge(parameter_list_formatter.format_code(width-block.width))
         block.append_tokens('):')
         for subexpression in self.expr.body:
