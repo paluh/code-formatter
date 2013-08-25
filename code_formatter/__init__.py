@@ -431,7 +431,7 @@ class StringFormatter(ExpressionFormatter):
                                                       drop_whitespace=False)
             lines = format_lines(self.expr.s, width if width > 0 else 1)
             if len(lines) > 1:
-                lines = format_lines(self.expr.s, width-2 if width-2 > 0 else 1)
+                lines = format_lines(self.expr.s, width-2 if width-2 > 0 else 2)
             if len(lines) > 1:
                 block.append_tokens('(')
                 block.append_tokens(repr(lines[0]))
