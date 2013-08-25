@@ -85,6 +85,13 @@ class LiteralsTestCase(FormatterTestCase):
                 '    pass')
         self.assertFormats(code, code)
 
+    def test_string_wrapping_wraps_on_newlines(self):
+        code = '"""multiline string with\nvery very very long lines\nand\nsome short"""'
+        self.assertFormats(code, "('multiline string with\\n'\n"
+                                 " 'very very very long lines\\n'\n"
+                                 " 'and\\n'\n"
+                                 " 'some short')")
+
 
 class ListDisplaysTestCase(FormatterTestCase):
     # FIXME: test old_lambda_form branch

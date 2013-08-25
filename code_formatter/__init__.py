@@ -1,5 +1,6 @@
 import ast
 from itertools import chain, izip_longest
+import re
 import textwrap
 import sys
 
@@ -18,8 +19,12 @@ class UnknownNodeType(Exception):
         attrs = ', '.join('%s=%s' % (a, getattr(self.expr, a))
                           for a in dir(self.expr)
                           if not a.startswith('_'))
-        return ('Unkown expression type: %s;\n\ndir(expr) = %s\n\n'
-                'attrs: %s' % (type(self.expr), dir(self.expr), attrs))
+        return (('Unkown expression type: %s;\n'
+                 '\n'
+                 'dir(expr) = %s\n'
+                 '\n'
+                 'attrs: %s') % (type(self.expr),
+                                 dir(self.expr), attrs))
 
 class CodeLine(object):
 
@@ -65,6 +70,8 @@ class CodeBlock(object):
         return self
 
     def merge(self, block, separator=None):
+        if not block.lines:
+            return
         if separator:
             self.append_tokens(separator)
         lines = block.lines
@@ -424,11 +431,17 @@ class StringFormatter(ExpressionFormatter):
             block.append_lines(*(CodeLine([l]) for l in lines))
         else:
             # textwrap raises an exception on negative width and we... don't :-P
-            format_lines = lambda s, w: textwrap.wrap(s, width=w, expand_tabs=False,
-                                                      replace_whitespace=False,
-                                                      fix_sentence_endings=False,
-                                                      break_long_words=False,
-                                                      drop_whitespace=False)
+            def format_lines(string, width):
+                if len(filter(None, string.split('\n'))) > 1:
+                    lines = [line for line in re.split('([^\n]*\n+)', string)]
+                else:
+                    lines = [string]
+                result = []
+                for line in lines:
+                    result.extend(textwrap.wrap(line, width=width, expand_tabs=False,
+                                                replace_whitespace=False, fix_sentence_endings=False,
+                                                break_long_words=False, drop_whitespace=False))
+                return result
             lines = format_lines(self.expr.s, width if width > 0 else 1)
             if len(lines) > 1:
                 lines = format_lines(self.expr.s, width-2 if width-2 > 0 else 2)
