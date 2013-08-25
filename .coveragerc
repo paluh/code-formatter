@@ -7,3 +7,4 @@ source = code_formatter
 exclude_lines =
     pragma: no cover
     raise NotImplementedError
+    raise NotEnoughSpace

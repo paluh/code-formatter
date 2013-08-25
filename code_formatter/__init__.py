@@ -31,10 +31,6 @@ class CodeLine(object):
     def __init__(self, tokens=None):
         self.tokens = tokens or []
 
-    def indent(self, indent):
-        self.tokens.insert(0, indent)
-        return self
-
     def append(self, token):
         return self.tokens.append(token)
 
@@ -1166,8 +1162,8 @@ class IfFormatter(StatementFormatter):
             subexpression_formatter = self.get_formatter(subexpression)
             block.extend(subexpression_formatter.format_code(width - len(CodeLine.INDENT),
                                                              force=force), CodeLine.INDENT)
-        #if not force and block.width > width:
-        #    raise NotEnoughSpace()
+        if not force and block.width > width:
+            raise NotEnoughSpace()
         return block
 
 
