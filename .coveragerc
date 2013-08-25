@@ -1,0 +1,9 @@
+[run]
+branch = 1
+omit = code_formatter/tests.py
+source = code_formatter
+
+[report]
+exclude_lines =
+    pragma: no cover
+    raise NotImplementedError
