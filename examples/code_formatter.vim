@@ -10,7 +10,7 @@ def _format_code(lines, max_width):
     formated = code_formatter._format_code(code, formatters=code_formatter._formatters,
                                            width=max_width - indent)
     indent = indent*' '
-    return [unicode(l.indent(indent)).encode('utf-8') for block in formated for l in block.lines]
+    return [(indent + unicode(l)).encode('utf-8') for block in formated for l in block.lines]
 
 def format_code(max_width):
     x = vim.current.window.cursor[0]-1
