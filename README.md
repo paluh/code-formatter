@@ -47,7 +47,7 @@ You can easily customize single or bunch of formatters - subclass given formatte
 
 In `examples` directory you can find simple (and ugly) plugin which allows you to format single python statement in Vim. If you want to check this script drop it into your vim plugins directory for python ($VIMHOME/ftplugins/python/code\_formatter.vim)
 
-To use it place your cursor on a first line of statements and call `:python format_code(80)` (or make some convenient mapping for this action - you can check my proposition below).
+To use it place your cursor on a first line of a statement which you want to format and call `:python format_code(80)` (or make some convenient mapping for this action - you can check my proposition below).
 
 My mappings for this plugin allow to change width dynamically (you can easily try different formattings):
 
