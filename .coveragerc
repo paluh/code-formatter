@@ -1,6 +1,6 @@
 [run]
 branch = 1
-omit = code_formatter/tests.py
+omit = tests.py
 source = code_formatter
 
 [report]
