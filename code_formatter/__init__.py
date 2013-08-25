@@ -1,6 +1,7 @@
 import ast
 from itertools import chain, izip_longest
 import textwrap
+import sys
 
 
 class NotEnoughSpace(Exception):
@@ -47,7 +48,7 @@ class CodeLine(object):
 class CodeBlock(object):
 
     def __init__(self, lines=None):
-        self.lines = lines or [CodeLine()]
+        self.lines = lines or []
 
     @classmethod
     def from_tokens(cls, *tokens):
@@ -67,6 +68,8 @@ class CodeBlock(object):
         if separator:
             self.append_tokens(separator)
         lines = block.lines
+        if not self.lines:
+            self.append_lines(CodeLine())
         indent = len(self.lines[-1])*' '
         self.last_line.extend(block.lines[0].tokens)
         for original in lines[1:]:
@@ -80,16 +83,19 @@ class CodeBlock(object):
             self.lines.append(line)
 
     def append_tokens(self, *tokens):
-        self.last_line.extend(tokens)
+        if self.last_line:
+            self.last_line.extend(tokens)
+        else:
+            self.append_lines(CodeLine(list(tokens)))
         return self
 
     @property
     def last_line(self):
-        return self.lines[-1]
+        return self.lines[-1] if self.lines else None
 
     @property
     def width(self):
-        return max(len(l) for l in self.lines)
+        return max(len(l) for l in self.lines) if self.lines else 0
 
     @property
     def height(self):
@@ -379,24 +385,60 @@ class StringFormatter(ExpressionFormatter):
 
     ast_type = ast.Str
 
+    def _trim_docstring(self, docstring):
+        """Taken from: http://www.python.org/dev/peps/pep-0257/#handling-docstring-indentation"""
+        if not docstring:
+            return ''
+        # Convert tabs to spaces (following the normal Python rules)
+        # and split into a list of lines:
+        lines = docstring.expandtabs().splitlines()
+        # Determine minimum indentation (first line doesn't count):
+        indent = sys.maxint
+        for line in lines[1:]:
+            stripped = line.lstrip()
+            if stripped:
+                indent = min(indent, len(line) - len(stripped))
+        # Remove indentation (first line is special):
+        trimmed = [lines[0].strip()]
+        if indent < sys.maxint:
+            for line in lines[1:]:
+                trimmed.append(line[indent:].rstrip())
+        # Strip off trailing and leading blank lines:
+        while trimmed and not trimmed[-1]:
+            trimmed.pop()
+        while trimmed and not trimmed[0]:
+            trimmed.pop(0)
+        # Return a single string:
+        return '\n'.join(trimmed)
+
     def format_code(self, width, force=False):
         block = CodeBlock()
-        # textwrap raises an exception on negative width and we... don't :-P
-        format_lines = lambda s, w: textwrap.wrap(s, width=w, expand_tabs=False,
-                                                  replace_whitespace=False,
-                                                  fix_sentence_endings=False,
-                                                  break_long_words=False,
-                                                  drop_whitespace=False)
-        lines = format_lines(self.expr.s, width if width > 0 else 1)
-        if len(lines) > 1:
-            lines = format_lines(self.expr.s, width-2 if width-2 > 0 else 1)
-        if len(lines) > 1:
-            block.append_tokens('(')
-            block.append_tokens(repr(lines[0]))
-            block.append_lines(*(CodeLine([' ', repr(l)]) for l in lines[1:]))
-            block.append_tokens(')')
+        # FIXME: rewrite parent detection in more generic maner
+        real_parent = self.parent.parent if isinstance(self.parent, ExprFormatter) and self.parent.parent else self.parent
+        if isinstance(real_parent, (FunctionDefinitionFormatter, ClassDefinitionFormater)):
+            lines = self._trim_docstring(self.expr.s).split('\n')
+            if len(lines) > 1:
+                lines = ['"""' + lines[0]] + lines[1:] + ['"""']
+            else:
+                lines[0] = '"""' + lines[0] + '"""'
+            block.append_lines(*(CodeLine([l]) for l in lines))
         else:
-            block.append_tokens(repr(lines[0]))
+            # textwrap raises an exception on negative width and we... don't :-P
+            format_lines = lambda s, w: textwrap.wrap(s, width=w, expand_tabs=False,
+                                                      replace_whitespace=False,
+                                                      fix_sentence_endings=False,
+                                                      break_long_words=False,
+                                                      drop_whitespace=False)
+            lines = format_lines(self.expr.s, width if width > 0 else 1)
+            if len(lines) > 1:
+                lines = format_lines(self.expr.s, width-2 if width-2 > 0 else 1)
+            if len(lines) > 1:
+                block.append_tokens('(')
+                block.append_tokens(repr(lines[0]))
+                block.append_lines(*(CodeLine([' ', repr(l)]) for l in lines[1:]))
+                block.append_tokens(')')
+            else:
+                block.append_tokens(repr(lines[0]))
         if not force and block.width > width:
             raise NotEnoughSpace()
         return block
@@ -417,7 +459,7 @@ def format_list_of_expressions(expressions, width, force=False):
     block = CodeBlock()
     for param, expr in enumerate(expressions):
         try:
-            free_space = width - len(block.last_line)
+            free_space = width - len(block.last_line or [])
             if param > 0:
                 separator = ', '
                 free_space = free_space - len(separator)
@@ -750,7 +792,7 @@ def format_generators(generators, width, parent, formatters, force=False):
             try:
                 spaces_count = 2 if part > 0 else 1
                 formatter_block = formatter.format_code(width -
-                                                        len(block.last_line) -
+                                                        len(block.last_line or []) -
                                                         len(keyword) -
                                                         spaces_count)
                 if part > 0:
@@ -871,7 +913,7 @@ class ParameterListFormatter(AstFormatter):
             # FIXME: move to next line
             try:
                 separator = ', '
-                free_space = width - len(block.last_line) - len(separator)
+                free_space = width - len(block.last_line or []) - len(separator)
                 arg_block = arg_formatter.format_code(free_space, force=False)
                 if param > 0:
                     block.append_tokens(separator)

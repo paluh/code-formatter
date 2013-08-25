@@ -75,7 +75,8 @@ class LiteralsTestCase(unittest.TestCase):
     def test_string_wrapping_preserves_comments_blocks(self):
         code = ('class A(object):\n'
                 '    """class A multiline\n'
-                '       docstring"""\n'
+                '    docstring\n'
+                '    """\n'
                 '    pass')
         self.assertEqual(format_code(code), code)
 
@@ -887,5 +888,4 @@ class ClassDefinitionTestCase(unittest.TestCase):
                     '        Base4):\n'
                     '    pass')
         width = max(len(l) for l in expected.split('\n'))
-        print format_code(code, width)
         self.assertEqual(format_code(code, width), expected)
