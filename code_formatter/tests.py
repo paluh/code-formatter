@@ -5,8 +5,8 @@ from . import CodeBlock, CodeLine, format_code
 
 class FormatterTestCase(unittest.TestCase):
 
-    def assertFormats(self, code, formated, formatter=format_code):
-        width = max(len(l) for l in formated.split('\n'))
+    def assertFormats(self, code, formated, formatter=format_code, width=None):
+        width = width if width is not None else max(len(l) for l in formated.split('\n'))
         self.assertEqual(formatter(code, width=width), formated)
 
 

@@ -414,9 +414,15 @@ class StringFormatter(ExpressionFormatter):
 
     def format_code(self, width, force=False):
         block = CodeBlock()
-        # FIXME: rewrite parent detection in more generic maner
-        real_parent = self.parent.parent if isinstance(self.parent, ExprFormatter) and self.parent.parent else self.parent
-        if isinstance(real_parent, (FunctionDefinitionFormatter, ClassDefinitionFormater)):
+        # check wether this expression is a docstring:
+        # * if it is a docstring it is child of an expression statement
+        # * parent of this expression statement should be class or function definition statement
+        # * this expression statement should be first statement in parent's body
+        real_parent = self.parent.parent if (isinstance(self.parent,
+                                                        ExprFormatter) and
+                                             self.parent.parent) else self.parent
+        if isinstance(real_parent, (FunctionDefinitionFormatter,
+                                     ClassDefinitionFormater)) and self.parent.expr == real_parent.expr.body[0]:
             lines = self._trim_docstring(self.expr.s).split('\n')
             if len(lines) > 1:
                 lines = ['"""' + lines[0]] + lines[1:] + ['"""']
@@ -1156,7 +1162,7 @@ class IfFormatter(StatementFormatter):
     def format_code(self, width, force=False):
         block = CodeBlock.from_tokens('if', ' ')
         test_formatter = self.get_formatter(self.expr.test)
-        block.merge(test_formatter.format_code(width-block.width-1))
+        block.merge(test_formatter.format_code(width-block.width-1, force=force))
         block.append_tokens(':')
         for subexpression in self.expr.body:
             subexpression_formatter = self.get_formatter(subexpression)
