@@ -115,10 +115,6 @@ def register(cls):
     _formatters[cls.ast_type] = cls
     return cls
 
-def inside_scope(formatter):
-    return formatter.parent and isinstance(formatter.parent.expr,
-                                           (ast.Tuple, ast.Call,
-                                            ast.List, ast.BinOp, ast.ListComp))
 
 class AstFormatter(object):
 
@@ -134,6 +130,10 @@ class AstFormatter(object):
     def format_code(self, width, force=False):
         raise NotImplementedError()
 
+    def _inside_scope(self):
+        return self.parent and isinstance(self.parent.expr,
+                                          (ast.Tuple, ast.Call, ast.List,
+                                           ast.BinOp, ast.ListComp))
 
 @register
 class ExprFormatter(AstFormatter):
@@ -450,7 +450,7 @@ class StringFormatter(ExpressionFormatter):
             if len(lines) > 1:
                 lines = format_lines(self.expr.s, width-2 if width-2 > 0 else 2)
             if len(lines) > 1:
-                if inside_scope(self):
+                if self._inside_scope():
                     block.append_tokens(repr(lines[0]))
                     block.append_lines(*(CodeLine([repr(l)]) for l in lines[1:]))
                 else:
