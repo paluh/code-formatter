@@ -164,6 +164,11 @@ class GeneratorExpressionsTestCase(FormatterTestCase):
 
         self.assertEqual(format_code(code), expected)
 
+    def test_generator_inside_call_preserves_brackets_when_necessary(self):
+        code = 'function((x, y) for x, y in iterable)'
+        expected = 'function((x, y) for (x, y) in iterable)'
+        self.assertFormats(code, expected)
+
 
 class DictionaryDisplaysTestCase(FormatterTestCase):
     """

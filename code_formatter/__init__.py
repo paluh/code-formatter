@@ -874,7 +874,7 @@ class TupleFormatter(ExpressionFormatter):
     def format_code(self, width, force=False):
         with_brackets = (isinstance(self.parent.expr, (ast.Tuple, ast.Call,
                                                        ast.List, ast.BinOp,
-                                                       ast.ListComp)) or
+                                                       ast.ListComp, ast.GeneratorExp)) or
                          len(self.expr.elts) < 2)
         block = CodeBlock()
         expressions = [self.get_formatter(v)
