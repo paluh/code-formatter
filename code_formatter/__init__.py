@@ -115,6 +115,10 @@ def register(cls):
     _formatters[cls.ast_type] = cls
     return cls
 
+def inside_scope(formatter):
+    return formatter.parent and isinstance(formatter.parent.expr,
+                                           (ast.Tuple, ast.Call,
+                                            ast.List, ast.BinOp, ast.ListComp))
 
 class AstFormatter(object):
 
@@ -286,7 +290,7 @@ class BinaryArithmeticOperationFormatter(OperationFormatter):
         block, right_subblock = _format_code(with_brackets)
         if ((not self.parent or
              not isinstance(self.parent,
-                            (OperationFormatter, Call))) and
+                            (OperationFormatter, CallFormatter))) and
             block.height > 1 and
             right_subblock.height != block.height):
             block, _ = _format_code(True)
@@ -446,10 +450,14 @@ class StringFormatter(ExpressionFormatter):
             if len(lines) > 1:
                 lines = format_lines(self.expr.s, width-2 if width-2 > 0 else 2)
             if len(lines) > 1:
-                block.append_tokens('(')
-                block.append_tokens(repr(lines[0]))
-                block.append_lines(*(CodeLine([' ', repr(l)]) for l in lines[1:]))
-                block.append_tokens(')')
+                if inside_scope(self):
+                    block.append_tokens(repr(lines[0]))
+                    block.append_lines(*(CodeLine([repr(l)]) for l in lines[1:]))
+                else:
+                    block.append_tokens('(')
+                    block.append_tokens(repr(lines[0]))
+                    block.append_lines(*(CodeLine([' ', repr(l)]) for l in lines[1:]))
+                    block.append_tokens(')')
             else:
                 block.append_tokens(repr(lines[0]))
         if not force and block.width > width:
@@ -491,7 +499,7 @@ def format_list_of_expressions(expressions, width, force=False):
 
 
 @register
-class Call(ExpressionFormatter):
+class CallFormatter(ExpressionFormatter):
 
     ast_type = ast.Call
 
@@ -530,12 +538,12 @@ class Call(ExpressionFormatter):
         # FIXME: introduce permutation of formatting
         expressions = [self.get_formatter(e) for e in self.expr.args]
         if self.expr.starargs:
-            expressions.append(Call.StarArgsFormatter(self.expr.starargs, '*',
-                                                      formatters=self.formatters))
+            expressions.append(CallFormatter.StarArgsFormatter(self.expr.starargs, '*',
+                                                               formatters=self.formatters))
         expressions += [self.get_formatter(e) for e in self.expr.keywords]
         if self.expr.kwargs:
-            expressions.append(Call.StarArgsFormatter(self.expr.kwargs, '**',
-                                                      formatters=self.formatters))
+            expressions.append(CallFormatter.StarArgsFormatter(self.expr.kwargs, '**',
+                                                               formatters=self.formatters))
         subblock = format_list_of_expressions(expressions, width-block.width, force=force)
         block.merge(subblock)
         block.lines[-1].append(')')
@@ -761,7 +769,8 @@ class GeneratorFormatter(ExpressionFormatter):
 
     def format_code(self, width, force=False):
         value_formatter = self.get_formatter(self.expr.elt)
-        with_brackets = (not self.parent or not isinstance(self.parent, Call) or
+        with_brackets = (not self.parent or not isinstance(self.parent,
+                                                           CallFormatter) or
                          len(self.parent.expr.args) != 1)
         if with_brackets:
             block = CodeBlock([CodeLine(['('])])

@@ -92,6 +92,11 @@ class LiteralsTestCase(FormatterTestCase):
                                  " 'and\\n'\n"
                                  " 'some short')")
 
+    def test_string_wrapping_skips_brackets_in_function_call(self):
+        code = "fun('long string')"
+        expected = ("fun('long '\n"
+                    "    'string')")
+        self.assertFormats(code, expected)
 
 class ListDisplaysTestCase(FormatterTestCase):
     # FIXME: test old_lambda_form branch
