@@ -98,6 +98,12 @@ class LiteralsTestCase(FormatterTestCase):
                     "    'string')")
         self.assertFormats(code, expected)
 
+    def test_string_wrapping_skips_brackets_in_dictionary_expression(self):
+        code = "{'key': 'long string'}"
+        expected = ("{'key': 'long '\n"
+                    "        'string'}")
+        self.assertFormats(code, expected)
+
 class ListDisplaysTestCase(FormatterTestCase):
     # FIXME: test old_lambda_form branch
     """
@@ -886,4 +892,3 @@ class ClassDefinitionTestCase(FormatterTestCase):
                     '        Base4):\n'
                     '    pass')
         self.assertFormats(code, expected)
-

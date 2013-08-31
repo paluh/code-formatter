@@ -133,7 +133,7 @@ class AstFormatter(object):
     def _inside_scope(self):
         return (self.parent and isinstance(self.parent.expr,
                                            (ast.Tuple, ast.Call, ast.List,
-                                            ast.BinOp, ast.ListComp)) or
+                                            ast.BinOp, ast.ListComp, ast.Dict)) or
                 (getattr(self.parent, 'parent') is not None and
                  self.parent._inside_scope()))
 
@@ -577,7 +577,7 @@ class DictFormatter(ExpressionFormatter):
 
     def format_code(self, width, force=False):
         block = CodeBlock([CodeLine(['{'])])
-        expressions = [DictFormatter.Item(k, v, self.expr, self.formatters)
+        expressions = [DictFormatter.Item(k, v, self, self.formatters)
                        for k, v in zip(self.expr.keys,
                                        self.expr.values)]
         subblock = format_list_of_expressions(expressions=expressions,
