@@ -131,9 +131,11 @@ class AstFormatter(object):
         raise NotImplementedError()
 
     def _inside_scope(self):
-        return self.parent and isinstance(self.parent.expr,
-                                          (ast.Tuple, ast.Call, ast.List,
-                                           ast.BinOp, ast.ListComp))
+        return (self.parent and isinstance(self.parent.expr,
+                                           (ast.Tuple, ast.Call, ast.List,
+                                            ast.BinOp, ast.ListComp)) or
+                (getattr(self.parent, 'parent') is not None and
+                 self.parent._inside_scope()))
 
 @register
 class ExprFormatter(AstFormatter):

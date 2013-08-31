@@ -169,6 +169,12 @@ class GeneratorExpressionsTestCase(FormatterTestCase):
         expected = 'function((x, y) for (x, y) in iterable)'
         self.assertFormats(code, expected)
 
+    def test_string_wrapping_inside_call_skips_brackets(self):
+        code = "function(x='long string')"
+        expected = ("function(x='long '\n"
+                    "           'string')")
+        self.assertFormats(code, expected)
+
 
 class DictionaryDisplaysTestCase(FormatterTestCase):
     """
