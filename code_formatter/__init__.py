@@ -1227,7 +1227,7 @@ class ClassDefinitionFormater(StatementFormatter):
         return block
 
 
-def _format_code(code, width, formatters, force=True):
+def _format_code(code, width, formatters, force=False):
     """Returns CodeBlock instance as result"""
     tree = ast.parse(code)
     result = []
@@ -1236,7 +1236,7 @@ def _format_code(code, width, formatters, force=True):
         result.append(formatter.format_code(width, force=force))
     return result
 
-def format_code(code, width=80, formatters=_formatters.copy(), force=True):
+def format_code(code, width=80, formatters=_formatters.copy(), force=False):
     """Returns string as a result"""
     result = _format_code(code, width=width, formatters=formatters, force=force)
     return u'\n'.join(unicode(e) for e in result)
