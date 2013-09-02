@@ -1,3 +1,4 @@
+import textwrap
 import unittest
 
 from . import CodeBlock, CodeLine, format_code
@@ -5,13 +6,13 @@ from . import CodeBlock, CodeLine, format_code
 
 class FormatterTestCase(unittest.TestCase):
 
-    def assertFormats(self, code, formated, formatter=format_code, width=None):
+    def assertFormats(self, code, formated, formatter=format_code, width=None, force=False):
         width = width if width is not None else max(len(l) for l in formated.split('\n'))
         try:
-            self.assertEqual(formatter(code, width=width), formated)
+            self.assertEqual(formatter(code, width=width, force=force), formated)
         except AssertionError:
             print width
-            print formatter(code, width=width)
+            print formatter(code, width=width, force=force)
             print formated
             raise
 
@@ -203,6 +204,20 @@ class DictionaryDisplaysTestCase(FormatterTestCase):
                     ' in iterable}')
         self.assertFormats(code, expected)
 
+    def test_forcing_dictionary_formatting(self):
+        # REGRESSION
+        code = textwrap.dedent("""
+            result = {
+                'type': type(e).__name__,
+                'args': e.args,
+                'traceback': traceback or logging.Formatter().formatException(sys.exc_info())
+            }
+        """)
+        expected = textwrap.dedent("""\
+            result = {'type': type(e).__name__, 'args': e.args,
+                      'traceback': traceback or logging.Formatter().formatException(sys.exc_info())}""")
+        self.assertFormats(code, expected, force=True)
+
     def test_comprehension_with_condition_wrapping(self):
         code = '{x: fun(x) for x in iterable if x>0}'
         expected = ('{x: fun(x)\n'
@@ -351,8 +366,11 @@ class CallsTestCase(FormatterTestCase):
 
     def test_method_call_alignment(self):
         code = 'instance.method(   x,   y )'
-        formatted = format_code(code)
-        self.assertEqual(formatted, 'instance.method(x, y)')
+        self.assertFormats(code, 'instance.method(x, y)')
+
+    def test_call_with_non_arguments_alignment(self):
+        code = 'fun(     \n )'
+        self.assertFormats(code, 'fun()')
 
     def test_tuple_args_preserves_brackets(self):
         code = 'fun((x,),(y,z))'

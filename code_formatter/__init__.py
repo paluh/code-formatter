@@ -516,6 +516,11 @@ class AttributeFormatter(ExpressionFormatter):
 
 def format_list_of_expressions(expressions, width, force=False, line_width=None, suffix=None):
     block = CodeBlock()
+    if not expressions:
+        if suffix:
+            return suffix
+        else:
+            return block
     line_width = line_width if line_width is not None else width
     expression = expressions[0]
     expressions = expressions[1:]
@@ -543,7 +548,7 @@ def format_list_of_expressions(expressions, width, force=False, line_width=None,
         block.append_tokens(',')
         block.extend(expressions_block)
         return block
-    expression_block = expression.format_code(width)
+    expression_block = expression.format_code(width, force=force)
     block.merge(expression_block, extra_indent=line_width-width)
     if suffix:
         if suffix.width > width - block.width:
@@ -603,7 +608,7 @@ class CallFormatter(ExpressionFormatter):
 
 
 @register
-class DictFormatter(ExpressionFormatter):
+class DictonaryFormatter(ExpressionFormatter):
 
     ast_type = ast.Dict
 
@@ -627,7 +632,7 @@ class DictFormatter(ExpressionFormatter):
 
     def format_code(self, width, force=False):
         block = CodeBlock([CodeLine(['{'])])
-        expressions = [DictFormatter.Item(k, v, self, self.formatters)
+        expressions = [DictonaryFormatter.Item(k, v, self, self.formatters)
                        for k, v in zip(self.expr.keys,
                                        self.expr.values)]
         subblock = format_list_of_expressions(expressions=expressions,
