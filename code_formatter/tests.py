@@ -7,8 +7,13 @@ class FormatterTestCase(unittest.TestCase):
 
     def assertFormats(self, code, formated, formatter=format_code, width=None):
         width = width if width is not None else max(len(l) for l in formated.split('\n'))
-        self.assertEqual(formatter(code, width=width), formated)
-
+        try:
+            self.assertEqual(formatter(code, width=width), formated)
+        except AssertionError:
+            print width
+            print formatter(code, width=width)
+            print formated
+            raise
 
 # FIXME: Move this testcase to structure provided by "The Python Language Reference"
 class AtomExpressionFormattersFormattingTestCase(FormatterTestCase):
@@ -123,7 +128,8 @@ class ListDisplaysTestCase(FormatterTestCase):
 
     def test_expression_list_wrapping(self):
         code = '[   1 , 2,   3,]'
-        expected = '[1, 2,\n 3]'
+        expected = ('[1, 2,\n'
+                    ' 3]')
         self.assertFormats(code, expected)
 
     def test_simple_list_comprehension_alignment(self):
@@ -343,7 +349,7 @@ class CallsTestCase(FormatterTestCase):
     keyword_item         ::=  identifier "=" expression
     """
 
-    def test_method_call_formatting(self):
+    def test_method_call_alignment(self):
         code = 'instance.method(   x,   y )'
         formatted = format_code(code)
         self.assertEqual(formatted, 'instance.method(x, y)')
@@ -365,6 +371,20 @@ class CallsTestCase(FormatterTestCase):
                     '                   argument_3)')
         self.assertFormats(code, expected)
 
+    def test_positional_arguments_wrapping_to_non_exact_width(self):
+        # REGRESSION
+        code = 'fun(x, y, z)'
+        expected = ('fun(x,\n'
+                    '    y,\n'
+                    '    z)')
+        self.assertFormats(code, expected, width=7)
+        self.assertFormats(code, expected, width=8)
+
+        expected = ('fun(x, y,\n'
+                    '    z)')
+        self.assertFormats(code, expected, width=9)
+        self.assertFormats(code, expected, width=10)
+
     def test_wrapping_positional_arguments_expressions(self):
         code = ('function_with_args(nested_function_with_args(argument_1,argument_2,argument_3),'
                                    'nested_function_with_args(argument_4,argument_5,argument_6))')
@@ -384,6 +404,13 @@ class CallsTestCase(FormatterTestCase):
                     '                                            argument_3),\n'
                     '                   param_3, nested(argument_4, argument_5,\n'
                     '                                   argument_6), param_4)')
+        self.assertFormats(code, expected)
+
+    def test_wrapping_positional_arguments_combination(self):
+        # REGRESSION
+        code = 'f(p, n(x, xxxxx, y, z), p)'
+        expected = ('f(p, n(x, xxxxx,\n'
+                    '       y, z), p)')
         self.assertFormats(code, expected)
 
     def test_keyword_arguments_alignment(self):
@@ -431,7 +458,9 @@ class BinaryArithmeticOperationsTestCase(FormatterTestCase):
     def test_wrapping(self):
         for op in self.OPERATORS:
             code = 'var1 %s var2 %s var3' % (op, op)
-            expected = '(var1 %s\n var2 %s\n var3)' % (op, op)
+            expected = ('(var1 %s\n'
+                        ' var2 %s\n'
+                        ' var3)' % (op, op))
             self.assertFormats(code, expected)
 
     def test_subexpressions_adds_brackets_when_neccessary(self):
@@ -452,6 +481,16 @@ class BinaryArithmeticOperationsTestCase(FormatterTestCase):
         code = "'value: %x'%1"
         expected = "'value: %x' % 1"
         self.assertEqual(format_code(code), expected)
+
+    def test_arithmetic_operation_alignment_in_tuple_definition(self):
+        code = '(2 + 3,)'
+        self.assertFormats(code, code)
+
+    def test_arithmetic_operation_wrapping_in_tuple_definition(self):
+        code = '(2 + 3,)'
+        expected = ('(2 +\n'
+                    ' 3,)')
+        self.assertFormats(code, expected)
 
 
 class BinaryBitwiseOperation(FormatterTestCase):
@@ -497,20 +536,20 @@ class ComparisonsTestCase(FormatterTestCase):
             self.assertEqual(format_code(code), expected)
 
     def test_wrapping(self):
-        for opt in ['<' , '>' , '==' , '>=' , '<=' , '!=',
-                    'is', 'is not', 'in', 'not in']:
+        for opt in ['==' , '<' , '>' , '>=' , '<=' , '!=', 'is',
+                    'is not', 'in', 'not in']:
             code = 'fun(x, y, z) %s fun(m, n, o)' % opt
             operator_spacing = len(opt) * ' '
-            expected = ('fun(x,\n'
-                        '    y,\n'
+            expected = ('fun(x, y,\n'
                         '    z) %s fun(m,\n'
                         '       %s     n,\n'
-                        '       %s     o)' % (opt, operator_spacing, operator_spacing))
-            self.assertEqual(format_code(code, 2), expected)
+                        '       %s     o)' % (opt, operator_spacing,
+                                              operator_spacing))
+            self.assertFormats(code, expected)
 
     def test_multi_opt_wrapping(self):
         for opt in ['<' , '>' , '==' , '>=' , '<=' , '!=',
-                    'is', 'is not', 'in', 'not in']:
+                    'is', 'in', 'not in', 'is not']:
             code = 'fun(x, y, z) %s fun(m, n, o) %s fun(p, q, r)' % (opt, opt)
             expected = ('fun(x, y, z) %(opt)s fun(m, n, o) %(opt)s fun(p,\n'
                         '             %(spc)s              %(spc)s     q,\n'
@@ -608,7 +647,7 @@ class ExpressionListTestCase(FormatterTestCase):
         code = 'x,'
         self.assertEqual(format_code(code), '(x,)')
 
-    def test_comlex_expression_alignment(self):
+    def test_complex_expression_alignment(self):
         code = '3,8+9,fun(x,y)'
         expected = '3, 8 + 9, fun(x, y)'
         self.assertEqual(format_code(code), expected)
@@ -619,8 +658,8 @@ class ExpressionListTestCase(FormatterTestCase):
 
     def test_wrapping(self):
         code = '3*8+10,8+9,fun(x,y)'
-        expected = ('(3 * 8 + 10,\n'
-                    ' 8 + 9,\n'
+        expected = ('(3 * 8 +\n'
+                    ' 10, 8 + 9,\n'
                     ' fun(x, y))')
         self.assertFormats(code, expected)
 
@@ -770,9 +809,10 @@ class ImportStatementTestCase(FormatterTestCase):
         self.assertEqual(format_code(code), expected)
 
     def test_simple_form_wrapping(self):
-        code = 'import    module1, module2, module3, module4'
+        code = 'import    module1, module2, module3, module4, module5, module6'
         expected = ('import (module1, module2,\n'
-                    '        module3, module4)')
+                    '        module3, module4,\n'
+                    '        module5, module6)')
         self.assertFormats(code, expected)
 
     def test_from_form_wrapping(self):

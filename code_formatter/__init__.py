@@ -37,6 +37,10 @@ class CodeLine(object):
     def extend(self, tokens):
         return self.tokens.extend(tokens)
 
+    @property
+    def width(self):
+        return sum((len(t) for t in self.tokens))
+
     def __len__(self):
         return sum((len(t) for t in self.tokens))
 
@@ -55,7 +59,7 @@ class CodeBlock(object):
         return cls(lines)
 
     def extend(self, block, indent=None):
-        if indent:
+        if indent is not None:
             self.lines.extend((CodeLine([indent] + l.tokens)
                                for l in block.lines))
         else:
@@ -63,7 +67,7 @@ class CodeBlock(object):
                                for l in block.lines))
         return self
 
-    def merge(self, block, separator=None):
+    def merge(self, block, separator=None, indent=None, extra_indent=None):
         if not block.lines:
             return
         if separator:
@@ -71,7 +75,9 @@ class CodeBlock(object):
         lines = block.lines
         if not self.lines:
             self.append_lines(CodeLine())
-        indent = len(self.lines[-1])*' '
+        extra_indent = '' if extra_indent is None else extra_indent*' '
+        indent = len(self.lines[-1])*' ' if indent is None else indent*' '
+        indent += extra_indent
         self.last_line.extend(block.lines[0].tokens)
         for original in lines[1:]:
             line = CodeLine([indent])
@@ -277,11 +283,11 @@ class BinaryArithmeticOperationFormatter(OperationFormatter):
                 block.merge(operator_block, separator= ' ')
                 block.merge(right_block, separator=' ')
             except NotEnoughSpace:
-                operator = '%s' % opt_formatter.operator
-                left_block = left_formatter.format_code(width - len(indent) -
-                                                        len(operator) - 1,
+                operator = opt_formatter.operator
+                left_block = left_formatter.format_code(width - len(indent),
                                                         force=force)
-                right_block = right_formatter.format_code(width-len(indent), force=force)
+                right_block = right_formatter.format_code(width - len(indent),
+                                                          force=force)
                 block.merge(left_block)
                 block.append_tokens(' ', operator)
                 block.extend(right_block, indent)
@@ -295,7 +301,7 @@ class BinaryArithmeticOperationFormatter(OperationFormatter):
                             (OperationFormatter, CallFormatter))) and
             block.height > 1 and
             right_subblock.height != block.height):
-            block, _ = _format_code(True)
+            block, _ = _format_code(not self._inside_scope())
         if not force and block.width > width:
             raise NotEnoughSpace()
         return block
@@ -310,24 +316,54 @@ class CompareFormatter(OperationFormatter):
     def priority(self):
         return ast_operator2priority[type(self.expr.ops[0])]
 
+    def _format_operator_chain(self, width, operators, comparators, force):
+        if not operators:
+            return CodeBlock()
+        block = CodeBlock()
+        operator = operators[0]
+        comparator = comparators[0]
+        operator_formatter = self.get_formatter(operator)
+        comparator_formatter = self.get_formatter(comparator)
+        width = width if width > 0 else 1
+        for i in range(width):
+            operator_block = operator_formatter.format_code(width - i,
+                                                            force=force)
+            comparator_block = comparator_formatter.format_code(width -
+                                                                operator_block.width - 1,
+                                                                force=force)
+            try:
+                chain_block = self._format_operator_chain(width - operator_block.width -
+                                                          comparator_block.last_line.width - 2,
+                                                          operators[1:], comparators[1:],
+                                                          force)
+            except NotEnoughSpace:
+                continue
+            else:
+                break
+        block.merge(operator_block)
+        block.merge(comparator_block, separator=' ')
+        block.merge(chain_block, separator=' ')
+        if not force and block.width > width:
+            raise NotEnoughSpace()
+        return block
+
     def format_code(self, width, force=False):
         block = CodeBlock()
+        left_formatter = self.get_formatter(self.expr.left)
         with_brackets = self.should_force_brackets()
         if with_brackets:
             block.append_tokens('(')
-        left_formatter = self.get_formatter(self.expr.left)
-        block.merge(left_formatter.format_code(width-block.width, force=force))
-        # FIXME: here we should generate all possible permutations of comparators
-        #        formatting
-        for operator, comparator in zip(self.expr.ops, self.expr.comparators):
-            operator_formatter = self.get_formatter(operator)
-            block.merge(operator_formatter.format_code(width - block.width - 1,
-                                                       force=force),
-                        separator=' ')
-            comparator_formatter = self.get_formatter(comparator)
-            block.merge(comparator_formatter.format_code(width - block.width,
-                                                         force=force),
-                        separator=' ')
+        for i in range(width-block.width):
+            left_block = left_formatter.format_code(width-block.width-i, force=force)
+            try:
+                chain_block = self._format_operator_chain(width - left_block.last_line.width - (2 if with_brackets else 1),
+                                                          self.expr.ops, self.expr.comparators, force)
+            except NotEnoughSpace:
+                continue
+            else:
+                block.merge(left_block)
+                block.merge(chain_block, separator=' ')
+                break
         if with_brackets:
             block.append_tokens(')')
         if not force and block.width > width:
@@ -372,7 +408,7 @@ class BooleanOperationFormatter(OperationFormatter):
         with_brackets = self.should_force_brackets()
         block, last_subblock = _format_code(with_brackets)
         if not with_brackets and block.height > 1 and last_subblock.height != block.height:
-            block, _ = _format_code(True)
+            block, _ = _format_code(not self._inside_scope())
         if not force and block.width > width:
             raise NotEnoughSpace()
         return block
@@ -478,25 +514,41 @@ class AttributeFormatter(ExpressionFormatter):
         return block.append_tokens('.', self.expr.attr)
 
 
-def format_list_of_expressions(expressions, width, force=False):
+def format_list_of_expressions(expressions, width, force=False, line_width=None, suffix=None):
     block = CodeBlock()
-    for param, expr in enumerate(expressions):
-        try:
-            free_space = width - len(block.last_line or [])
-            if param > 0:
-                separator = ', '
-                free_space = free_space - len(separator)
-            subblock = expr.format_code(free_space, force=param==0)
-            if param > 0:
-                block.last_line.append(separator)
-            block.merge(subblock)
-        except NotEnoughSpace:
-            subblock = expr.format_code(width, force=force)
-            if param > 0:
-                block.last_line.append(',')
-            block.extend(subblock)
-        if not force and block.width > width:
+    line_width = line_width if line_width is not None else width
+    expression = expressions[0]
+    expressions = expressions[1:]
+    if expressions:
+        for i in range(width):
+            try:
+                expression_block = expression.format_code(width - i)
+            except:
+                break;
+            try:
+                expressions_block = format_list_of_expressions(expressions,
+                                                               width - expression_block.last_line.width - 2,
+                                                               force, line_width, suffix)
+            except NotEnoughSpace:
+                continue
+            block.merge(expression_block, extra_indent=line_width-width)
+            block.append_tokens(', ')
+            block.merge(expressions_block, indent=0)
+            return block
+        expression_block = expression.format_code(width - 1)
+        expressions_block = format_list_of_expressions(expressions, line_width,
+                                                       force, line_width,
+                                                       suffix)
+        block.merge(expression_block, extra_indent=line_width-width)
+        block.append_tokens(',')
+        block.extend(expressions_block)
+        return block
+    expression_block = expression.format_code(width)
+    block.merge(expression_block, extra_indent=line_width-width)
+    if suffix:
+        if suffix.width > width - block.width:
             raise NotEnoughSpace()
+        block.merge(suffix)
     return block
 
 
@@ -533,11 +585,9 @@ class CallFormatter(ExpressionFormatter):
                                                             force=force))
             return block
 
-
     def format_code(self, width, force=False):
         block = self.get_formatter(self.expr.func).format_code(width, force=force)
         block.lines[-1].append('(')
-        # FIXME: introduce permutation of formatting
         expressions = [self.get_formatter(e) for e in self.expr.args]
         if self.expr.starargs:
             expressions.append(CallFormatter.StarArgsFormatter(self.expr.starargs, '*',
@@ -546,9 +596,9 @@ class CallFormatter(ExpressionFormatter):
         if self.expr.kwargs:
             expressions.append(CallFormatter.StarArgsFormatter(self.expr.kwargs, '**',
                                                                formatters=self.formatters))
-        subblock = format_list_of_expressions(expressions, width-block.width, force=force)
+        subblock = format_list_of_expressions(expressions, width - block.width,
+                                              force=force, suffix=CodeBlock.from_tokens(')'))
         block.merge(subblock)
-        block.lines[-1].append(')')
         return block
 
 
@@ -1063,10 +1113,9 @@ class ImportFormatterBase(StatementFormatter):
                                                    force)
         if aliases_block.height > 1:
             block.append_tokens('(')
-            aliases_block = format_list_of_expressions(aliases, width-block.width,
-                                                       force=force)
+            aliases_block = format_list_of_expressions(aliases, width - block.width,
+                                                       force=force, suffix=CodeBlock.from_tokens(')'))
             block.merge(aliases_block)
-            block.append_tokens(')')
         else:
             block.merge(aliases_block)
         return block
@@ -1213,7 +1262,7 @@ class ClassDefinitionFormater(StatementFormatter):
         if self.expr.bases:
             block.append_tokens('(')
             bases = [self.formatters[type(b)](b, self.formatters, parent=self) for b in self.expr.bases]
-            bases_block = format_list_of_expressions(bases, width - block.width - 2,
+            bases_block = format_list_of_expressions(bases, width - block.width,
                                                      force)
             block.merge(bases_block)
             block.append_tokens(')')
