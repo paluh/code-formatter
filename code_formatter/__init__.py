@@ -67,7 +67,7 @@ class CodeBlock(object):
                                for l in block.lines))
         return self
 
-    def merge(self, block, separator=None, indent=None, extra_indent=None):
+    def merge(self, block, separator=None, indent=None):
         if not block.lines:
             return
         if separator:
@@ -75,9 +75,7 @@ class CodeBlock(object):
         lines = block.lines
         if not self.lines:
             self.append_lines(CodeLine())
-        extra_indent = '' if extra_indent is None else extra_indent*' '
         indent = len(self.lines[-1])*' ' if indent is None else indent*' '
-        indent += extra_indent
         self.last_line.extend(block.lines[0].tokens)
         for original in lines[1:]:
             line = CodeLine([indent])
@@ -517,6 +515,7 @@ def format_list_of_expressions(expressions, width, line_width=None, suffix=None)
     line_width = line_width if line_width is not None else width
     expression = expressions[0]
     expressions = expressions[1:]
+    merged_block_indent = lambda: line_width - width + (block.last_line or CodeLine()).width
     if expressions:
         for i in range(width):
             try:
@@ -529,19 +528,20 @@ def format_list_of_expressions(expressions, width, line_width=None, suffix=None)
                                                                line_width, suffix)
             except NotEnoughSpace:
                 continue
-            block.merge(expression_block, extra_indent=line_width-width)
+            block.merge(expression_block, indent=merged_block_indent())
             block.append_tokens(', ')
             block.merge(expressions_block, indent=0)
             return block
         expression_block = expression.format_code(width - 1)
         expressions_block = format_list_of_expressions(expressions, line_width,
                                                        line_width, suffix)
-        block.merge(expression_block, extra_indent=line_width-width)
+        block.merge(expression_block, indent=merged_block_indent())
         block.append_tokens(',')
         block.extend(expressions_block)
         return block
     expression_block = expression.format_code(width)
-    block.merge(expression_block, extra_indent=line_width-width)
+    block.merge(expression_block,
+                indent=merged_block_indent())
     if suffix:
         if suffix.width > width - block.width:
             raise NotEnoughSpace()
