@@ -1170,6 +1170,44 @@ class ForFormatter(StatementFormatter):
 
 
 @register
+class TryExceptFormatter(StatementFormatter):
+
+    ast_type = ast.TryExcept
+
+    @register
+    class ExceptHandlerFormatter(StatementFormatter):
+
+        ast_type = ast.ExceptHandler
+
+        def format_code(self, width):
+            block = CodeBlock.from_tokens('except')
+            if self.expr.type:
+                type_formatter = self.get_formatter(self.expr.type)
+                block.merge(type_formatter.format_code(width=width - block.width - 1),
+                            separator=' ')
+                if self.expr.name:
+                    block.append_tokens(' as ', self.expr.name.id)
+            block.append_tokens(':')
+            for statement in self.expr.body:
+                statement_formatter = self.get_formatter(statement)
+                block.extend(statement_formatter.format_code(width=width-len(CodeLine.INDENT)),
+                             indent=CodeLine.INDENT)
+            return block
+
+    def format_code(self, width):
+        block = CodeBlock.from_tokens('try:')
+        for statement in self.expr.body:
+            statement_formatter = self.get_formatter(statement)
+            block.extend(statement_formatter.format_code(width=width-len(CodeLine.INDENT)),
+                         indent=CodeLine.INDENT)
+        for handler in self.expr.handlers:
+            handler_formatter = self.get_formatter(handler)
+            block.extend(handler_formatter.format_code(width=width))
+        if block.width > width:
+            raise NotEnoughSpace()
+        return block
+
+@register
 class AssignmentFormatter(StatementFormatter):
 
     ast_type = ast.Assign

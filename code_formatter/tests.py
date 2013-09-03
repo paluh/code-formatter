@@ -901,7 +901,7 @@ class IfTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class ForTestCase(FormatterTestCase):
+class ForStatementTestCase(FormatterTestCase):
     """
     [7.3]
     for_stmt ::=  "for" target_list "in" expression_list ":" suite
@@ -912,6 +912,31 @@ class ForTestCase(FormatterTestCase):
         code = ('for   p   in    (1,2,3):\n   p')
         expected = 'for p in 1, 2, 3:\n%sp' % CodeLine.INDENT
         self.assertEqual(format_code(code), expected)
+
+
+class TryExceptStatementTestCase(FormatterTestCase):
+    """
+    [7.4]
+    try_stmt  ::=  try1_stmt | try2_stmt
+    try1_stmt ::=  "try" ":" suite
+                   ("except" [expression [("as" | ",") target]] ":" suite)+
+                   ["else" ":" suite]
+                   ["finally" ":" suite]
+    try2_stmt ::=  "try" ":" suite
+                   "finally" ":" suite
+    """
+    def test_simple_form_except_alignment(self):
+        code = textwrap.dedent("""\
+        try:
+            pass
+        except  Exception,   e:
+            pass""")
+        expected = textwrap.dedent("""\
+        try:
+            pass
+        except Exception as e:
+            pass""")
+        self.assertFormats(code, expected)
 
 
 class FunctionDefinitionTestCase(FormatterTestCase):
@@ -990,3 +1015,9 @@ class ClassDefinitionTestCase(FormatterTestCase):
                     '        Base4):\n'
                     '    pass')
         self.assertFormats(code, expected)
+
+
+#class FuzzyTestCase(FormatterTestCase):
+#    def test_formatting_test_file_compiles_to_the_same_AST(self):
+#        code = open(__file__, 'r').read()
+#        self.assertFormats(code, code)
