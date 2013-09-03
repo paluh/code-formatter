@@ -60,6 +60,7 @@ class CodeBlock(object):
 
     def extend(self, block, indent=None):
         if indent is not None:
+            indent = indent * ' ' if isinstance(indent, int) else indent
             self.lines.extend((CodeLine([indent] + l.tokens)
                                for l in block.lines))
         else:
@@ -75,7 +76,7 @@ class CodeBlock(object):
         lines = block.lines
         if not self.lines:
             self.append_lines(CodeLine())
-        indent = len(self.lines[-1])*' ' if indent is None else indent*' '
+        indent = len(self.lines[-1]) * ' ' if indent is None else indent * ' ' if isinstance(indent, int) else indent
         self.last_line.extend(block.lines[0].tokens)
         for original in lines[1:]:
             line = CodeLine([indent])
@@ -1169,10 +1170,19 @@ class ForFormatter(StatementFormatter):
         return block
 
 
+def format_list_of_statements(parent, list_of_statements, width):
+    block = CodeBlock()
+    for statement in list_of_statements:
+        #print statement, parent.get_formatter(statement)
+        statement_formatter = parent.get_formatter(statement)
+        block.extend(statement_formatter.format_code(width=width))
+    return block
+
 @register
 class TryExceptFormatter(StatementFormatter):
 
     ast_type = ast.TryExcept
+
 
     @register
     class ExceptHandlerFormatter(StatementFormatter):
@@ -1188,24 +1198,44 @@ class TryExceptFormatter(StatementFormatter):
                 if self.expr.name:
                     block.append_tokens(' as ', self.expr.name.id)
             block.append_tokens(':')
-            for statement in self.expr.body:
-                statement_formatter = self.get_formatter(statement)
-                block.extend(statement_formatter.format_code(width=width-len(CodeLine.INDENT)),
-                             indent=CodeLine.INDENT)
+            block.extend(format_list_of_statements(self, self.expr.body,
+                                                   width - len(CodeLine.INDENT)),
+                         indent=CodeLine.INDENT)
             return block
+
 
     def format_code(self, width):
         block = CodeBlock.from_tokens('try:')
-        for statement in self.expr.body:
-            statement_formatter = self.get_formatter(statement)
-            block.extend(statement_formatter.format_code(width=width-len(CodeLine.INDENT)),
-                         indent=CodeLine.INDENT)
+        block.extend(format_list_of_statements(self, self.expr.body,
+                                               width - len(CodeLine.INDENT)),
+                     indent=CodeLine.INDENT)
         for handler in self.expr.handlers:
             handler_formatter = self.get_formatter(handler)
             block.extend(handler_formatter.format_code(width=width))
+        if self.expr.orelse:
+            block.extend(CodeBlock.from_tokens('else:'))
+            block.extend(format_list_of_statements(self, self.expr.orelse,
+                                                   width - len(CodeLine.INDENT)),
+                         indent=CodeLine.INDENT)
         if block.width > width:
             raise NotEnoughSpace()
         return block
+
+
+@register
+class TryFinallyFormatter(StatementFormatter):
+
+    ast_type = ast.TryFinally
+
+    def format_code(self, width):
+        block = format_list_of_statements(self, self.expr.body, width)
+        block.append_lines(CodeLine('finally:'))
+        block.extend(format_list_of_statements(self, self.expr.finalbody,
+                                               width - len(CodeLine.INDENT)),
+                     indent=CodeLine.INDENT)
+        return block
+
+
 
 @register
 class AssignmentFormatter(StatementFormatter):

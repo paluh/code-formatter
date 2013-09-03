@@ -925,7 +925,49 @@ class TryExceptStatementTestCase(FormatterTestCase):
     try2_stmt ::=  "try" ":" suite
                    "finally" ":" suite
     """
-    def test_simple_form_except_alignment(self):
+    def test_except_alignement(self):
+        code = textwrap.dedent("""\
+        try: pass
+        except: pass""")
+        expected = textwrap.dedent("""\
+        try:
+            pass
+        except:
+            pass""")
+        self.assertFormats(code, expected)
+
+    def test_except_else_alignment(self):
+        code = textwrap.dedent("""\
+        try: pass
+        except: pass
+        else: pass""")
+        expected = textwrap.dedent("""\
+        try:
+            pass
+        except:
+            pass
+        else:
+            pass""")
+        self.assertFormats(code, expected)
+
+    def test_except_else_finally_alignment(self):
+        code = textwrap.dedent("""\
+        try: pass
+        except: pass
+        else: pass
+        finally: pass""")
+        expected = textwrap.dedent("""\
+        try:
+            pass
+        except:
+            pass
+        else:
+            pass
+        finally:
+            pass""")
+        self.assertFormats(code, expected)
+
+    def test_except_alignment(self):
         code = textwrap.dedent("""\
         try:
             pass
