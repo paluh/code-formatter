@@ -527,8 +527,8 @@ def format_list_of_expressions(expressions, width, force=False, line_width=None,
     if expressions:
         for i in range(width):
             try:
-                expression_block = expression.format_code(width - i)
-            except:
+                expression_block = expression.format_code(width - i, force=force)
+            except NotEnoughSpace:
                 break;
             try:
                 expressions_block = format_list_of_expressions(expressions,
@@ -540,7 +540,7 @@ def format_list_of_expressions(expressions, width, force=False, line_width=None,
             block.append_tokens(', ')
             block.merge(expressions_block, indent=0)
             return block
-        expression_block = expression.format_code(width - 1)
+        expression_block = expression.format_code(width - 1, force=force)
         expressions_block = format_list_of_expressions(expressions, line_width,
                                                        force, line_width,
                                                        suffix)
@@ -551,7 +551,7 @@ def format_list_of_expressions(expressions, width, force=False, line_width=None,
     expression_block = expression.format_code(width, force=force)
     block.merge(expression_block, extra_indent=line_width-width)
     if suffix:
-        if suffix.width > width - block.width:
+        if not force and suffix.width > width - block.width:
             raise NotEnoughSpace()
         block.merge(suffix)
     return block
@@ -1058,6 +1058,24 @@ class ReturnFormatter(StatementFormatter):
                                                             block.width - 1,
                                                             force=force)
         block.merge(expression_block, separator=' ')
+        if not force and block.width > width:
+            raise NotEnoughSpace
+        return block
+
+@register
+class PrintFormatter(StatementFormatter):
+
+    ast_type = ast.Print
+
+    def format_code(self, width, force=False):
+        block = CodeBlock.from_tokens('print ')
+        values_formatters = [self.get_formatter(e) for e in self.expr.values]
+        values_block = format_list_of_expressions(values_formatters, width=width, force=force)
+        if values_block.height > 1:
+            block.append_tokens('(')
+            values_block = format_list_of_expressions(values_formatters, width=width,
+                                                      force=force, suffix=CodeBlock.from_tokens(')'))
+        block.merge(values_block)
         if not force and block.width > width:
             raise NotEnoughSpace
         return block

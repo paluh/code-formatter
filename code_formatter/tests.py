@@ -1,3 +1,4 @@
+import difflib
 import textwrap
 import unittest
 
@@ -6,14 +7,15 @@ from . import CodeBlock, CodeLine, format_code
 
 class FormatterTestCase(unittest.TestCase):
 
-    def assertFormats(self, code, formated, formatter=format_code, width=None, force=False):
-        width = width if width is not None else max(len(l) for l in formated.split('\n'))
+    def assertFormats(self, code, expected, formatter=format_code, width=None, force=False):
+        width = width if width is not None else max(len(l) for l in expected.split('\n'))
         try:
-            self.assertEqual(formatter(code, width=width, force=force), formated)
+            formated = formatter(code, width=width, force=force)
+            self.assertEqual(formated, expected)
         except AssertionError:
-            print width
-            print formatter(code, width=width, force=force)
             print formated
+            print expected
+            print '\n'.join(difflib.unified_diff(expected.split('\n'), formated.split('\n'), fromfile='expected', tofile='formated'))
             raise
 
 # FIXME: Move this testcase to structure provided by "The Python Language Reference"
@@ -210,13 +212,14 @@ class DictionaryDisplaysTestCase(FormatterTestCase):
             result = {
                 'type': type(e).__name__,
                 'args': e.args,
-                'traceback': traceback or logging.Formatter().formatException(sys.exc_info())
+                'traceback': traceback or
+                             logging.Formatter().formatException(sys.exc_info())
             }
         """)
         expected = textwrap.dedent("""\
             result = {'type': type(e).__name__, 'args': e.args,
                       'traceback': traceback or logging.Formatter().formatException(sys.exc_info())}""")
-        self.assertFormats(code, expected, force=True)
+        self.assertFormats(code, expected, width=40, force=True)
 
     def test_comprehension_with_condition_wrapping(self):
         code = '{x: fun(x) for x in iterable if x>0}'
@@ -424,13 +427,6 @@ class CallsTestCase(FormatterTestCase):
                     '                                   argument_6), param_4)')
         self.assertFormats(code, expected)
 
-    def test_wrapping_positional_arguments_combination(self):
-        # REGRESSION
-        code = 'f(p, n(x, xxxxx, y, z), p)'
-        expected = ('f(p, n(x, xxxxx,\n'
-                    '       y, z), p)')
-        self.assertFormats(code, expected)
-
     def test_keyword_arguments_alignment(self):
         code = 'function_with_kwargs(argument_1=value,     argument_2=value,argument_3=value)'
         self.assertFormats(code, ('function_with_kwargs(argument_1=value, '
@@ -457,6 +453,22 @@ class CallsTestCase(FormatterTestCase):
     def test_mixed_args_type_ordering(self):
         code = 'function(x, y, *args, k=s, l=t, **kwargs)'
         self.assertEqual(format_code(code), code)
+
+    def test_wrapping_positional_arguments_combination(self):
+        # REGRESSION
+        code = 'f(p, n(x, xxxxx, y, z), p)'
+        expected = ('f(p, n(x, xxxxx,\n'
+                    '       y, z), p)')
+        self.assertFormats(code, expected)
+
+    def test_forcing_formatting(self):
+        # REGRESSION
+        code = textwrap.dedent("fun(x, y, z)")
+        expected = textwrap.dedent("""\
+        fun(x,
+            y,
+            z)""")
+        self.assertFormats(code, expected, width=3, force=True)
 
 
 class BinaryArithmeticOperationsTestCase(FormatterTestCase):
@@ -750,7 +762,7 @@ class AugmentAssignmentTestCase(FormatterTestCase):
 
 class SimpleStatementsTestCase(FormatterTestCase):
     """
-    [6.3, 6.4, 6.5, 6.6, 6.7, 6.8, 6.9, 6.10, 6.11, 6.13]
+    [6.3, 6.4, 6.5, 6.7, 6.8, 6.9, 6.10, 6.11, 6.13]
     simple_stmt ::=  assert_stmt
                      | pass_stmt
                      | del_stmt
@@ -774,7 +786,19 @@ class SimpleStatementsTestCase(FormatterTestCase):
     def test_raise_simple_statement(self):
         code = "raise   Exception('oh no!')"
         expected = "raise Exception('oh no!')"
-        self.assertEqual(format_code(code), expected)
+        self.assertFormats(code, expected)
+
+
+class PrintStatementTestCase(FormatterTestCase):
+    """
+    [6.6]
+        print_stmt ::=  "print" ([expression ("," expression)* [","]]
+                        | ">>" expression [("," expression)+ [","]])
+    """
+    # FIXME: a lot more to test
+    def test_simple_statement(self):
+        code = "print 'test'"
+        self.assertFormats(code, code)
 
 
 class ImportStatementTestCase(FormatterTestCase):
