@@ -16,6 +16,7 @@ This project contains basic code formatter which operates on Python AST tree (fo
 
 * as far as I know AST can be generated only for "current" version of Python (for example if you are running Python 3.3 you can't process/format statements from Python 2.7 which contains incompatible constructs)
 
+* it can be quite inefficient for long chunks of code as it really tries to find appropriate formatting for every statement
 
 One of main principles of this project is to make this library easily extensible (everybody should be able to customize single formatter), so if you see any obstacles in current design just fill an github issue.
 
