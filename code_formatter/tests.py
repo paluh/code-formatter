@@ -14,8 +14,6 @@ class FormatterTestCase(unittest.TestCase):
             formated = formatter(code, width=width, force=force)
             self.assertEqual(formated, expected)
         except AssertionError:
-            print formated
-            print expected
             print '\n'.join(difflib.unified_diff(expected.split('\n'), formated.split('\n'), fromfile='expected', tofile='formated'))
             raise
 
@@ -907,6 +905,39 @@ class IfTestCase(FormatterTestCase):
         expected = ('if (x > 8 and\n'
                     '    y % 2 == 3):\n'
                     '    pass')
+        self.assertFormats(code, expected)
+
+class WhileStatementTestCase(FormatterTestCase):
+    """
+    [7.2]
+    while_stmt ::=  "while" expression ":" suite
+                    ["else" ":" suite]
+    """
+    def test_simple_form_alignment(self):
+        code = textwrap.dedent("""\
+            while True:
+
+                pass
+        """)
+        expected = textwrap.dedent("""\
+            while True:
+                pass""")
+        self.assertFormats(code, expected)
+
+    def test_while_else_form_alignment(self):
+        code = textwrap.dedent("""\
+            while True:
+
+                pass
+            else:
+
+                pass
+        """)
+        expected = textwrap.dedent("""\
+            while True:
+                pass
+            else:
+                pass""")
         self.assertFormats(code, expected)
 
 

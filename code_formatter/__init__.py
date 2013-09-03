@@ -1152,6 +1152,29 @@ class ImportFromFormatter(ImportFormatterBase):
 
 
 @register
+class WhileFormatter(StatementFormatter):
+
+    ast_type = ast.While
+
+    def format_code(self, width):
+        block = CodeBlock.from_tokens('while ')
+        test_formatter = self.get_formatter(self.expr.test)
+        block.merge(test_formatter.format_code(width-block.width-1))
+        block.append_tokens(':')
+        block.extend(format_list_of_statements(self, self.expr.body,
+                                               width=width - len(CodeLine.INDENT)),
+                     indent=CodeLine.INDENT)
+        if self.expr.orelse:
+            block.extend(CodeBlock.from_tokens('else:'))
+            block.extend(format_list_of_statements(self, self.expr.orelse,
+                                                   width=width - len(CodeLine.INDENT)),
+                         indent=CodeLine.INDENT)
+        if block.width > width:
+            raise NotEnoughSpace()
+        return block
+
+
+@register
 class ForFormatter(StatementFormatter):
 
     ast_type = ast.For
