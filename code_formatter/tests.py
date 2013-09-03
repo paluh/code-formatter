@@ -218,7 +218,8 @@ class DictionaryDisplaysTestCase(FormatterTestCase):
         """)
         expected = textwrap.dedent("""\
             result = {'type': type(e).__name__, 'args': e.args,
-                      'traceback': traceback or logging.Formatter().formatException(sys.exc_info())}""")
+                      'traceback': traceback or
+                                   logging.Formatter().formatException(sys.exc_info())}""")
         self.assertFormats(code, expected, width=40, force=True)
 
     def test_comprehension_with_condition_wrapping(self):

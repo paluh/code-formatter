@@ -1305,7 +1305,16 @@ def _format_code(code, width, formatters, force=False):
     result = []
     for e in tree.body:
         formatter = formatters[type(e)](expr=e, formatters=formatters, parent=None)
-        result.append(formatter.format_code(width, force=force))
+        if force:
+            while True:
+                try:
+                    result.append(formatter.format_code(width))
+                except NotEnoughSpace:
+                    width += 1
+                else:
+                    break
+        else:
+            result.append(formatter.format_code(width))
     return result
 
 def format_code(code, width=80, formatters=_formatters.copy(), force=False):
