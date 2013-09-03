@@ -230,11 +230,12 @@ class OperationFormatter(ExpressionFormatter):
     def priority(self):
         return ast_operator2priority[type(self.expr.op)]
 
-    def should_force_brackets(self):
+    def force_brackets(self):
         with_brackets = False
         if self.parent:
-            with_brackets = (isinstance(self.parent, OperationFormatter) and
-                             self.parent.priority > self.priority)
+            with_brackets = ((isinstance(self.parent, OperationFormatter) and
+                              self.parent.priority > self.priority) or
+                             isinstance(self.parent, AttributeFormatter))
         return with_brackets
 
 
@@ -290,7 +291,7 @@ class BinaryArithmeticOperationFormatter(OperationFormatter):
             if with_brackets:
                 block.append_tokens(')')
             return block, right_block
-        with_brackets = self.should_force_brackets()
+        with_brackets = self.force_brackets()
         block, right_subblock = _format_code(with_brackets)
         if ((not self.parent or
              not isinstance(self.parent,
@@ -343,7 +344,7 @@ class CompareFormatter(OperationFormatter):
     def format_code(self, width):
         block = CodeBlock()
         left_formatter = self.get_formatter(self.expr.left)
-        with_brackets = self.should_force_brackets()
+        with_brackets = self.force_brackets()
         if with_brackets:
             block.append_tokens('(')
         for i in range(width-block.width):
@@ -396,10 +397,12 @@ class BooleanOperationFormatter(OperationFormatter):
             if with_brackets:
                 block.append_tokens(')')
             return block, value_block
-        with_brackets = self.should_force_brackets()
+        with_brackets = self.force_brackets()
         block, last_subblock = _format_code(with_brackets)
-        if not with_brackets and block.height > 1 and last_subblock.height != block.height:
-            block, _ = _format_code(not self._inside_scope())
+        if (not with_brackets and not self._inside_scope() and
+            block.height > 1 and last_subblock.height != block.height and
+             not isinstance(self.parent, BooleanOperationFormatter)):
+            block, _ = _format_code(True)
         if block.width > width:
             raise NotEnoughSpace()
         return block

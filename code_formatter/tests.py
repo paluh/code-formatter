@@ -220,7 +220,7 @@ class DictionaryDisplaysTestCase(FormatterTestCase):
             result = {'type': type(e).__name__, 'args': e.args,
                       'traceback': traceback or
                                    logging.Formatter().formatException(sys.exc_info())}""")
-        self.assertFormats(code, expected, width=40, force=True)
+        self.assertFormats(code, expected, width=70, force=True)
 
     def test_comprehension_with_condition_wrapping(self):
         code = '{x: fun(x) for x in iterable if x>0}'
@@ -605,9 +605,9 @@ class ComparisonsTestCase(FormatterTestCase):
 class BooleanOperationsTestCase(FormatterTestCase):
     """
     [5.10]
-    or_test  ::=  and_test | or_test "or" and_test
-    and_test ::=  not_test | and_test "and" not_test
-    not_test ::=  comparison | "not" not_test
+    + or_test  ::=  and_test | or_test "or" and_test
+    + and_test ::=  not_test | and_test "and" not_test
+    + not_test ::=  comparison | "not" not_test
     """
 
     BIN_OPERATORS = ['or', 'and']
@@ -625,10 +625,25 @@ class BooleanOperationsTestCase(FormatterTestCase):
                         ' v)' % {'op': op})
             self.assertFormats(code, expected)
 
-    def test_brackets_are_used_only_when_neccessary(self):
+    def test_wrapping_brackets_are_used_only_when_neccessary(self):
         code = 'x or fun(y,z,v)'
         expected = ('x or fun(y, z,\n'
                     '         v)')
+        self.assertFormats(code, expected)
+
+    def test_brackets_are_preserved_in_case_of_attr_ref_expression(self):
+        # REGRESSION
+        code = textwrap.dedent("""\
+        fun((value or Value()).width)""")
+        self.assertFormats(code, code)
+
+    def test_brackets_are_skiped_in_case_of_same_priority_operators(self):
+        # REGRESSION
+        code = '(x or y) or z'
+        expected = textwrap.dedent("""\
+        (x or
+         y or
+         z)""")
         self.assertFormats(code, expected)
 
     def test_negation_alignment(self):
