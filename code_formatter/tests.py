@@ -1,3 +1,4 @@
+#-*- coding: utf-8 -*-
 import difflib
 import textwrap
 import unittest
@@ -794,10 +795,18 @@ class SimpleStatementsTestCase(FormatterTestCase):
         raise_stmt ::=  "raise" [expression ["," expression ["," expression]]]
     """
 
-    def test_return_statement(self):
+    def test_return_alignment(self):
         code = 'return x+x'
         expected = 'return x + x'
         self.assertEqual(format_code(code), expected)
+
+    def test_return_without_value(self):
+        code = 'return'
+        self.assertFormats(code, code)
+
+    def test_continue(self):
+        code = 'continue'
+        self.assertFormats(code, code)
 
     def test_raise_simple_statement(self):
         code = "raise   Exception('oh no!')"
@@ -1061,5 +1070,5 @@ class ClassDefinitionTestCase(FormatterTestCase):
 
 #class FuzzyTestCase(FormatterTestCase):
 #    def test_formatting_test_file_compiles_to_the_same_AST(self):
-#        code = open(__file__, 'r').read()
-#        self.assertFormats(code, code)
+#        code = open('code_formatter/__init__.py', 'r').read()
+#        self.assertFormats(code, code, force=True)

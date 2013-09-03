@@ -1,3 +1,4 @@
+#-*- coding: utf-8 -*-
 import ast
 from itertools import chain, izip_longest
 import re
@@ -491,7 +492,7 @@ class StringFormatter(ExpressionFormatter):
                     block.append_tokens(repr(lines[0]))
                     block.append_lines(*(CodeLine([' ', repr(l)]) for l in lines[1:]))
                     block.append_tokens(')')
-            else:
+            elif lines:
                 block.append_tokens(repr(lines[0]))
         if block.width > width:
             raise NotEnoughSpace()
@@ -1010,16 +1011,20 @@ class StatementFormatter(AstFormatter):
     pass
 
 
-@register
-class PassFormatter(StatementFormatter):
+class SimpleStatementFormatterBase(AstFormatter):
 
-    ast_type = ast.Pass
+    keyword = None
 
     def format_code(self, width):
-        block = CodeBlock.from_tokens('pass')
+        block = CodeBlock.from_tokens(self.keyword)
         if block.width > width:
             raise NotEnoughSpace
         return block
+
+
+for keyword, ast_type in [('pass', ast.Pass), ('continue', ast.Continue), ('break', ast.Break)]:
+    register(type(keyword.capitalize() + 'Formatter', (SimpleStatementFormatterBase,),
+             {'keyword': keyword, 'ast_type': ast_type}))
 
 
 @register
@@ -1029,10 +1034,11 @@ class ReturnFormatter(StatementFormatter):
 
     def format_code(self, width):
         block = CodeBlock.from_tokens('return')
-        expression_formatter = self.get_formatter(self.expr.value)
-        expression_block = expression_formatter.format_code(width -
-                                                            block.width - 1)
-        block.merge(expression_block, separator=' ')
+        if self.expr.value:
+            expression_formatter = self.get_formatter(self.expr.value)
+            expression_block = expression_formatter.format_code(width -
+                                                                block.width - 1)
+            block.merge(expression_block, separator=' ')
         if block.width > width:
             raise NotEnoughSpace
         return block
