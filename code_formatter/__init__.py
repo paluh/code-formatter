@@ -122,19 +122,28 @@ def register(cls):
     return cls
 
 
-class AstFormatter(object):
+class CodeFormatter(object):
 
-    def __init__(self, expr, formatters, parent=None):
-        self.expr = expr
-        self.parent = parent
+    def __init__(self, formatters):
         self.formatters = formatters
 
-    def get_formatter(self, expr):
+    def get_formatter(self, expr, parent=None):
         return self.formatters[type(expr)](expr=expr, formatters=self.formatters,
-                                           parent=self)
+                                           parent=self if parent is None else parent)
 
     def format_code(self, width):
         raise NotImplementedError()
+
+
+class AstFormatter(CodeFormatter):
+
+    ast_type = None
+
+    def __init__(self, expr, formatters, parent=None):
+        assert self.ast_type is not None
+        self.expr = expr
+        self.parent = parent
+        super(AstFormatter, self).__init__(formatters)
 
     def _inside_scope(self):
         return (self.parent and isinstance(self.parent.expr,
@@ -142,6 +151,7 @@ class AstFormatter(object):
                                             ast.BinOp, ast.ListComp, ast.Dict)) or
                 (getattr(self.parent, 'parent') is not None and
                  self.parent._inside_scope()))
+
 
 @register
 class ExprFormatter(AstFormatter):
@@ -471,14 +481,20 @@ class StringFormatter(ExpressionFormatter):
             # textwrap raises an exception on negative width and we... don't :-P
             def format_lines(string, width):
                 if len(filter(None, string.split('\n'))) > 1:
-                    lines = [line for line in re.split('([^\n]*\n+)', string)]
+                    splited = [line for line in re.split('(\n+)', string)]
+                    i = iter(splited)
+                    lines = [next(i)] if re.match('\n+', splited[0]) else []
+                    lines += [l+e for l,e in izip_longest(i, i, fillvalue='')]
                 else:
                     lines = [string]
                 result = []
                 for line in lines:
-                    result.extend(textwrap.wrap(line, width=width, expand_tabs=False,
-                                                replace_whitespace=False, fix_sentence_endings=False,
-                                                break_long_words=False, drop_whitespace=False))
+                    if line == '':
+                        result.append('')
+                    else:
+                        result.extend(textwrap.wrap(line, width=width, expand_tabs=False,
+                                                    replace_whitespace=False, fix_sentence_endings=False,
+                                                    break_long_words=False, drop_whitespace=False))
                 return result
             lines = format_lines(self.expr.s, width if width > 0 else 1)
             if len(lines) > 1:
@@ -527,6 +543,7 @@ def format_list_of_expressions(expressions, width, line_width=None, suffix=None)
                 expression_block = expression.format_code(width - i)
             except NotEnoughSpace:
                 break;
+            print i, unicode(expression_block)
             try:
                 expressions_block = format_list_of_expressions(expressions,
                                                                width - expression_block.last_line.width - 2,
@@ -949,49 +966,61 @@ class ParameterListFormatter(AstFormatter):
 
     ast_type = ast.arguments
 
-    class KwargFormatter(object):
+    class KwargFormatter(CodeFormatter):
 
-        def __init__(self, parameter, expression, parent):
+        def __init__(self, parameter, expression, parent, formatters):
             self.parameter = parameter
             self.expression = expression
             self.parent = parent
+            super(ParameterListFormatter.KwargFormatter, self).__init__(formatters)
+
+        def get_formatter(self, expression):
+            return super(ParameterListFormatter.KwargFormatter,
+                         self).get_formatter(expression,
+                                             self.parent)
 
         def format_code(self, width):
-            parameter_formatter = self.parent.get_formatter(self.parameter)
-            expression_formatter = self.parent.get_formatter(self.expression)
+            parameter_formatter = self.get_formatter(self.parameter)
+            expression_formatter = self.get_formatter(self.expression)
             block = parameter_formatter.format_code(width-1)
             block.append_tokens('=')
             block.merge(expression_formatter.format_code(width - block.width))
+            if block.width > width:
+                raise NotEnoughSpace()
             return block
 
-    def format_code(self, width):
-        block = CodeBlock()
-        args_formatters = [self.get_formatter(arg)
-                           for arg in self.expr.args[:(len(self.expr.args) -
-                                                       len(self.expr.defaults))]]
-        args_formatters += [ParameterListFormatter.KwargFormatter(arg, default, self)
-                            for (arg, default)
-                            in zip(self.expr.args[len(args_formatters):],
-                                   self.expr.defaults)]
 
-        for param, arg_formatter in enumerate(args_formatters):
-            # FIXME: move to next line
-            try:
-                separator = ', '
-                free_space = width - len(block.last_line or []) - len(separator)
-                arg_block = arg_formatter.format_code(free_space)
-                if param > 0:
-                    block.append_tokens(separator)
-                block.merge(arg_block)
-            except NotEnoughSpace:
-                separator = ','
-                arg_block = arg_formatter.format_code(width)
-                if param > 0:
-                    block.append_tokens(',')
-                block.extend(arg_block)
-        if block.width > width:
-            raise NotEnoughSpace()
-        return block
+    class VarargFormatter(CodeFormatter):
+
+        def __init__(self, vararg, parent, formatters):
+            self.vararg = vararg
+            self.parent = parent
+            super(ParameterListFormatter.VarargFormatter, self).__init__(formatters)
+
+        def get_formatter(self, expression):
+            return super(ParameterListFormatter.VarargFormatter,
+                         self).get_formatter(expression,
+                                             self.parent)
+
+        def format_code(self, width):
+            block = CodeBlock.from_tokens('*%s' % self.vararg)
+            if block.width > width:
+                raise NotEnoughSpace()
+            return block
+
+
+    def format_code(self, width):
+        formatters = [self.get_formatter(arg)
+                      for arg in self.expr.args[:len(self.expr.args) -
+                                                 len(self.expr.defaults)]]
+        if self.expr.vararg:
+            formatters.append(ParameterListFormatter.VarargFormatter(self.expr.vararg, self,
+                                                                     self.formatters))
+        formatters += [ParameterListFormatter.KwargFormatter(arg, default, self, self.formatters)
+                       for (arg, default)
+                       in zip(self.expr.args[(len(self.expr.args)-len(self.expr.defaults)):],
+                              self.expr.defaults)]
+        return format_list_of_expressions(formatters, width)
 
 
 @register
@@ -1379,13 +1408,29 @@ def _format_code(code, width, formatters, force=False):
         formatter = formatters[type(e)](expr=e, formatters=formatters, parent=None)
         if force:
             statement_width = width
+
+            failing_statement_width = None
+            succeeding_statement_width = None
+
             while True:
                 try:
-                    result.append(formatter.format_code(statement_width))
+                    s = formatter.format_code(statement_width)
                 except NotEnoughSpace:
-                    statement_width += 1
+                    failing_statement_width = statement_width
                 else:
+                    succeeding_statement_width = statement_width
+                    if (failing_statement_width is None or
+                        statement_width - 1 == failing_statement_width):
+                        result.append(s)
+                        break
+                print failing_statement_width, succeeding_statement_width, statement_width
+                if succeeding_statement_width and failing_statement_width and succeeding_statement_width - failing_statement_width == 1:
+                    s = formatter.format_code(succeeding_statement_width)
+                    result.append(s)
                     break
+                statement_width = ((failing_statement_width +
+                                    (succeeding_statement_width or
+                                     3 * failing_statement_width)) / 2)
         else:
             result.append(formatter.format_code(width))
     return result
