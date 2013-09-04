@@ -731,16 +731,24 @@ class IfExpressionFormatter(ExpressionFormatter):
     ast_type = ast.IfExp
 
     def format_code(self, width):
+        block = CodeBlock()
+        # conditional expression has lowest priority
+        with_brackets = isinstance(self.parent, OperationFormatter)
+        if with_brackets:
+            block.append_tokens('(')
         body_formatter = self.get_formatter(self.expr.body)
-        block = body_formatter.format_code(width)
+        block.merge(body_formatter.format_code(width))
         test_formatter = self.get_formatter(self.expr.test)
+
         block.append_tokens(' ', 'if', ' ')
         test_block = test_formatter.format_code(width-block.width)
         block.merge(test_block)
         orelse_formatter = self.get_formatter(self.expr.orelse)
         block.append_tokens(' ', 'else', ' ')
-        orelse_block = orelse_formatter.format_code(width - block.width)
+        orelse_block = orelse_formatter.format_code(width - block.width - (1 if with_brackets else 0))
         block.merge(orelse_block)
+        if with_brackets:
+            block.append_tokens(')')
         return block
 
 
@@ -1370,11 +1378,12 @@ def _format_code(code, width, formatters, force=False):
     for e in tree.body:
         formatter = formatters[type(e)](expr=e, formatters=formatters, parent=None)
         if force:
+            statement_width = width
             while True:
                 try:
-                    result.append(formatter.format_code(width))
+                    result.append(formatter.format_code(statement_width))
                 except NotEnoughSpace:
-                    width += 1
+                    statement_width += 1
                 else:
                     break
         else:

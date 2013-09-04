@@ -661,6 +661,11 @@ class ConditionalExpressionsTestCase(FormatterTestCase):
         self.assertEqual(format_code('x if    c   else y'),
                          'x if c else y')
 
+    def test_inside_bigger_operation_brackets_are_forced(self):
+        code = """width - left_block.last_line.width - (2 if with_brackets else 1)"""
+        self.assertFormats(code, code)
+
+
 class LambdasTestCase(FormatterTestCase):
     # FIXME: test old_lambda_form branch
     """
@@ -1099,7 +1104,9 @@ class ClassDefinitionTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
+# FIXME: compare generated code (ast or bytecode comparison?)
 #class FuzzyTestCase(FormatterTestCase):
 #    def test_formatting_test_file_compiles_to_the_same_AST(self):
 #        code = open('code_formatter/__init__.py', 'r').read()
-#        self.assertFormats(code, code, force=True)
+#        print format_code(code, width=80, force=True)
+#        #self.assertFormats(code, code, force=True)
