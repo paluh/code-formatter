@@ -71,8 +71,8 @@ class AtomExpressionFormattersFormattingTestCase(FormatterTestCase):
 class LiteralsTestCase(FormatterTestCase):
     """
     [5.2.2]
-    literal ::=  stringliteral | integer | longinteger
-                 | floatnumber | imagnumber
+    +   literal ::=  stringliteral | integer | longinteger
+                     | floatnumber | imagnumber
     """
     def test_string_quotes_escaping(self):
         code = '\'"test"\''
@@ -115,18 +115,29 @@ class LiteralsTestCase(FormatterTestCase):
         code = "''"
         self.assertFormats(code, code)
 
+    def test_float_formatting(self):
+        code = '8.9'
+        self.assertFormats(code, code)
+
+    def test_long_formatting(self):
+        self.assertFormats('8l', '8L')
+
+    def test_imagnumber_formatting(self):
+        code = '2   + 3j'
+        expected = '2 + 3j'
+        self.assertFormats(code, expected)
+
 
 class ListDisplaysTestCase(FormatterTestCase):
-    # FIXME: test old_lambda_form branch
     """
     [5.2.4]
-    list_display        ::=  "[" [expression_list | list_comprehension] "]"
-    list_comprehension  ::=  expression list_for
-    list_for            ::=  "for" target_list "in" old_expression_list [list_iter]
-    old_expression_list ::=  old_expression [("," old_expression)+ [","]]
-    old_expression      ::=  or_test | old_lambda_form
-    list_iter           ::=  list_for | list_if
-    list_if             ::=  "if" old_expression [list_iter]
+    +   list_display        ::=  "[" [expression_list | list_comprehension] "]"
+    +   list_comprehension  ::=  expression list_for
+    +   list_for            ::=  "for" target_list "in" old_expression_list [list_iter]
+    -   old_expression_list ::=  old_expression [("," old_expression)+ [","]]
+    -   old_expression      ::=  or_test | old_lambda_form
+    -   list_iter           ::=  list_for | list_if
+    -   list_if             ::=  "if" old_expression [list_iter]
     """
     def test_expression_list_alignment(self):
         code = '[   1 , 2,   3,]'
@@ -198,10 +209,10 @@ class GeneratorExpressionsTestCase(FormatterTestCase):
 class DictionaryDisplaysTestCase(FormatterTestCase):
     """
     [5.2.7]
-    dict_display       ::=  "{" [key_datum_list | dict_comprehension] "}"
-    key_datum_list     ::=  key_datum ("," key_datum)* [","]
-    key_datum          ::=  expression ":" expression
-    dict_comprehension ::=  expression ":" expression comp_for
+    +   dict_display       ::=  "{" [key_datum_list | dict_comprehension] "}"
+    +   key_datum_list     ::=  key_datum ("," key_datum)* [","]
+    +   key_datum          ::=  expression ":" expression
+    +   dict_comprehension ::=  expression ":" expression comp_for
     """
     def test_simple_comprehension_wrapping(self):
         code = '{x: fun(x) for x in iterable}'
@@ -269,7 +280,7 @@ class DictionaryDisplaysTestCase(FormatterTestCase):
 class SetDisplaysTestCase(FormatterTestCase):
     """
     [5.2.8]
-    set_display ::=  "{" (expression_list | comprehension) "}"
+    + set_display ::=  "{" (expression_list | comprehension) "}"
     """
     def test_simple_comprehension_alignment(self):
         code = '{x for x in iterable}'
@@ -298,8 +309,8 @@ class SetDisplaysTestCase(FormatterTestCase):
 class AttributeRefTestCase(FormatterTestCase):
     """
     [5.3.1]
-    primary ::=  atom | attributeref | subscription | slicing | call
-    attributeref ::=  primary "." identifier
+    +   primary ::=  atom | attributeref | subscription | slicing | call
+    +   attributeref ::=  primary "." identifier
     """
 
     d = {

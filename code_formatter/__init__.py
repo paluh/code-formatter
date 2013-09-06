@@ -556,7 +556,7 @@ def format_list_of_expressions(expressions, width, line_width=None, suffix=None)
     if expressions:
         if not expression.formatable:
             try:
-                expression_block = expression.format_code(width - (2 if expressions else 1))
+                expression_block = expression.format_code(width - 2)
                 expressions_block = format_list_of_expressions(expressions,
                                                                width - expression_block.last_line.width - 2,
                                                                line_width, suffix)
