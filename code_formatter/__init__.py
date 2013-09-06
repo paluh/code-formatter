@@ -211,31 +211,31 @@ class OperatorFormatter(AtomFormatter):
 
 ast_operator2priority = {}
 
-for priority, ast_type, operator in [(8, ast.Pow, '**'),
-                                     (7, ast.Mult, '*'),
-                                     (7, ast.FloorDiv, '//'),
-                                     (7, ast.Div, '/'),
-                                     (7, ast.Mod, '%'),
-                                     (6, ast.Add, '+'),
-                                     (6, ast.Sub, '-'),
-                                     (5, ast.RShift, '>>'),
-                                     (5, ast.LShift, '<<'),
-                                     (4, ast.BitXor, '^'),
-                                     (3, ast.BitAnd, '&'),
-                                     (2, ast.BitOr, '|'),
-                                     (1, ast.Gt, '>'),
-                                     (1, ast.GtE, '>='),
-                                     (1, ast.Lt, '<'),
-                                     (1, ast.LtE, '<='),
-                                     (1, ast.Eq, '=='),
-                                     (1, ast.NotEq, '!='),
-                                     (1, ast.Is, 'is'),
-                                     (1, ast.IsNot, 'is not'),
-                                     (1, ast.In, 'in'),
-                                     (1, ast.NotIn, 'not in'),
-                                     (0, ast.Or, 'or'),
-                                     (0, ast.And, 'and'),
-                                     (0, ast.Not, 'not')]:
+for priority, ast_type, operator in [(10, ast.Pow, '**'),
+                                     (9, ast.Mult, '*'),
+                                     (9, ast.FloorDiv, '//'),
+                                     (9, ast.Div, '/'),
+                                     (9, ast.Mod, '%'),
+                                     (8, ast.Add, '+'),
+                                     (8, ast.Sub, '-'),
+                                     (7, ast.RShift, '>>'),
+                                     (7, ast.LShift, '<<'),
+                                     (6, ast.BitAnd, '&'),
+                                     (5, ast.BitXor, '^'),
+                                     (4, ast.BitOr, '|'),
+                                     (3, ast.Gt, '>'),
+                                     (3, ast.GtE, '>='),
+                                     (3, ast.Lt, '<'),
+                                     (3, ast.LtE, '<='),
+                                     (3, ast.Eq, '=='),
+                                     (3, ast.NotEq, '!='),
+                                     (3, ast.Is, 'is'),
+                                     (3, ast.IsNot, 'is not'),
+                                     (3, ast.In, 'in'),
+                                     (3, ast.NotIn, 'not in'),
+                                     (2, ast.Not, 'not'),
+                                     (1, ast.And, 'and'),
+                                     (0, ast.Or, 'or')]:
     ast_operator2priority[ast_type] = priority
     register(type(ast_type.__name__, (OperatorFormatter,),
                   {'ast_type': ast_type,
@@ -1101,7 +1101,11 @@ class LambdaFormatter(ExpressionFormatter):
     ast_type = ast.Lambda
 
     def format_code(self, width):
-        block = CodeBlock.from_tokens('lambda')
+        with_brackets = isinstance(self.parent, (OperatorFormatter, IfExpressionFormatter))
+        if with_brackets:
+            block = CodeBlock.from_tokens('(lambda')
+        else:
+            block = CodeBlock.from_tokens('lambda')
         parameter_list_formatter = self.get_formatter(self.expr.args)
         parameter_list_block = parameter_list_formatter.format_code(width-block.width)
         if parameter_list_block.width > 0:
@@ -1110,6 +1114,8 @@ class LambdaFormatter(ExpressionFormatter):
         block.append_tokens(':', ' ')
         subexpression_formatter = self.get_formatter(self.expr.body)
         block.merge(subexpression_formatter.format_code(width - block.width))
+        if with_brackets:
+            block.append_tokens(')')
         if block.width > width:
             raise NotEnoughSpace()
         return block

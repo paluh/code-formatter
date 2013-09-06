@@ -545,14 +545,7 @@ class BinaryBitwiseOperation(FormatterTestCase):
         code = '88 | 44'
         expected = ('(88 |\n'
                     ' 44)')
-        #print '\n', expected
-        #print '\n', format_code(code, width)
         self.assertFormats(code, expected)
-
-    def test_brackets_usage(self):
-        code = '(((8 | 4) & (8 | 7)) ^ 3)'
-        expected = '((8 | 4) & (8 | 7)) ^ 3'
-        self.assertEqual(format_code(code), expected)
 
 
 class ComparisonsTestCase(FormatterTestCase):
@@ -717,6 +710,62 @@ class ExpressionListTestCase(FormatterTestCase):
                     ' 10, 8 + 9,\n'
                     ' fun(x, y))')
         self.assertFormats(code, expected)
+
+
+class OperatorPrecedenceTestCase(FormatterTestCase):
+    """
+    [5.15]
+    +   lambda                          Lambda expression
+    +   if – else                       Conditional expression
+    +   or                              Boolean OR
+    +   and                             Boolean AND
+    +   not x                           Boolean NOT
+    -   in, not in, is, is not,
+    -   <, <=, >, >=, <>, !=, ==        Comparisons, including membership tests and identity tests
+    -   |                               Bitwise OR
+    -   ^                               Bitwise XOR
+    -   &                               Bitwise AND
+    -   <<, >>                          Shifts
+    -   +, -                            Addition and subtraction
+    -   *, /, //, %                     Multiplication, division, remainder [8]
+    -   +x, -x, ~x                      Positive, negative, bitwise NOT
+    -   **                              Exponentiation
+    -   x[index], x[index:index],
+    -   x(arguments...), x.attribute    Subscription, slicing, call, attribute reference
+    -   (expressions...),
+    -   [expressions...],
+    -   {key: value...},
+    -   `expressions...`                Binding or tuple display, list display,
+    -                                   dictionary display, string conversion
+    """
+    def test_lambda_vs_if_else(self):
+        code = "lambda x: (x if c else y)"
+        expected = "lambda x: x if c else y"
+        self.assertFormats(code, expected)
+
+        code = "(lambda x: x) if c else y"
+        self.assertFormats(code, code)
+
+    def test_if_else_vs_boolean(self):
+        code = '(1 + 1) if True else 0'
+        expected = '1 + 1 if True else 0'
+        self.assertFormats(code, expected)
+
+        code = '1 + (1 if True else 0)'
+        self.assertFormats(code, code)
+
+    def test_boolean_operators(self):
+        code = 'a or ((not b) and c)'
+        expected = 'a or not b and c'
+        self.assertFormats(code, expected)
+
+        code = '(a or not (b or d)) and c'
+        self.assertFormats(code, code)
+
+    def test_bitwise_operators(self):
+        code = '(((8 | 4) ^ (8 | 7)) & 3)'
+        expected = '((8 | 4) ^ (8 | 7)) & 3'
+        self.assertEqual(format_code(code), expected)
 
 
 class AssignmentTestCase(FormatterTestCase):
@@ -1118,29 +1167,52 @@ class ClassDefinitionTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class FuzzyTestCase(FormatterTestCase):
-    """Some regression/random code samples which"""
-    # FIXME: compare generated code (ast or bytecode comparison?)
-    #def test_formatting_test_file_compiles_to_the_same_AST(self):
-    #    code = open('code_formatter/__init__.py', 'r').read()
-    #    print format_code(code, width=80, force=True)
-    #    #self.assertFormats(code, code, force=True)
-    #def test_suffixes_aggregation(self):
-    #    # REGRESSION
-    #    code = textwrap.dedent("""\
-    #        ProductAdmin(formsets=[FormsetContainer(inlineformset_factory(fields=['image', 'color',
-    #                                                                              'on_home_page',
-    #                                                                              'on_product_page'])),
-    #        ])""")
-    #    self.assertFormats(code, code, width=125)
-
-# FIXME: failing formatting
-#if succeeding_statement_width and failing_statement_width and succeeding_statement_width - failing_statement_width == 1:
-#    s = formatter.format_code(succeeding_statement_width)
-#    result.append(s)
-#    break
-# FUCKME:
-#    if (failing_expression_width is None or
-#        succeeding_expression_width is not None and
-#        succeeding_expression_width - failing_expression_width == 1):
-#        success()
+#class FuzzyTestCase(FormatterTestCase):
+#    """Some regression/random code samples which"""
+#    # FIXME: compare generated code (ast or bytecode comparison?)
+#    #def test_formatting_test_file_compiles_to_the_same_AST(self):
+#    #    code = open('code_formatter/__init__.py', 'r').read()
+#    #    print format_code(code, width=80, force=True)
+#    #    #self.assertFormats(code, code, force=True)
+#    #def test_suffixes_aggregation(self):
+#    #    # REGRESSION
+#    #    code = textwrap.dedent("""\
+#    #        ProductAdmin(formsets=[FormsetContainer(inlineformset_factory(fields=['image', 'color',
+#    #                                                                              'on_home_page',
+#    #                                                                              'on_product_page'])),
+#    #        ])""")
+#    #    self.assertFormats(code, code, width=125)
+#
+#    def test_nested_statement_formatting(self):
+#        code = textwrap.dedent("""\
+#        admin_site = AdminSite([
+#                ProductAdmin(model=TShirt, extra_context=admin_context, formsets=[
+#                    FormsetContainer(_('Variants'), 'variants',
+#                                     inlineformset_factory(TShirt, TShirtVariant, extra=0, can_delete=False,
+#                                                           max_num=len(TShirtVariant.COLOR_CHOICES) * len(TShirtVariant.SIZE_CHOICES) * len(TShirtVariant.FASHION_CHOICES),
+#                                                           fields=['available'])),
+#                    FormsetContainer(_('Photos'), 'photos',
+#                                     inlineformset_factory(TShirt, TShirtImage, extra=1,
+#                                                           form=modelform_factory(TShirtImage,
+#                                                                                  forms.BaseImageForm),
+#                                                           fields=['image', 'color', 'on_home_page', 'on_product_page'])),
+#                ]),
+#                ProductAdmin(model=BabyBodySuit, extra_context=admin_context, formsets=[
+#                    FormsetContainer(_('Variants'), 'variants',
+#                                     inlineformset_factory(BabyBodySuit, BabyBodySuitVariant, extra=0, can_delete=False,
+#                                                           max_num=len(BabyBodySuitVariant.SIZE_CHOICES),
+#                                                           fields=['available'])),
+#                    FormsetContainer(_('Photos'), 'photos',
+#                                     inlineformset_factory(BabyBodySuit, BabyBodySuitImage, extra=1,
+#                                                           form=modelform_factory(BabyBodySuitImage,
+#                                                                                  forms.BaseImageForm),
+#                                                           fields=['image', 'on_home_page', 'on_product_page'])),
+#                ]),
+#        ])""")
+#        import time
+#        start = time.clock()
+#        try:
+#            self.assertFormats(code, code, width=180)
+#        except:
+#            print "%i sec" % (time.clock() - start)
+#            raise
