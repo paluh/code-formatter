@@ -111,6 +111,11 @@ class LiteralsTestCase(FormatterTestCase):
                     "        'string'}")
         self.assertFormats(code, expected)
 
+    def test_empty_string_formatting(self):
+        code = "''"
+        self.assertFormats(code, code)
+
+
 class ListDisplaysTestCase(FormatterTestCase):
     # FIXME: test old_lambda_form branch
     """
@@ -1080,7 +1085,16 @@ class FunctionDefinitionTestCase(FormatterTestCase):
                 '    pass')
         expected = ('def fun(x, y, z=3):\n'
                     '    pass')
-        self.assertEqual(format_code(code), expected)
+        self.assertFormats(code, expected)
+
+    def test_vararg_alignment(self):
+        code = textwrap.dedent("""\
+            def fun( *  args ):
+                pass""")
+        expected = textwrap.dedent("""\
+            def fun(*args):
+                pass""")
+        self.assertFormats(code, expected)
 
 
 class ClassDefinitionTestCase(FormatterTestCase):
@@ -1104,9 +1118,29 @@ class ClassDefinitionTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-# FIXME: compare generated code (ast or bytecode comparison?)
-#class FuzzyTestCase(FormatterTestCase):
-#    def test_formatting_test_file_compiles_to_the_same_AST(self):
-#        code = open('code_formatter/__init__.py', 'r').read()
-#        print format_code(code, width=80, force=True)
-#        #self.assertFormats(code, code, force=True)
+class FuzzyTestCase(FormatterTestCase):
+    """Some regression/random code samples which"""
+    # FIXME: compare generated code (ast or bytecode comparison?)
+    #def test_formatting_test_file_compiles_to_the_same_AST(self):
+    #    code = open('code_formatter/__init__.py', 'r').read()
+    #    print format_code(code, width=80, force=True)
+    #    #self.assertFormats(code, code, force=True)
+    #def test_suffixes_aggregation(self):
+    #    # REGRESSION
+    #    code = textwrap.dedent("""\
+    #        ProductAdmin(formsets=[FormsetContainer(inlineformset_factory(fields=['image', 'color',
+    #                                                                              'on_home_page',
+    #                                                                              'on_product_page'])),
+    #        ])""")
+    #    self.assertFormats(code, code, width=125)
+
+# FIXME: failing formatting
+#if succeeding_statement_width and failing_statement_width and succeeding_statement_width - failing_statement_width == 1:
+#    s = formatter.format_code(succeeding_statement_width)
+#    result.append(s)
+#    break
+# FUCKME:
+#    if (failing_expression_width is None or
+#        succeeding_expression_width is not None and
+#        succeeding_expression_width - failing_expression_width == 1):
+#        success()
