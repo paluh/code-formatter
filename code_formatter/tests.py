@@ -235,7 +235,7 @@ class DictionaryDisplaysTestCase(FormatterTestCase):
             result = {'type': type(e).__name__, 'args': e.args,
                       'traceback': traceback or
                                    logging.Formatter().formatException(sys.exc_info())}""")
-        self.assertFormats(code, expected, width=70, force=True)
+        self.assertFormats(code, expected, width=30, force=True)
 
     def test_comprehension_with_condition_wrapping(self):
         code = '{x: fun(x) for x in iterable if x>0}'
@@ -1223,7 +1223,7 @@ class ClassDefinitionTestCase(FormatterTestCase):
 #        import time
 #        start = time.clock()
 #        try:
-#            self.assertFormats(code, code, width=180)
+#            self.assertFormats(code, code, width=80, force=True)
 #        except:
 #            print "%i sec" % (time.clock() - start)
 #            raise
