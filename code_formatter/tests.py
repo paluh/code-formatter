@@ -1,9 +1,10 @@
 #-*- coding: utf-8 -*-
+import ast
 import difflib
 import textwrap
 import unittest
 
-from . import CodeBlock, CodeLine, format_code
+from . import CodeBlock, CodeLine, format_code, _formatters
 
 
 class FormatterTestCase(unittest.TestCase):
@@ -167,6 +168,13 @@ class ListDisplaysTestCase(FormatterTestCase):
     def test_tuple_brackets_are_preserved(self):
         code = '[(x, y) for (x, y) in iterable]'
         self.assertFormats(code, code)
+
+    def test_forcing_formatting(self):
+        code = '[   1 , 2,   3,]'
+        expected = ('[1,\n'
+                    ' 2,\n'
+                    ' 3]')
+        self.assertFormats(code, expected, width=2, force=True)
 
 
 class GeneratorExpressionsTestCase(FormatterTestCase):
@@ -481,9 +489,9 @@ class CallsTestCase(FormatterTestCase):
         # REGRESSION
         code = textwrap.dedent("fun(x, y, z)")
         expected = textwrap.dedent("""\
-        fun(x,
-            y,
-            z)""")
+            fun(x,
+                y,
+                z)""")
         self.assertFormats(code, expected, width=3, force=True)
 
 
@@ -537,6 +545,14 @@ class BinaryArithmeticOperationsTestCase(FormatterTestCase):
         expected = ('(2 +\n'
                     ' 3,)')
         self.assertFormats(code, expected)
+
+    def test_forcing_formatting(self):
+        code = '1 + 2 + 3 + 4'
+        expected = ('(1 +\n'
+                    ' 2 +\n'
+                    ' 3 +\n'
+                    ' 4)')
+        self.assertFormats(code, expected, width=2, force=True)
 
 
 class BinaryBitwiseOperation(FormatterTestCase):
@@ -1178,7 +1194,7 @@ class ClassDefinitionTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-#class FuzzyTestCase(FormatterTestCase):
+class FuzzyTestCase(FormatterTestCase):
 #    """Some regression/random code samples which"""
 #    # FIXME: compare generated code (ast or bytecode comparison?)
 #    #def test_formatting_test_file_compiles_to_the_same_AST(self):
@@ -1194,36 +1210,73 @@ class ClassDefinitionTestCase(FormatterTestCase):
 #    #        ])""")
 #    #    self.assertFormats(code, code, width=125)
 #
-#    def test_nested_statement_formatting(self):
-#        code = textwrap.dedent("""\
-#        admin_site = AdminSite([
-#                ProductAdmin(model=TShirt, extra_context=admin_context, formsets=[
-#                    FormsetContainer(_('Variants'), 'variants',
-#                                     inlineformset_factory(TShirt, TShirtVariant, extra=0, can_delete=False,
-#                                                           max_num=len(TShirtVariant.COLOR_CHOICES) * len(TShirtVariant.SIZE_CHOICES) * len(TShirtVariant.FASHION_CHOICES),
-#                                                           fields=['available'])),
-#                    FormsetContainer(_('Photos'), 'photos',
-#                                     inlineformset_factory(TShirt, TShirtImage, extra=1,
-#                                                           form=modelform_factory(TShirtImage,
-#                                                                                  forms.BaseImageForm),
-#                                                           fields=['image', 'color', 'on_home_page', 'on_product_page'])),
-#                ]),
-#                ProductAdmin(model=BabyBodySuit, extra_context=admin_context, formsets=[
-#                    FormsetContainer(_('Variants'), 'variants',
-#                                     inlineformset_factory(BabyBodySuit, BabyBodySuitVariant, extra=0, can_delete=False,
-#                                                           max_num=len(BabyBodySuitVariant.SIZE_CHOICES),
-#                                                           fields=['available'])),
-#                    FormsetContainer(_('Photos'), 'photos',
-#                                     inlineformset_factory(BabyBodySuit, BabyBodySuitImage, extra=1,
-#                                                           form=modelform_factory(BabyBodySuitImage,
-#                                                                                  forms.BaseImageForm),
-#                                                           fields=['image', 'on_home_page', 'on_product_page'])),
-#                ]),
-#        ])""")
-#        import time
-#        start = time.clock()
-#        try:
-#            self.assertFormats(code, code, width=80, force=True)
-#        except:
-#            print "%i sec" % (time.clock() - start)
-#            raise
+    def test_nested_statement_formatting(self):
+        code = textwrap.dedent("""\
+        admin_site = AdminSite([
+                ProductAdmin(model=TShirt, extra_context=admin_context, formsets=[
+                    FormsetContainer(_('Variants'), 'variants',
+                                     inlineformset_factory(TShirt, TShirtVariant, extra=0, can_delete=False,
+                                                           max_num=len(TShirtVariant.COLOR_CHOICES) * len(TShirtVariant.SIZE_CHOICES) * len(TShirtVariant.FASHION_CHOICES),
+                                                           fields=['available'])),
+                    FormsetContainer(_('Photos'), 'photos',
+                                     inlineformset_factory(TShirt, TShirtImage, extra=1,
+                                                           form=modelform_factory(TShirtImage,
+                                                                                  forms.BaseImageForm),
+                                                           fields=['image', 'color', 'on_home_page', 'on_product_page'])),
+                ]),
+                ProductAdmin(model=BabyBodySuit, extra_context=admin_context, formsets=[
+                    FormsetContainer(_('Variants'), 'variants',
+                                     inlineformset_factory(BabyBodySuit, BabyBodySuitVariant, extra=0, can_delete=False,
+                                                           max_num=len(BabyBodySuitVariant.SIZE_CHOICES),
+                                                           fields=['available'])),
+                    FormsetContainer(_('Photos'), 'photos',
+                                     inlineformset_factory(BabyBodySuit, BabyBodySuitImage, extra=1,
+                                                           form=modelform_factory(BabyBodySuitImage,
+                                                                                  forms.BaseImageForm),
+                                                           fields=['image', 'on_home_page', 'on_product_page'])),
+                ]),
+        ])""")
+        expected = textwrap.dedent("""\
+        admin_site = AdminSite([ProductAdmin(model=TShirt, extra_context=admin_context,
+                                             formsets=[FormsetContainer(_('Variants'), 'variants',
+                                                                        inlineformset_factory(TShirt, TShirtVariant, extra=0,
+                                                                                              can_delete=False,
+                                                                                              max_num=len(TShirtVariant.COLOR_CHOICES) *
+                                                                                                      len(TShirtVariant.SIZE_CHOICES) *
+                                                                                                      len(TShirtVariant.FASHION_CHOICES),
+                                                                                              fields=['available'])),
+                                                       FormsetContainer(_('Photos'), 'photos',
+                                                                        inlineformset_factory(TShirt, TShirtImage, extra=1,
+                                                                                              form=modelform_factory(TShirtImage,
+                                                                                                                     forms.BaseImageForm),
+                                                                                              fields=['image', 'color', 'on_home_page',
+                                                                                                      'on_product_page']))]),
+                                ProductAdmin(model=BabyBodySuit, extra_context=admin_context,
+                                             formsets=[FormsetContainer(_('Variants'), 'variants',
+                                                                        inlineformset_factory(BabyBodySuit, BabyBodySuitVariant, extra=0,
+                                                                                              can_delete=False,
+                                                                                              max_num=len(BabyBodySuitVariant.SIZE_CHOICES),
+                                                                                              fields=['available'])),
+                                                       FormsetContainer(_('Photos'), 'photos',
+                                                                        inlineformset_factory(BabyBodySuit, BabyBodySuitImage, extra=1,
+                                                                                              form=modelform_factory(BabyBodySuitImage,
+                                                                                                                     forms.BaseImageForm),
+                                                                                              fields=['image', 'on_home_page',
+                                                                                                      'on_product_page']))])])""")
+        self.assertFormats(code, expected, width=80, force=True)
+
+
+class FormattersUnitTests(FormatterTestCase):
+
+    def test_single_argument_call_is_not_formatable(self):
+        code = "len(TShirtVariant.COLOR_CHOICES)"
+        call_statement = ast.parse(code).body[0].value
+        call_formatter = _formatters[type(call_statement)](call_statement,
+                                                           formatters=_formatters)
+        self.assertFalse(call_formatter.formatable)
+
+# FIXME: missing bracket after formatting
+#value_block = self.value_formatter.format_code(width - len(operator) -
+#                                               len(separator)
+# FIXME: disappearing elements but only in vim for given indent
+#                if succeeding_statement_width and failing_statement_width and succeeding_statement_width - failing_statement_width == 1:
