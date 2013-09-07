@@ -144,7 +144,7 @@ class CodeFormatter(object):
         raise NotImplementedError()
 
     def format_code(self, width, suffix=None):
-        if (self._known_max_width_of_failure is not None and
+        if width <= 0 or (self._known_max_width_of_failure is not None and
             self._known_max_width_of_failure >= width):
             raise NotEnoughSpace()
 
@@ -336,14 +336,17 @@ class BinaryArithmeticOperationFormatter(OperationFormatter):
                                                                 left_block.width - 1)
                 right_block = self.right_formatter.format_code(width - block.width -
                                                                operator_block.width - 2 -
-                                                               left_block.width)
+                                                               left_block.width,
+                                                               suffix=suffix)
                 block.merge(left_block)
                 block.merge(operator_block, separator= ' ')
                 block.merge(right_block, separator=' ')
             except NotEnoughSpace:
                 operator = self.opt_formatter.operator
                 left_block = self.left_formatter.format_code(width - len(indent))
-                right_block = self.right_formatter.format_code(width - len(indent))
+                right_block = self.right_formatter.format_code(width -
+                                                               len(indent),
+                                                               suffix=suffix)
                 block.merge(left_block)
                 block.append_tokens(' ', operator)
                 block.extend(right_block, indent)
@@ -352,9 +355,10 @@ class BinaryArithmeticOperationFormatter(OperationFormatter):
             return block, right_block
         with_brackets = self.force_brackets()
         block, right_subblock = _format(with_brackets)
-        if ((not self.parent or
-             not isinstance(self.parent,
-                            (OperationFormatter, CallFormatter))) and
+        if ((not self.parent or not isinstance(self.parent, (OperationFormatter,
+                                                             CallFormatter)) or
+             isinstance(self.parent, OperationFormatter) and
+             self.parent.priority < self.priority) and
             block.height > 1 and
             right_subblock.height != block.height):
             block, _ = _format(not self._inside_scope())
@@ -434,6 +438,7 @@ class BooleanOperationFormatter(OperationFormatter):
             block = CodeBlock()
             if with_brackets:
                 block.append_tokens('(')
+            # FIXME: move creation of subformatters to constructors
             opt_formatter = self.get_formatter(self.expr.op)
             value_formatter = self.get_formatter(self.expr.values[0])
             indent = block.width*' '

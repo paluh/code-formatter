@@ -546,6 +546,12 @@ class BinaryArithmeticOperationsTestCase(FormatterTestCase):
                     ' 3,)')
         self.assertFormats(code, expected)
 
+    def test_arithmetic_operation_wrapping_in_boolean_expression(self):
+        code = 'x and y - z'
+        expected = ('x and (y -\n'
+                    '       z)')
+        self.assertFormats(code, expected)
+
     def test_forcing_formatting(self):
         code = '1 + 2 + 3 + 4'
         expected = ('(1 +\n'
@@ -1275,8 +1281,6 @@ class FormattersUnitTests(FormatterTestCase):
                                                            formatters=_formatters)
         self.assertFalse(call_formatter.formatable)
 
-# FIXME: missing bracket after formatting
-#value_block = self.value_formatter.format_code(width - len(operator) -
-#                                               len(separator)
-# FIXME: disappearing elements but only in vim for given indent
-#                if succeeding_statement_width and failing_statement_width and succeeding_statement_width - failing_statement_width == 1:
+    def test_binary_arithmetic_operation_is_passing_suffix_to_subexpression(self):
+        code = 'f(x - y)'
+        self.assertFormats(code, code)
