@@ -345,8 +345,7 @@ class BinaryArithmeticOperationFormatter(OperationFormatter):
                 operator = self.opt_formatter.operator
                 left_block = self.left_formatter.format_code(width - len(indent))
                 right_block = self.right_formatter.format_code(width -
-                                                               len(indent),
-                                                               suffix=suffix)
+                                                               len(indent), suffix=suffix)
                 block.merge(left_block)
                 block.append_tokens(' ', operator)
                 block.extend(right_block, indent)
@@ -593,76 +592,102 @@ class AttributeFormatter(ExpressionFormatter):
         return block
 
 
-def format_list_of_expressions(expressions, width, line_width=None, suffix=None):
-    block = CodeBlock()
-    if not expressions:
-        if suffix:
-            return suffix
-        else:
-            return block
-    line_width = line_width if line_width is not None else width
-    expression = expressions[0]
-    expressions = expressions[1:]
-    merged_block_indent = lambda: line_width - width + (block.last_line or CodeLine()).width
-    if expressions:
-        if not expression.formatable:
-            try:
-                expression_block = expression.format_code(width - 2)
-                expressions_block = format_list_of_expressions(expressions,
-                                                               width - expression_block.last_line.width - 2,
-                                                               line_width, suffix)
-            except NotEnoughSpace:
-                pass
-            else:
-                block.merge(expression_block, indent=merged_block_indent())
-                block.append_tokens(', ')
-                block.merge(expressions_block, indent=0)
-                return block
-        else:
-            failing_expression_width = None
-            failing_expressions_width = None
-            curr_width = width
-            while True:
-                try:
-                    expression_block = expression.format_code(curr_width)
-                except NotEnoughSpace:
-                    failing_expression_width = curr_width
-                    if failing_expressions_width is None or (failing_expressions_width-failing_expression_width) <= 1:
-                        break
-                    curr_width += 1
-                else:
-                    try:
-                        expressions_block = format_list_of_expressions(expressions,
-                                                                       width - expression_block.last_line.width - 2,
-                                                                       line_width, suffix)
-                    except NotEnoughSpace:
-                        failing_expressions_width = curr_width
-                        if failing_expression_width is not None and (failing_expressions_width-failing_expression_width) <= 1:
-                                break
-                        elif failing_expression_width is None:
-                            curr_width = failing_expressions_width/2
-                        else:
-                            curr_width = failing_expression_width + (failing_expressions_width - failing_expressions_width)/2
-                    else:
-                        if (failing_expressions_width is None or
-                              (curr_width - failing_expressions_width <= 1)):
-                            block.merge(expression_block, indent=merged_block_indent())
-                            block.append_tokens(', ')
-                            block.merge(expressions_block, indent=0)
-                            return block
-                        curr_width = (failing_expression_width + failing_expressions_width)/2
+class ListOfExpressionsFormatter(CodeFormatter):
 
-        expression_block = expression.format_code(width - 1)
-        expressions_block = format_list_of_expressions(expressions, line_width,
-                                                       line_width, suffix)
-        block.merge(expression_block, indent=merged_block_indent())
-        block.append_tokens(',')
-        block.extend(expressions_block)
+
+    class _ToSmall(Exception):
+        pass
+
+
+    class _ToLarge(Exception):
+        pass
+
+
+    def __init__(self, expressions_formatters, *args, **kwargs):
+        self.expressions_formatters = expressions_formatters
+        super(ListOfExpressionsFormatter, self).__init__(*args, **kwargs)
+
+    def _validate_first_expression_width(self, expression, expressions, width, line_width, suffix):
+        try:
+            expression_block = expression.format_code(width)
+        except NotEnoughSpace:
+            raise ListOfExpressionsFormatter._ToSmall
+        try:
+            self._format_code(expressions, line_width - expression_block.last_line.width - 2,
+                              line_width, suffix)
+        except NotEnoughSpace:
+            raise ListOfExpressionsFormatter._ToLarge
+
+
+    def _format_code(self, expressions, width, line_width, suffix):
+        # FIXME: refactor this monster
+        if not expressions:
+            return suffix
+        block = CodeBlock()
+        expression = expressions[0]
+        expressions = expressions[1:]
+        merged_block_indent = lambda: line_width - width + (block.last_line or CodeLine()).width
+        if expressions:
+            if not expression.formatable:
+                try:
+                    expression_block = expression.format_code(width - 2)
+                    expressions_block = self._format_code(expressions,
+                                                          width - expression_block.last_line.width - 2,
+                                                          line_width, suffix)
+                except NotEnoughSpace:
+                    pass
+                else:
+                    block.merge(expression_block, indent=merged_block_indent())
+                    block.append_tokens(', ')
+                    block.merge(expressions_block, indent=0)
+                    return block
+            else:
+                succeeding_width = None
+                lower_boundry = 0
+                upper_boundry = width+1
+                curr_width = width
+                while True:
+                    try:
+                        self._validate_first_expression_width(expression, expressions, curr_width, line_width, suffix)
+                    except ListOfExpressionsFormatter._ToSmall:
+                        lower_boundry = curr_width
+                    except ListOfExpressionsFormatter._ToLarge:
+                        upper_boundry = curr_width
+                    else:
+                        lower_boundry = succeeding_width = curr_width
+
+                    if succeeding_width and upper_boundry-succeeding_width <= 1:
+                        expression_block = expression.format_code(succeeding_width)
+                        expressions_block = self._format_code(expressions,
+                                                              width - expression_block.last_line.width - 2,
+                                                              line_width, suffix)
+                        block.merge(expression_block, indent=merged_block_indent())
+                        block.append_tokens(', ')
+                        block.merge(expressions_block, indent=0)
+                        return block
+                    elif upper_boundry - lower_boundry == 1:
+                        break
+                    curr_width = (lower_boundry + upper_boundry) / 2
+
+            expression_block = expression.format_code(width - 1)
+            expressions_block = self._format_code(expressions, line_width,
+                                                  line_width, suffix)
+            block.merge(expression_block, indent=merged_block_indent())
+            block.append_tokens(',')
+            block.extend(expressions_block)
+            return block
+        expression_block = expression.format_code(width, suffix=suffix)
+        block.merge(expression_block,
+                    indent=merged_block_indent())
         return block
-    expression_block = expression.format_code(width, suffix=suffix)
-    block.merge(expression_block,
-                indent=merged_block_indent())
-    return block
+
+    def format_code(self, width, suffix=None):
+        return self._format_code(self.expressions_formatters, width, width, suffix)
+
+
+def format_list_of_expressions(expressions, width, line_width=None, suffix=None):
+    formatter = ListOfExpressionsFormatter(expressions, _formatters)
+    return formatter.format_code(width, suffix=suffix or CodeBlock())
 
 
 @register
