@@ -1284,10 +1284,3 @@ class FormattersUnitTests(FormatterTestCase):
     def test_binary_arithmetic_operation_is_passing_suffix_to_subexpression(self):
         code = 'f(x - y)'
         self.assertFormats(code, code)
-
-    def test_f(self):
-        code = textwrap.dedent('right_block = self.right_formatter.format_code(width - len(indent), suffix=suffix)')
-        expected = textwrap.dedent("""\
-        right_block = self.right_formatter.format_code(width - len(indent),
-                                                       suffix=suffix)""")
-        self.assertFormats(code, expected, width=74, force=True)
