@@ -595,9 +595,6 @@ class AttributeFormatter(ExpressionFormatter):
 class ListOfExpressionsFormatter(object):
 
     def _format_code(self, expressions, width, line_width, suffix):
-        # FIXME: refactor this monster
-        if not expressions:
-            return suffix
         block = CodeBlock()
         expression = expressions[0]
         expressions = expressions[1:]
@@ -609,6 +606,7 @@ class ListOfExpressionsFormatter(object):
                 lower_boundry = width
             else:
                 lower_boundry = 0
+            # try to continue line
             while True:
                 try:
                     expression_block = expression.format_code(curr_width)
@@ -653,6 +651,9 @@ class ListOfExpressionsFormatter(object):
         return block
 
     def __call__(self, expressions, width, line_width=None, suffix=None):
+        suffix = suffix or CodeBlock()
+        if not expressions:
+            return suffix
         return self._format_code(expressions, width,
                                  line_width or width, suffix or CodeBlock())
 
