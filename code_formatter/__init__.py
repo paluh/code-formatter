@@ -607,6 +607,7 @@ class ListOfExpressionsFormatter(object):
             else:
                 lower_boundry = 0
             # try to continue line
+            separator = CodeBlock.from_tokens(', ')
             while True:
                 try:
                     expression_block = expression.format_code(curr_width)
@@ -617,7 +618,7 @@ class ListOfExpressionsFormatter(object):
                         expressions_block = self._format_code(expressions,
                                                               width -
                                                               expression_block.last_line.width -
-                                                              2, line_width, suffix)
+                                                              separator.width, line_width, suffix)
                     except NotEnoughSpace:
                         upper_boundry = curr_width
                     else:
@@ -627,10 +628,12 @@ class ListOfExpressionsFormatter(object):
                     if succeeding_width != curr_width:
                         expression_block = expression.format_code(succeeding_width)
                         expressions_block = self._format_code(expressions,
-                                                              width - expression_block.last_line.width - 2,
-                                                              line_width, suffix)
+                                                              width -
+                                                              expression_block.last_line.width -
+                                                              separator.width, line_width,
+                                                              suffix)
                     block.merge(expression_block, indent=merged_block_indent())
-                    block.append_tokens(', ')
+                    block.merge(separator)
                     block.merge(expressions_block, indent=0)
                     return block
                 elif upper_boundry - lower_boundry <= 1:
@@ -638,11 +641,12 @@ class ListOfExpressionsFormatter(object):
                 curr_width = (lower_boundry + upper_boundry) / 2
 
             # break line
-            expression_block = expression.format_code(width - 1)
+            separator = CodeBlock.from_tokens(',')
+            expression_block = expression.format_code(width - separator.width)
             expressions_block = self._format_code(expressions, line_width,
                                                   line_width, suffix)
             block.merge(expression_block, indent=merged_block_indent())
-            block.append_tokens(',')
+            block.merge(separator)
             block.extend(expressions_block)
             return block
         expression_block = expression.format_code(width, suffix=suffix)
