@@ -132,11 +132,11 @@ class CodeFormatter(object):
     # cache max failure width to speedup search
     _known_max_width_of_failure = None
 
-    def __init__(self, formatters):
-        self.formatters = formatters
+    def __init__(self, formatters_register):
+        self.formatters_register = formatters_register
 
     def get_formatter(self, expr, parent=None, formatters=None):
-        formatters = self.formatters if formatters is None else formatters
+        formatters = self.formatters_register if formatters is None else formatters
         return formatters[type(expr)](expr=expr, formatters=formatters,
                                       parent=self if parent is None else parent)
 
@@ -600,10 +600,10 @@ class ListOfExpressionsFormatter(CodeFormatter):
 
     @classmethod
     def from_expressions(cls, expressions, parent):
-        expressions_formatters = [parent.formatters[type(e)](e, formatters=parent.formatters,
+        expressions_formatters = [parent.formatters_register[type(e)](e, formatters=parent.formatters_register,
                                                              parent=parent)
                                   for e in expressions]
-        return cls(expressions_formatters, parent.formatters)
+        return cls(expressions_formatters, parent.formatters_register)
 
     @property
     def formatable(self):
@@ -710,9 +710,9 @@ class CallFormatter(ExpressionFormatter):
 
         def __init__(self, subexpression, prefix, formatters):
             self.subexpression = subexpression
-            self.formatters = formatters
-            self.subexpression_formatter = self.formatters[type(self.subexpression)](self.subexpression,
-                                                                                     formatters=self.formatters)
+            self.formatters_register = formatters
+            self.subexpression_formatter = self.formatters_register[type(self.subexpression)](self.subexpression,
+                                                                                     formatters=self.formatters_register)
             self.prefix = prefix
 
         @property
@@ -738,12 +738,12 @@ class CallFormatter(ExpressionFormatter):
         formatters = [self.get_formatter(e) for e in self.expr.args]
         if self.expr.starargs:
             formatters.append(CallFormatter.StarArgsFormatter(self.expr.starargs, '*',
-                                                              formatters=self.formatters))
+                                                              formatters=self.formatters_register))
         formatters += [self.get_formatter(e) for e in self.expr.keywords]
         if self.expr.kwargs:
             formatters.append(CallFormatter.StarArgsFormatter(self.expr.kwargs, '**',
-                                                               formatters=self.formatters))
-        return ListOfExpressionsFormatter(formatters, self.formatters)
+                                                               formatters=self.formatters_register))
+        return ListOfExpressionsFormatter(formatters, self.formatters_register)
 
     def _format_code(self, width, suffix=None):
         suffix = CodeBlock.from_tokens(')').merge(suffix) if suffix else CodeBlock.from_tokens(')')
@@ -771,9 +771,9 @@ class DictonaryFormatter(ExpressionFormatter):
     class Item(ExpressionFormatter):
 
         def __init__(self, key, value, parent, formatters):
-            self.formatters = formatters
-            self.key = self.formatters[type(key)](key, parent=parent, formatters=formatters)
-            self.value = self.formatters[type(value)](value, parent=parent,
+            self.formatters_register = formatters
+            self.key = self.formatters_register[type(key)](key, parent=parent, formatters=formatters)
+            self.value = self.formatters_register[type(value)](value, parent=parent,
                                                       formatters=formatters)
 
         def _format_code(self, width, suffix=None):
@@ -788,10 +788,10 @@ class DictonaryFormatter(ExpressionFormatter):
 
     def __init__(self, *args, **kwargs):
         super(DictonaryFormatter, self).__init__(*args, **kwargs)
-        expressions = [DictonaryFormatter.Item(k, v, self, self.formatters)
+        expressions = [DictonaryFormatter.Item(k, v, self, self.formatters_register)
                        for k, v in zip(self.expr.keys,
                                        self.expr.values)]
-        self._items_formatter = ListOfExpressionsFormatter(expressions, self.formatters)
+        self._items_formatter = ListOfExpressionsFormatter(expressions, self.formatters_register)
 
     def _format_code(self, width, suffix=None):
         block = CodeBlock([CodeLine(['{'])])
@@ -839,13 +839,13 @@ class ListComprehensionFormatter(ExpressionFormatter):
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width - 1,
                                                  parent=self,
-                                                 formatters=self.formatters,
+                                                 formatters=self.formatters_register,
                                                  suffix=suffix)
             block.merge(generators_block, separator=' ')
         except NotEnoughSpace:
             generators_block = format_generators(self.expr.generators,
                                                  width - len(indent), parent=self,
-                                                 formatters=self.formatters,
+                                                 formatters=self.formatters_register,
                                                  suffix=suffix)
             block.extend(generators_block, indent)
         if block.width > width:
@@ -889,13 +889,13 @@ class SetComprehensionFormatter(ExpressionFormatter):
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width - 1,
                                                  parent=self,
-                                                 formatters=self.formatters)
+                                                 formatters=self.formatters_register)
             block.merge(generators_block, separator=' ')
         except NotEnoughSpace:
             generators_block = format_generators(self.expr.generators,
                                                  width - len(indent),
                                                  parent=self,
-                                                 formatters=self.formatters)
+                                                 formatters=self.formatters_register)
             block.extend(generators_block, indent)
         block.append_tokens('}')
         return block
@@ -991,7 +991,7 @@ class GeneratorFormatter(ExpressionFormatter):
     def __init__(self, expr, formatters, parent=None):
         self.expr = expr
         self.parent = parent
-        self.formatters = formatters
+        self.formatters_register = formatters
 
     def _format_code(self, width, suffix=None):
         value_formatter = self.get_formatter(self.expr.elt)
@@ -1009,14 +1009,14 @@ class GeneratorFormatter(ExpressionFormatter):
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width - 1,
                                                  parent=self,
-                                                 formatters=self.formatters,
+                                                 formatters=self.formatters_register,
                                                  suffix=suffix)
             block.merge(generators_block, separator=' ')
         except NotEnoughSpace:
             generators_block = format_generators(self.expr.generators,
                                                  width - len(indent),
                                                  parent=self,
-                                                 formatters=self.formatters,
+                                                 formatters=self.formatters_register,
                                                  suffix=suffix)
             block.extend(generators_block, indent)
 
@@ -1081,13 +1081,13 @@ class DictComprehensionFormatter(ExpressionFormatter):
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width - 1,
                                                  parent=self,
-                                                 formatters=self.formatters)
+                                                 formatters=self.formatters_register)
             block.merge(generators_block, separator=' ')
         except NotEnoughSpace:
             generators_block = format_generators(self.expr.generators,
                                                  width - len(indent),
                                                  parent=self,
-                                                 formatters=self.formatters)
+                                                 formatters=self.formatters_register)
             block.extend(generators_block, indent)
         block.append_tokens('}')
         return block
@@ -1196,15 +1196,15 @@ class ParameterListFormatter(AstFormatter):
         if self.expr.vararg:
             parameters_formatters.append(ParameterListFormatter.VarargFormatter(self.expr.vararg,
                                                                                 self,
-                                                                                self.formatters))
+                                                                                self.formatters_register))
         parameters_formatters += [ParameterListFormatter.KwargFormatter(arg, default,
                                                                         self,
-                                                                        self.formatters)
+                                                                        self.formatters_register)
                                   for (arg, default)
                                   in zip(self.expr.args[len(self.expr.args) -
                                                         len(self.expr.defaults):],
                                          self.expr.defaults)]
-        self._paramters_formatter = ListOfExpressionsFormatter(parameters_formatters, self.formatters)
+        self._paramters_formatter = ListOfExpressionsFormatter(parameters_formatters, self.formatters_register)
 
     def _format_code(self, width, suffix=None):
         return self._paramters_formatter.format_code(width)
@@ -1281,7 +1281,8 @@ class PrintFormatter(StatementFormatter):
     def _format_code(self, width, suffix=None):
         block = CodeBlock.from_tokens('print ')
         values_formatters = [self.get_formatter(e) for e in self.expr.values]
-        values_formatter = ListOfExpressionsFormatter(values_formatters, self.formatters)
+        values_formatter = ListOfExpressionsFormatter(values_formatters,
+                                                      self.formatters_register)
         values_block = values_formatter.format_code(width=width)
         if values_block.height > 1:
             block.append_tokens('(')
