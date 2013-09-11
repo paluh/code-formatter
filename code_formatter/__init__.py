@@ -422,6 +422,8 @@ class CompareFormatter(OperationFormatter):
                 break
         if with_brackets:
             block.append_tokens(')')
+        if suffix:
+            block.merge(suffix)
         if block.width > width:
             raise NotEnoughSpace()
         return block

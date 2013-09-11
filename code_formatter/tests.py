@@ -644,6 +644,10 @@ class ComparisonsTestCase(FormatterTestCase):
                     '     (z < v))')
         self.assertFormats(code, expected)
 
+    def test_suffix_is_preserved(self):
+        code = 'f(x == 2).a'
+        self.assertFormats(code, code)
+
 
 class BooleanOperationsTestCase(FormatterTestCase):
     """
@@ -692,8 +696,7 @@ class BooleanOperationsTestCase(FormatterTestCase):
     def test_negation_alignment(self):
         code = 'not     x'
         expected = 'not x'
-        self.assertEqual(format_code(code), expected)
-
+        self.assertFormats(code, expected)
 
 class ConditionalExpressionsTestCase(FormatterTestCase):
     """
