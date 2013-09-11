@@ -500,12 +500,19 @@ class CallsTestCase(FormatterTestCase):
 
     def test_forcing_formatting(self):
         # REGRESSION
-        code = textwrap.dedent("fun(x, y, z)")
+        code = 'fun(x, y, z)'
         expected = textwrap.dedent("""\
             fun(x,
                 y,
                 z)""")
         self.assertFormats(code, expected, width=3, force=True)
+
+    def test_call_with_nested_boolean_expression_wrapping(self):
+        # REGRESSION
+        code = 'f(g(x,y) == None)'
+        expected = ('f(g(x,\n'
+                    '    y) == None)')
+        self.assertFormats(code, expected)
 
 
 class BinaryArithmeticOperationsTestCase(FormatterTestCase):

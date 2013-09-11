@@ -755,7 +755,7 @@ class CallFormatter(ExpressionFormatter):
             block.append_tokens('(')
             try:
                 subblock = self._arguments_formatter.format_code(width -
-                                                                 block.width,
+                                                                 block.last_line.width,
                                                                  suffix=suffix)
             except NotEnoughSpace:
                 continue
