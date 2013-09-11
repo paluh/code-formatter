@@ -4,7 +4,7 @@ import difflib
 import textwrap
 import unittest
 
-from . import CodeBlock, CodeLine, format_code, _formatters
+from . import CodeBlock, CodeLine, format_code, _formatters, NotEnoughSpace
 
 
 class FormatterTestCase(unittest.TestCase):
@@ -1220,6 +1220,16 @@ class FuzzyTestCase(FormatterTestCase):
     #    code = open('code_formatter/__init__.py', 'r').read()
     #    print format_code(code, width=80, force=True)
     #    #self.assertFormats(code, code, force=True)
+    def test_README_example(self):
+        code = 'foo(f=8, s=bar(x=9, y=10, z=20))'
+        self.assertRaises(NotEnoughSpace,
+                          lambda: format_code(code, width=10))
+        expected = textwrap.dedent("""\
+            foo(f=8,
+                s=bar(x=9,
+                      y=10,
+                      z=20))""")
+        self.assertFormats(code, expected, width=10, force=True)
 
     def test_suffixes_aggregation(self):
         # REGRESSION

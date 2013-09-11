@@ -1,4 +1,5 @@
 python << endpython
+# this is example vim plugin
 import code_formatter
 import textwrap
 reload(code_formatter)
