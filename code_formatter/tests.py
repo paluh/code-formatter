@@ -395,6 +395,19 @@ class CallsTestCase(FormatterTestCase):
         code = 'instance.method(   x,   y )'
         self.assertFormats(code, 'instance.method(x, y)')
 
+    def test_method_call_wrapping(self):
+        code = 'instance.method(x, y)'
+        expected = ('instance.method(x,\n'
+                    '                y)')
+        self.assertFormats(code, expected)
+
+    def test_method_call_chain_wrapping(self):
+        code = 'instance.method(x, y).method(u, v)'
+        expected = ('instance.method(x,\n'
+                    '                y).method(u,\n'
+                    '                          v)')
+        self.assertFormats(code, expected)
+
     def test_call_with_non_arguments_alignment(self):
         code = 'fun(     \n )'
         self.assertFormats(code, 'fun()')
@@ -1201,21 +1214,21 @@ class ClassDefinitionTestCase(FormatterTestCase):
 
 
 class FuzzyTestCase(FormatterTestCase):
-#    """Some regression/random code samples which"""
-#    # FIXME: compare generated code (ast or bytecode comparison?)
-#    #def test_formatting_test_file_compiles_to_the_same_AST(self):
-#    #    code = open('code_formatter/__init__.py', 'r').read()
-#    #    print format_code(code, width=80, force=True)
-#    #    #self.assertFormats(code, code, force=True)
-#    #def test_suffixes_aggregation(self):
-#    #    # REGRESSION
-#    #    code = textwrap.dedent("""\
-#    #        ProductAdmin(formsets=[FormsetContainer(inlineformset_factory(fields=['image', 'color',
-#    #                                                                              'on_home_page',
-#    #                                                                              'on_product_page'])),
-#    #        ])""")
-#    #    self.assertFormats(code, code, width=125)
-#
+    """Some regression/random code samples which"""
+    # FIXME: compare generated code (ast or bytecode comparison?)
+    #def test_formatting_test_file_compiles_to_the_same_AST(self):
+    #    code = open('code_formatter/__init__.py', 'r').read()
+    #    print format_code(code, width=80, force=True)
+    #    #self.assertFormats(code, code, force=True)
+
+    def test_suffixes_aggregation(self):
+        # REGRESSION
+        code = textwrap.dedent("""\
+            ProductAdmin(formsets=[FormsetContainer(inlineformset_factory(fields=['image', 'color',
+                                                                                  'on_home_page',
+                                                                                  'on_product_page']))])""")
+        self.assertFormats(code, code)
+
     def test_nested_statement_formatting(self):
         code = textwrap.dedent("""\
         admin_site = AdminSite([
