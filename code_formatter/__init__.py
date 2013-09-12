@@ -145,7 +145,7 @@ class CodeFormatter(object):
 
     def format_code(self, width, suffix=None):
         if width <= 0 or (self._known_max_width_of_failure is not None and
-            self._known_max_width_of_failure >= width):
+                          self._known_max_width_of_failure >= width):
             raise NotEnoughSpace()
 
         try:
@@ -283,7 +283,7 @@ class OperationFormatter(ExpressionFormatter):
     def priority(self):
         return ast_operator2priority[type(self.expr.op)]
 
-    def force_brackets(self):
+    def are_brackets_required(self):
         with_brackets = False
         if self.parent:
             with_brackets = ((isinstance(self.parent, OperationFormatter) and
@@ -352,7 +352,7 @@ class BinaryArithmeticOperationFormatter(OperationFormatter):
             if with_brackets:
                 block.append_tokens(')')
             return block, right_block
-        with_brackets = self.force_brackets()
+        with_brackets = self.are_brackets_required()
         block, right_subblock = _format(with_brackets)
         if ((not self.parent or not isinstance(self.parent, (OperationFormatter,
                                                              CallFormatter)) or
@@ -383,8 +383,7 @@ class CompareFormatter(OperationFormatter):
         comparator = comparators[0]
         operator_formatter = self.get_formatter(operator)
         comparator_formatter = self.get_formatter(comparator)
-        width = width if width > 0 else 1
-        for i in range(width):
+        for i in range(width+1):
             operator_block = operator_formatter.format_code(width - i)
             comparator_block = comparator_formatter.format_code(width -
                                                                 operator_block.width - 1)
@@ -406,10 +405,10 @@ class CompareFormatter(OperationFormatter):
     def _format_code(self, width, suffix=None):
         block = CodeBlock()
         left_formatter = self.get_formatter(self.expr.left)
-        with_brackets = self.force_brackets()
+        with_brackets = self.are_brackets_required()
         if with_brackets:
             block.append_tokens('(')
-        for i in range(width-block.width):
+        for i in range(width-block.width+1):
             left_block = left_formatter.format_code(width-block.width-i)
             try:
                 chain_block = self._format_operator_chain(width - left_block.last_line.width - (2 if with_brackets else 1),
@@ -462,11 +461,12 @@ class BooleanOperationFormatter(OperationFormatter):
             if with_brackets:
                 block.append_tokens(')')
             return block, value_block
-        with_brackets = self.force_brackets()
+        with_brackets = self.are_brackets_required()
         block, last_subblock = _format(with_brackets)
-        if (not with_brackets and not self._inside_scope() and
-            block.height > 1 and last_subblock.height != block.height and
-             not isinstance(self.parent, BooleanOperationFormatter)):
+        if (not with_brackets and not self._inside_scope() and block.height > 1 and
+            last_subblock.height != block.height and
+            (not isinstance(self.parent, BooleanOperationFormatter) or
+             self.parent.priority < self.priority)):
             block, _ = _format(True)
         # FIXME: suffix should be passed to last expression value formatter
         if suffix:

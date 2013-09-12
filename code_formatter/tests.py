@@ -628,6 +628,10 @@ class ComparisonsTestCase(FormatterTestCase):
                                               operator_spacing))
             self.assertFormats(code, expected)
 
+    def test_wrapping_raises_exception_when_necessary(self):
+        code = 'y >= x'
+        self.assertRaises(NotEnoughSpace, lambda: format_code(code, width=4))
+
     def test_multi_opt_wrapping(self):
         for opt in ['<' , '>' , '==' , '>=' , '<=' , '!=',
                     'is', 'in', 'not in', 'is not']:
@@ -698,6 +702,18 @@ class BooleanOperationsTestCase(FormatterTestCase):
         (x or
          y or
          z)""")
+        self.assertFormats(code, expected)
+
+
+    def test_brackets_are_preserved_in_case_of_mixed_operators_and_broken_line(self):
+        # REGRESSION
+        code = textwrap.dedent("""\
+            if x <= 0 or y is not None and y >= x:
+                pass""")
+        expected = textwrap.dedent("""\
+            if (x <= 0 or
+                y is not None and y >= x):
+                pass""")
         self.assertFormats(code, expected)
 
     def test_negation_alignment(self):
