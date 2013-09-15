@@ -1258,6 +1258,26 @@ class StatementFormatter(AstFormatter):
     pass
 
 
+@register
+class AssertStatementFormatter(StatementFormatter):
+
+    ast_type = ast.Assert
+
+    def _format_code(self, width, suffix=None):
+        block = CodeBlock.from_tokens('assert', ' ')
+        test_formatter = self.get_formatter(self.expr.test)
+        if self.expr.msg:
+            separator = CodeBlock.from_tokens(', ')
+            block.merge(test_formatter.format_code(width - block.width - separator.width))
+            block.merge(separator)
+            msg_formatter = self.get_formatter(self.expr.msg)
+            block.merge(msg_formatter.format_code(width - block.width, suffix=suffix))
+        else:
+            block.merge(test_formatter.format_code(width -
+                                                   block.width, suffix=suffix))
+        return block
+
+
 class SimpleStatementFormatterBase(AstFormatter):
 
     keyword = None

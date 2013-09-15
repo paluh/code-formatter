@@ -839,8 +839,12 @@ class OperatorPrecedenceTestCase(FormatterTestCase):
         expected = '((8 | 4) ^ (8 | 7)) & 3'
         self.assertEqual(format_code(code), expected)
 
-    def test_arithmetic_operators(self):
+    def test_brackets_are_preserved_for_different_operators_with_same_precendence(self):
         code = '8 / (2 * 4)'
+        self.assertFormats(code, code)
+
+    def test_brackets_are_skiped_in_case_of_same_operators(self):
+        code = '1 + 1 + 1 + 1 + 1'
         self.assertFormats(code, code)
 
 
@@ -910,9 +914,26 @@ class AugmentAssignmentTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
+class AssertTestCase(FormatterTestCase):
+    """
+    [6.3]
+    assert_stmt ::=  "assert" expression ["," expression]
+    """
+
+    def test_simple_form_alignemnt(self):
+        code = 'assert       x > 0'
+        expected = 'assert x > 0'
+        self.assertFormats(code, expected)
+
+    def test_message_form_alignment(self):
+        code = "assert  x > 0   ,  'x should be positive, integer value'"
+        expected = "assert x > 0, 'x should be positive, integer value'"
+        self.assertFormats(code, expected)
+
+
 class SimpleStatementsTestCase(FormatterTestCase):
     """
-    [6.3, 6.4, 6.5, 6.7, 6.8, 6.9, 6.10, 6.11, 6.13]
+    [6.4, 6.5, 6.7, 6.8, 6.9, 6.10, 6.11, 6.13]
     simple_stmt ::=  assert_stmt
                      | pass_stmt
                      | del_stmt
