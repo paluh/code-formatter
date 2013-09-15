@@ -730,6 +730,18 @@ class ConditionalExpressionsTestCase(FormatterTestCase):
     def test_alignment(self):
         self.assertEqual(format_code('x if    c   else y'),
                          'x if c else y')
+    def test_wrapping(self):
+        code = 'x if c else y'
+        expected = ('(x if c\n'
+                    '   else y)')
+        self.assertFormats(code, expected)
+
+    def test_wrapping_nested_expressions(self):
+        # REGRESSION
+        code = 'hour = Hour.from_datetime(hour) if isinstance(hour, datetime.datetime) else hour or datetime.datetime.now()'
+        expected = ('hour = (Hour.from_datetime(hour) if isinstance(hour, datetime.datetime)\n'
+                    '                                 else hour or datetime.datetime.now())')
+        self.assertFormats(code, expected)
 
     def test_inside_bigger_operation_brackets_are_forced(self):
         code = """width - left_block.last_line.width - (2 if with_brackets else 1)"""

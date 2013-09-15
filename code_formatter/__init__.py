@@ -924,25 +924,55 @@ class IfExpressionFormatter(ExpressionFormatter):
 
     ast_type = ast.IfExp
 
+    def __init__(self, *args, **kwargs):
+        super(IfExpressionFormatter, self).__init__(*args, **kwargs)
+        self._body_formatter = self.get_formatter(self.expr.body)
+        self._test_formatter = self.get_formatter(self.expr.test)
+        self._orelse_formatter = self.get_formatter(self.expr.orelse)
+
+
     def _format_code(self, width, suffix=None):
         block = CodeBlock()
         # conditional expression has lowest priority
-        with_brackets = isinstance(self.parent, OperationFormatter)
-        if with_brackets:
+        def use_brackets():
             block.append_tokens('(')
-        body_formatter = self.get_formatter(self.expr.body)
-        block.merge(body_formatter.format_code(width))
-        test_formatter = self.get_formatter(self.expr.test)
-
-        block.append_tokens(' ', 'if', ' ')
-        test_block = test_formatter.format_code(width-block.width)
-        block.merge(test_block)
-        orelse_formatter = self.get_formatter(self.expr.orelse)
-        block.append_tokens(' ', 'else', ' ')
-        orelse_block = orelse_formatter.format_code(width - block.width - (1 if with_brackets else 0))
+            return CodeBlock.from_tokens(')').merge(suffix) if suffix else CodeBlock.from_tokens(')')
+        with_brackets = False
+        if isinstance(self.parent, OperationFormatter):
+            with_brackets = True
+            suffix = use_brackets()
+        body_block = self._body_formatter.format_code(width)
+        if_keyword_block = CodeBlock.from_tokens(' ', 'if', ' ')
+        test_block = self._test_formatter.format_code(width - block.width -
+                                                      if_keyword_block.width)
+        else_keyword_block = CodeBlock.from_tokens(' ', 'else', ' ')
+        try:
+            orelse_block = self._orelse_formatter.format_code(width -
+                                                              body_block.width -
+                                                              if_keyword_block.width -
+                                                              else_keyword_block.width -
+                                                              test_block.width,
+                                                              suffix=suffix)
+        except NotEnoughSpace:
+            if not with_brackets:
+                suffix = use_brackets()
+                body_block = self._body_formatter.format_code(width -
+                                                              block.width)
+                test_block = self._test_formatter.format_code(width - block.width -
+                                                              if_keyword_block.width)
+            block.merge(body_block)
+            block.merge(if_keyword_block)
+            block.merge(test_block)
+            block.extend(else_keyword_block, indent=' '*(body_block.width+ 1))
+            orelse_block = self._orelse_formatter.format_code(width=width -
+                                                                    block.last_line.width,
+                                                              suffix=suffix)
+        else:
+            block.merge(body_block)
+            block.merge(if_keyword_block)
+            block.merge(test_block)
+            block.merge(else_keyword_block)
         block.merge(orelse_block)
-        if with_brackets:
-            block.append_tokens(')')
         return block
 
 
