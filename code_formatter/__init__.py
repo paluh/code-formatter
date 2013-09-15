@@ -283,14 +283,6 @@ class OperationFormatter(ExpressionFormatter):
     def priority(self):
         return ast_operator2priority[type(self.expr.op)]
 
-    def are_brackets_required(self):
-        with_brackets = False
-        if self.parent:
-            with_brackets = ((isinstance(self.parent, OperationFormatter) and
-                              self.parent.priority > self.priority) or
-                             isinstance(self.parent, AttributeFormatter))
-        return with_brackets
-
 
 @register
 class UnaryOperationFormatter(OperationFormatter):
@@ -313,8 +305,21 @@ class UnaryOperationFormatter(OperationFormatter):
         return block
 
 
+class BinaryOperationFormatter(OperationFormatter):
+
+    def are_brackets_required(self):
+        with_brackets = False
+        if self.parent:
+            with_brackets = ((isinstance(self.parent, OperationFormatter) and
+                              self.parent.priority >= self.priority and
+                              type(self.parent.expr.op) is not type(self.expr.op)) or
+                             isinstance(self.parent, AttributeFormatter))
+        return with_brackets
+
+
+
 @register
-class BinaryArithmeticOperationFormatter(OperationFormatter):
+class BinaryArithmeticOperationFormatter(BinaryOperationFormatter):
 
     ast_type = ast.BinOp
 
@@ -323,6 +328,7 @@ class BinaryArithmeticOperationFormatter(OperationFormatter):
         self.opt_formatter = self.get_formatter(self.expr.op)
         self.left_formatter = self.get_formatter(self.expr.left)
         self.right_formatter = self.get_formatter(self.expr.right)
+
 
     def _format_code(self, width, suffix=None):
         def _format(with_brackets):
@@ -374,6 +380,15 @@ class CompareFormatter(OperationFormatter):
     @property
     def priority(self):
         return ast_operator2priority[type(self.expr.ops[0])]
+
+    def are_brackets_required(self):
+        with_brackets = False
+        if self.parent:
+            with_brackets = ((isinstance(self.parent, OperationFormatter) and
+                              self.parent.priority >= self.priority) or
+                             isinstance(self.parent, AttributeFormatter))
+        return with_brackets
+
 
     def _format_operator_chain(self, width, operators, comparators):
         if not operators:
@@ -429,7 +444,7 @@ class CompareFormatter(OperationFormatter):
 
 
 @register
-class BooleanOperationFormatter(OperationFormatter):
+class BooleanOperationFormatter(BinaryOperationFormatter):
 
     ast_type = ast.BoolOp
 

@@ -839,6 +839,10 @@ class OperatorPrecedenceTestCase(FormatterTestCase):
         expected = '((8 | 4) ^ (8 | 7)) & 3'
         self.assertEqual(format_code(code), expected)
 
+    def test_arithmetic_operators(self):
+        code = '8 / (2 * 4)'
+        self.assertFormats(code, code)
+
 
 class AssignmentTestCase(FormatterTestCase):
     """
