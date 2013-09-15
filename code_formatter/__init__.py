@@ -426,7 +426,8 @@ class CompareFormatter(OperationFormatter):
         for i in range(width-block.width+1):
             left_block = left_formatter.format_code(width-block.width-i)
             try:
-                chain_block = self._format_operator_chain(width - left_block.last_line.width - (2 if with_brackets else 1),
+                chain_block = self._format_operator_chain(width - left_block.last_line.width -
+                                                          (2 if with_brackets else 1),
                                                           self.expr.ops, self.expr.comparators)
             except NotEnoughSpace:
                 continue
@@ -1221,7 +1222,8 @@ class ParameterListFormatter(AstFormatter):
                                   in zip(self.expr.args[len(self.expr.args) -
                                                         len(self.expr.defaults):],
                                          self.expr.defaults)]
-        self._paramters_formatter = ListOfExpressionsFormatter(parameters_formatters, self.formatters_register)
+        self._paramters_formatter = ListOfExpressionsFormatter(parameters_formatters,
+                                                               self.formatters_register)
 
     def _format_code(self, width, suffix=None):
         return self._paramters_formatter.format_code(width)
@@ -1233,7 +1235,8 @@ class LambdaFormatter(ExpressionFormatter):
     ast_type = ast.Lambda
 
     def _format_code(self, width, suffix=None):
-        with_brackets = isinstance(self.parent, (OperatorFormatter, IfExpressionFormatter))
+        with_brackets = isinstance(self.parent, (OperatorFormatter,
+                                                 IfExpressionFormatter))
         if with_brackets:
             block = CodeBlock.from_tokens('(lambda')
         else:
@@ -1343,12 +1346,16 @@ class RaiseFormatter(StatementFormatter):
         block.merge(type_block, separator=' ')
         if self.expr.inst or self.expr.tback:
             if self.expr.inst:
-                inst_block = self.get_formatter(self.expr.inst).format_code(width - block.width - 2)
+                inst_block = self.get_formatter(self.expr.inst).format_code(width -
+                                                                            block.width -
+                                                                            2)
                 block.merge(inst_block, separator=', ')
             else:
                 block.append_tokens(',', ' ', 'None')
             if self.expr.tback:
-                tback_block = self.get_formatter(self.expr.tback).format_code(width - block.width - 2)
+                tback_block = self.get_formatter(self.expr.tback).format_code(width -
+                                                                              block.width -
+                                                                              2)
                 block.merge(tback_block, separator=', ')
 
         if block.width > width:
@@ -1444,7 +1451,6 @@ class WhileFormatter(StatementFormatter):
         if block.width > width:
             raise NotEnoughSpace()
         return block
-
 
 @register
 class ForFormatter(StatementFormatter):
@@ -1660,7 +1666,8 @@ def _format_code(code, width, formatters, force=False):
                         statement_width - 1 == failing_statement_width):
                         result.append(s)
                         break
-                if succeeding_statement_width and failing_statement_width and succeeding_statement_width - failing_statement_width == 1:
+                if (succeeding_statement_width and failing_statement_width and
+                    succeeding_statement_width - failing_statement_width == 1):
                     s = formatter.format_code(succeeding_statement_width)
                     result.append(s)
                     break
