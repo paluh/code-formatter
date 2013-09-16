@@ -8,7 +8,7 @@ def _format_code(lines, max_width):
     width = max(len(l) for l in lines)
     code = textwrap.dedent('\n'.join(lines))
     indent = (width - max(len(l) for l in code.split('\n')))
-    formated = code_formatter._format_code(code, formatters=code_formatter._formatters,
+    formated = code_formatter._format_code(code, formatters_register=code_formatter._formatters,
                                            width=max_width - indent, force=True)
     indent = indent*' '
     return [(indent + unicode(l)).encode('utf-8') for block in formated for l in block.lines]

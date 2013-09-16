@@ -330,12 +330,14 @@ class BinaryArithmeticOperationFormatter(BinaryOperationFormatter):
         self.left_formatter = self.get_formatter(self.expr.left)
         self.right_formatter = self.get_formatter(self.expr.right)
 
-
     def _format_code(self, width, suffix=None):
         def _format(with_brackets):
             block = CodeBlock()
             if with_brackets:
                 block.append_tokens('(')
+                s = CodeBlock.from_tokens(')').merge(suffix) if suffix else CodeBlock.from_tokens(')')
+            else:
+                s = suffix
             indent = block.width*' '
             try:
                 left_block = self.left_formatter.format_code(width-block.width)
@@ -344,7 +346,7 @@ class BinaryArithmeticOperationFormatter(BinaryOperationFormatter):
                 right_block = self.right_formatter.format_code(width - block.width -
                                                                operator_block.width - 2 -
                                                                left_block.width,
-                                                               suffix=suffix)
+                                                               suffix=s)
                 block.merge(left_block)
                 block.merge(operator_block, separator= ' ')
                 block.merge(right_block, separator=' ')
@@ -352,17 +354,15 @@ class BinaryArithmeticOperationFormatter(BinaryOperationFormatter):
                 operator = self.opt_formatter.operator
                 left_block = self.left_formatter.format_code(width - len(indent))
                 right_block = self.right_formatter.format_code(width -
-                                                               len(indent), suffix=suffix)
+                                                               len(indent), suffix=s)
                 block.merge(left_block)
                 block.append_tokens(' ', operator)
                 block.extend(right_block, indent)
-            if with_brackets:
-                block.append_tokens(')')
             return block, right_block
         with_brackets = self.are_brackets_required()
         block, right_subblock = _format(with_brackets)
         if ((not self.parent or not isinstance(self.parent, (OperationFormatter,
-                                                             CallFormatter)) or
+                                                             CallFormatter, AttributeFormatter)) or
              isinstance(self.parent, OperationFormatter) and
              self.parent.priority < self.priority) and
             block.height > 1 and

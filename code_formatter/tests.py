@@ -337,6 +337,13 @@ class AttributeRefTestCase(FormatterTestCase):
         self.assertEqual(format_code('instance.attribute   =  x'),
                          'instance.attribute = x')
 
+    def test_attribute_formatting_preserves_brackets_of_subexpression(self):
+        # REGRESSION
+        code = textwrap.dedent("""\
+            x.timegm((f(x=0) -
+                      v).m(x=y))""")
+        self.assertFormats(code, code)
+
 
 class SlicingTestCase(FormatterTestCase):
     """
@@ -1370,7 +1377,3 @@ class FormattersUnitTests(FormatterTestCase):
     def test_binary_arithmetic_operation_is_passing_suffix_to_subexpression(self):
         code = 'f(x - y)'
         self.assertFormats(code, code)
-
-#
-#        return formatters_register[type(expr)](expr=expr, formatters_register=formatters_register,
-#                                      parent=self if parent is None else parent)
