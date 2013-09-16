@@ -271,7 +271,7 @@ for priority, ast_type, operator in [(10, ast.Pow, '**'),
                                      (1, ast.And, 'and'),
                                      (0, ast.Or, 'or')]:
     ast_operator2priority[ast_type] = priority
-    register(type(ast_type.__name__, (OperatorFormatter,),
+    register(type('%sFormatter' % ast_type.__name__, (OperatorFormatter,),
                   {'ast_type': ast_type,
                    'operator': operator,
                    'priority': priority}))
