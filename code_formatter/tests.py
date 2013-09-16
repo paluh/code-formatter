@@ -1364,9 +1364,13 @@ class FormattersUnitTests(FormatterTestCase):
         code = "len(TShirtVariant.COLOR_CHOICES)"
         call_statement = ast.parse(code).body[0].value
         call_formatter = _formatters[type(call_statement)](call_statement,
-                                                           formatters=_formatters)
+                                                           formatters_register=_formatters)
         self.assertFalse(call_formatter.formatable)
 
     def test_binary_arithmetic_operation_is_passing_suffix_to_subexpression(self):
         code = 'f(x - y)'
         self.assertFormats(code, code)
+
+#
+#        return formatters_register[type(expr)](expr=expr, formatters_register=formatters_register,
+#                                      parent=self if parent is None else parent)
