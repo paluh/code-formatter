@@ -1273,6 +1273,7 @@ class LambdaFormatter(ExpressionFormatter):
                                                  IfExpressionFormatter))
         if with_brackets:
             block = CodeBlock.from_tokens('(lambda')
+            suffix = CodeBlock.from_tokens(')').merge(suffix) if suffix else CodeBlock.from_tokens(')')
         else:
             block = CodeBlock.from_tokens('lambda')
         parameter_list_formatter = self.get_formatter(self.expr.args)
@@ -1282,9 +1283,7 @@ class LambdaFormatter(ExpressionFormatter):
             block.merge(parameter_list_formatter.format_code(width-block.width))
         block.append_tokens(':', ' ')
         subexpression_formatter = self.get_formatter(self.expr.body)
-        block.merge(subexpression_formatter.format_code(width - block.width))
-        if with_brackets:
-            block.append_tokens(')')
+        block.merge(subexpression_formatter.format_code(width - block.width, suffix=suffix))
         if block.width > width:
             raise NotEnoughSpace()
         return block

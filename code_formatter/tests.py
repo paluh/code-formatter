@@ -774,6 +774,10 @@ class LambdasTestCase(FormatterTestCase):
         expected = 'lambda: 8'
         self.assertEqual(format_code(code), expected)
 
+    def test_formatting_preserves_suffix(self):
+        code = 'f(x, lambda: y)'
+        self.assertFormats(code, code)
+
 
 class ExpressionListTestCase(FormatterTestCase):
     """
@@ -1377,3 +1381,4 @@ class FormattersUnitTests(FormatterTestCase):
     def test_binary_arithmetic_operation_is_passing_suffix_to_subexpression(self):
         code = 'f(x - y)'
         self.assertFormats(code, code)
+
