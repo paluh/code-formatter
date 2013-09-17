@@ -138,8 +138,10 @@ class CodeFormatter(object):
     def get_formatter(self, expr, parent=None, formatters_register=None):
         formatters_register = (self.formatters_register if formatters_register is None
                                                         else formatters_register)
-        return formatters_register[type(expr)](expr=expr, formatters_register=formatters_register,
-                                               parent=self if parent is None else parent)
+        return formatters_register[type(expr)](expr=expr,
+                                               formatters_register=formatters_register,
+                                               parent=(self if parent is None
+                                                            else parent))
 
     def _format_code(self, width, suffix=None):
         raise NotImplementedError()

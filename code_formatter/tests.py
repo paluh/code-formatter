@@ -1293,12 +1293,11 @@ class ClassDefinitionTestCase(FormatterTestCase):
 
 
 class FuzzyTestCase(FormatterTestCase):
-    """Some regression/random code samples which"""
-    # FIXME: compare generated code (ast or bytecode comparison?)
-    #def test_formatting_test_file_compiles_to_the_same_AST(self):
-    #    code = open('code_formatter/__init__.py', 'r').read()
-    #    print format_code(code, width=80, force=True)
-    #    #self.assertFormats(code, code, force=True)
+    """
+    [665.999]
+    Some regression/random code samples formatting tests
+    """
+
     def test_README_example(self):
         code = 'foo(f=8, s=bar(x=9, y=10, z=20))'
         self.assertRaises(NotEnoughSpace,
