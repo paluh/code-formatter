@@ -394,6 +394,8 @@ class CompareFormatter(OperationFormatter):
     def _format_operator_chain(self, width, operators, comparators):
         if not operators:
             return CodeBlock()
+        if width <= 0:
+            raise NotEnoughSpace()
         block = CodeBlock()
         operator = operators[0]
         comparator = comparators[0]

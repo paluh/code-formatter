@@ -666,6 +666,11 @@ class ComparisonsTestCase(FormatterTestCase):
         code = 'f(x == 2).a'
         self.assertFormats(code, code)
 
+    def test_forced_formatting_of_simple_expression(self):
+        # REGRESSION
+        code = textwrap.dedent("parent is None")
+        self.assertFormats(code, code, width=6, force=True)
+
 
 class BooleanOperationsTestCase(FormatterTestCase):
     """
