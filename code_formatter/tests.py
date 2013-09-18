@@ -1317,6 +1317,14 @@ class FuzzyTestCase(FormatterTestCase):
                                                                                   'on_product_page']))])""")
         self.assertFormats(code, code)
 
+    def test_nested_dictionaries_formatting(self):
+        code = textwrap.dedent("""\
+            {'urls': {'application/vnd.ms-sstr+xml': 'x',
+                      'application/sdp': 'rtsp://127.0.0.1:20222/live/test.stream',
+                      'application/x-fcs': 'rtmp://127.0.0.1:20222/live',
+                      'application/x-mpegurl': 'http://127.0.0.1:20222/live/test.stream/playlist.m3u8'}}""")
+        self.assertFormats(code, code, width=122, force=True)
+
     def test_nested_statement_formatting(self):
         code = textwrap.dedent("""\
         admin_site = AdminSite([
@@ -1385,4 +1393,3 @@ class FormattersUnitTests(FormatterTestCase):
     def test_binary_arithmetic_operation_is_passing_suffix_to_subexpression(self):
         code = 'f(x - y)'
         self.assertFormats(code, code)
-

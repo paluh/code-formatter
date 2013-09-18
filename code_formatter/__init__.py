@@ -511,6 +511,10 @@ class StringFormatter(ExpressionFormatter):
 
     ast_type = ast.Str
 
+    def __init__(self, *args, **kwargs):
+        super(StringFormatter, self).__init__(*args, **kwargs)
+        self.formatable = re.match('^\w+$', self.expr.s) is not None
+
     def _trim_docstring(self, docstring):
         """Taken from: http://www.python.org/dev/peps/pep-0257/#handling-docstring-indentation"""
         if not docstring:
@@ -836,7 +840,7 @@ class ListFormatter(ExpressionFormatter):
         self._items_formatter = ListOfExpressionsFormatter.from_expressions(self.expr.elts, self)
 
     def _format_code(self, width, suffix=None):
-        block = CodeBlock([CodeLine(['['])])
+        block = CodeBlock.from_tokens('[')
         suffix = CodeBlock.from_tokens(']').merge(suffix) if suffix else CodeBlock.from_tokens(']')
         subblock = self._items_formatter.format_code(width=width - block.width, suffix=suffix)
         block.merge(subblock)
