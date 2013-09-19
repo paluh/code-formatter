@@ -143,16 +143,19 @@ class CodeFormatter(object):
                                                parent=(self if parent is None
                                                             else parent))
 
-    def _format_code(self, width, suffix=None, **extra):
+    def _format_code(self, width, suffix=None):
         raise NotImplementedError()
 
-    def format_code(self, width, suffix=None, **extra):
+    def format_code(self, width, suffix=None):
+        # FIXME: this check should also take suffix into account
+        #        so we should check:
+        #        self._known_max_width_of_failure[suffix] >= width
         if width <= 0 or (self._known_max_width_of_failure is not None and
                           self._known_max_width_of_failure >= width):
             raise NotEnoughSpace()
 
         try:
-            code = self._format_code(width, suffix, **extra)
+            code = self._format_code(width, suffix)
         except NotEnoughSpace:
             if (self._known_max_width_of_failure is None or
                   self._known_max_width_of_failure < width):
@@ -640,8 +643,8 @@ class ListOfExpressionsFormatter(CodeFormatter):
                 expression_block = CodeBlock().merge(expression_block, indent=line_width - width)
             return expression_block
 
-        def format_code(self, width, suffix=None, **extra):
-            return self._format_code(width, suffix, **extra)
+        def format_code(self, width, suffix=None, line_width=None):
+            return self._format_code(width, suffix, line_width=line_width)
 
 
     def __new__(cls, expressions_formatters, formatters_register, parent=None):
@@ -653,7 +656,7 @@ class ListOfExpressionsFormatter(CodeFormatter):
             return ListOfExpressionsFormatter.FormatterAdapter(expressions_formatters[0],
                                                                formatters_register)
         else:
-            return ListOfExpressionsFormatter.EmptyFormatter(formatters_register)
+            return ListOfExpressionsFormatter.SuffixFormatter(formatters_register)
 
 
     def __init__(self, expressions_formatters, formatters_register, parent=None):
