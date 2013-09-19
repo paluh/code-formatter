@@ -19,56 +19,6 @@ class FormatterTestCase(unittest.TestCase):
             print '\n'.join(difflib.unified_diff(expected.split('\n'), formated.split('\n'), fromfile='expected', tofile='formated'))
             raise
 
-# FIXME: Move this testcase to structure provided by "The Python Language Reference"
-class AtomExpressionFormattersFormattingTestCase(FormatterTestCase):
-
-    def _indent(self, code, level):
-        return '\n'.join((CodeLine.INDENT*level + l) for l in code.split('\n'))
-
-    def test_line_formatting(self):
-        line = CodeLine([CodeLine.INDENT, CodeLine.INDENT,
-                         'x = ', 'fun(', 'z=8', ','])
-        self.assertEqual(unicode(line), self._indent('x = fun(z=8,', 2))
-
-    def test_block_formatting(self):
-        lines = [CodeLine([CodeLine.INDENT, CodeLine.INDENT, 'x = ',
-                           'fun(', 'z=8', ',']),
-                 CodeLine([CodeLine.INDENT, CodeLine.INDENT,
-                           '        ', 'y=9)'])]
-        block = CodeBlock(lines)
-        self.assertEqual(unicode(block), self._indent('x = fun(z=8,\n'
-                                                      '        y=9)', 2))
-
-    def test_block_merge(self):
-        block = CodeBlock([CodeLine([CodeLine.INDENT, CodeLine.INDENT,
-                                     'x = ', 'fun(', 'z=8', ',']),
-                           CodeLine([CodeLine.INDENT, CodeLine.INDENT,
-                                     '        ', 'y='])])
-
-        subblock = CodeBlock([CodeLine(['fun(v=8,']),
-                              CodeLine(['    u=9)'])])
-        block.merge(subblock, separator='')
-        self.assertEqual(unicode(block), self._indent('x = fun(z=8,\n'
-                                                      '        y=fun(v=8,\n'
-                                                      '              u=9)', 2))
-
-    def test_atoms_formating(self):
-        for code in ['8', '9.8', "'a'"]:
-            self.assertEqual(format_code(code), code)
-
-    # FIXME: move these tests "somewhere"
-    def test_subscription(self):
-        code = 'x=d [ "a" ] '
-        self.assertEqual(format_code(code), "x = d['a']")
-
-    def test_subscription_with_nested_function_call(self):
-        code = ('dictionary[function_with_kwargs(argument_1=value, argument_2=value,'
-                                           'argument_3=value)]')
-        expected = ('dictionary[function_with_kwargs(argument_1=value,\n'
-                    '                                argument_2=value,\n'
-                    '                                argument_3=value)]')
-        self.assertFormats(code, expected)
-
 
 class LiteralsTestCase(FormatterTestCase):
     """
@@ -344,6 +294,29 @@ class AttributeRefTestCase(FormatterTestCase):
             x.timegm((f(x=0) -
                       v).m(x=y))""")
         self.assertFormats(code, code)
+
+
+class SubscriptionsTestCase(FormatterTestCase):
+    """
+    [5.3.2]
+    +   subscription ::=  primary "[" expression_list "]"
+    """
+
+    def test_simple_expression_alignment(self):
+        code = 'd [ "a" ] '
+        self.assertFormats(code, "d['a']")
+
+    def test_expression_list_alignment(self):
+        code = 'd [ 1,  2,  3]'
+        self.assertFormats(code, 'd[1, 2, 3]')
+
+    def test_complex_expression_alignment(self):
+        code = ('dictionary[function_with_kwargs(argument_1=value, argument_2=value,'
+                                           'argument_3=value)]')
+        expected = ('dictionary[function_with_kwargs(argument_1=value,\n'
+                    '                                argument_2=value,\n'
+                    '                                argument_3=value)]')
+        self.assertFormats(code, expected)
 
 
 class SlicingTestCase(FormatterTestCase):
@@ -1475,3 +1448,34 @@ class FormattersUnitTests(FormatterTestCase):
     def test_binary_arithmetic_operation_is_passing_suffix_to_subexpression(self):
         code = 'f(x - y)'
         self.assertFormats(code, code)
+
+    def _indent(self, code, level):
+        return '\n'.join((CodeLine.INDENT*level + l) for l in code.split('\n'))
+
+    def test_line_formatting(self):
+        line = CodeLine([CodeLine.INDENT, CodeLine.INDENT,
+                         'x = ', 'fun(', 'z=8', ','])
+        self.assertEqual(unicode(line), self._indent('x = fun(z=8,', 2))
+
+    def test_block_formatting(self):
+        lines = [CodeLine([CodeLine.INDENT, CodeLine.INDENT, 'x = ',
+                           'fun(', 'z=8', ',']),
+                 CodeLine([CodeLine.INDENT, CodeLine.INDENT,
+                           '        ', 'y=9)'])]
+        block = CodeBlock(lines)
+        self.assertEqual(unicode(block), self._indent('x = fun(z=8,\n'
+                                                      '        y=9)', 2))
+
+    def test_block_merge(self):
+        block = CodeBlock([CodeLine([CodeLine.INDENT, CodeLine.INDENT,
+                                     'x = ', 'fun(', 'z=8', ',']),
+                           CodeLine([CodeLine.INDENT, CodeLine.INDENT,
+                                     '        ', 'y='])])
+
+        subblock = CodeBlock([CodeLine(['fun(v=8,']),
+                              CodeLine(['    u=9)'])])
+        block.merge(subblock, separator='')
+        self.assertEqual(unicode(block), self._indent('x = fun(z=8,\n'
+                                                      '        y=fun(v=8,\n'
+                                                      '              u=9)', 2))
+
