@@ -1,7 +1,7 @@
 #-*- coding: utf-8 -*-
 import ast
 import difflib
-import textwrap
+from textwrap import dedent
 import unittest
 
 from . import CodeBlock, CodeLine, format_code, _formatters, NotEnoughSpace
@@ -129,7 +129,7 @@ class ListDisplaysTestCase(FormatterTestCase):
 
     def test_wrapping_uses_whole_line(self):
         # REGRESSION
-        code = textwrap.dedent("""\
+        code = dedent("""\
             [v1, v2,
              variable or x]""")
         self.assertFormats(code, code)
@@ -189,7 +189,7 @@ class DictionaryDisplaysTestCase(FormatterTestCase):
 
     def test_forcing_dictionary_formatting(self):
         # REGRESSION
-        code = textwrap.dedent("""\
+        code = dedent("""\
             result = {'type': type(e).__name__, 'args': e.args,
                       'traceback': traceback or
                                    logging.Formatter().formatException(sys.exc_info())}""")
@@ -290,7 +290,7 @@ class AttributeRefTestCase(FormatterTestCase):
 
     def test_attribute_formatting_preserves_brackets_of_subexpression(self):
         # REGRESSION
-        code = textwrap.dedent("""\
+        code = dedent("""\
             x.timegm((f(x=0) -
                       v).m(x=y))""")
         self.assertFormats(code, code)
@@ -482,7 +482,7 @@ class CallsTestCase(FormatterTestCase):
     def test_forcing_formatting(self):
         # REGRESSION
         code = 'fun(x, y, z)'
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
             fun(x,
                 y,
                 z)""")
@@ -497,20 +497,20 @@ class CallsTestCase(FormatterTestCase):
 
     def test_args_wrapping_uses_whole_line(self):
         # REGRESSION
-        code = textwrap.dedent("""\
+        code = dedent("""\
             f(v1, v2,
               variable or x)""")
         self.assertFormats(code, code)
 
     def test_kwargs_wrapping_uses_whole_line(self):
         # REGRESSION
-        code = textwrap.dedent("""\
+        code = dedent("""\
             f(k1=v1, k2=v2,
               k3=variable or x)""")
         self.assertFormats(code, code)
 
     def test_nested_function_call_wrapping(self):
-        code = textwrap.dedent("""\
+        code = dedent("""\
             f(x, g(x,
                    x=2))""")
         self.assertFormats(code, code)
@@ -662,7 +662,7 @@ class ComparisonsTestCase(FormatterTestCase):
 
     def test_forced_formatting_of_simple_expression(self):
         # REGRESSION
-        code = textwrap.dedent("parent is None")
+        code = dedent("parent is None")
         self.assertFormats(code, code, width=6, force=True)
 
 
@@ -697,14 +697,14 @@ class BooleanOperationsTestCase(FormatterTestCase):
 
     def test_brackets_are_preserved_in_case_of_attr_ref_expression(self):
         # REGRESSION
-        code = textwrap.dedent("""\
+        code = dedent("""\
         fun((value or Value()).width)""")
         self.assertFormats(code, code)
 
     def test_brackets_are_skiped_in_case_of_same_priority_operators(self):
         # REGRESSION
         code = '(x or y) or z'
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
         (x or
          y or
          z)""")
@@ -713,10 +713,10 @@ class BooleanOperationsTestCase(FormatterTestCase):
 
     def test_brackets_are_preserved_in_case_of_mixed_operators_and_broken_line(self):
         # REGRESSION
-        code = textwrap.dedent("""\
+        code = dedent("""\
             if x <= 0 or y is not None and y >= x:
                 pass""")
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
             if (x <= 0 or
                 y is not None and y >= x):
                 pass""")
@@ -1092,18 +1092,18 @@ class WhileStatementTestCase(FormatterTestCase):
                     ["else" ":" suite]
     """
     def test_simple_form_alignment(self):
-        code = textwrap.dedent("""\
+        code = dedent("""\
             while True:
 
                 pass
         """)
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
             while True:
                 pass""")
         self.assertFormats(code, expected)
 
     def test_while_else_form_alignment(self):
-        code = textwrap.dedent("""\
+        code = dedent("""\
             while True:
 
                 pass
@@ -1111,7 +1111,7 @@ class WhileStatementTestCase(FormatterTestCase):
 
                 pass
         """)
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
             while True:
                 pass
             else:
@@ -1144,10 +1144,10 @@ class TryExceptStatementTestCase(FormatterTestCase):
                    "finally" ":" suite
     """
     def test_except_alignement(self):
-        code = textwrap.dedent("""\
+        code = dedent("""\
         try: pass
         except: pass""")
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
         try:
             pass
         except:
@@ -1155,11 +1155,11 @@ class TryExceptStatementTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
     def test_except_else_alignment(self):
-        code = textwrap.dedent("""\
+        code = dedent("""\
         try: pass
         except: pass
         else: pass""")
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
         try:
             pass
         except:
@@ -1169,12 +1169,12 @@ class TryExceptStatementTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
     def test_except_else_finally_alignment(self):
-        code = textwrap.dedent("""\
+        code = dedent("""\
         try: pass
         except: pass
         else: pass
         finally: pass""")
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
         try:
             pass
         except:
@@ -1186,12 +1186,12 @@ class TryExceptStatementTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
     def test_except_alignment(self):
-        code = textwrap.dedent("""\
+        code = dedent("""\
         try:
             pass
         except  Exception,   e:
             pass""")
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
         try:
             pass
         except Exception as e:
@@ -1256,10 +1256,10 @@ class FunctionDefinitionTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
     def test_vararg_alignment(self):
-        code = textwrap.dedent("""\
+        code = dedent("""\
             def fun( *  args ):
                 pass""")
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
             def fun(*args):
                 pass""")
         self.assertFormats(code, expected)
@@ -1296,7 +1296,7 @@ class FuzzyTestCase(FormatterTestCase):
         code = 'foo(f=8, s=bar(x=9, y=10, z=20))'
         self.assertRaises(NotEnoughSpace,
                           lambda: format_code(code, width=10))
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
             foo(f=8,
                 s=bar(x=9,
                       y=10,
@@ -1305,14 +1305,14 @@ class FuzzyTestCase(FormatterTestCase):
 
     def test_suffixes_aggregation(self):
         # REGRESSION
-        code = textwrap.dedent("""\
+        code = dedent("""\
             ProductAdmin(formsets=[FormsetContainer(inlineformset_factory(fields=['image', 'color',
                                                                                   'on_home_page',
                                                                                   'on_product_page']))])""")
         self.assertFormats(code, code)
 
     def test_nested_statement_formatting(self):
-        code = textwrap.dedent("""\
+        code = dedent("""\
         admin_site = AdminSite([
                 ProductAdmin(model=TShirt, extra_context=admin_context, formsets=[
                     FormsetContainer(_('Variants'), 'variants',
@@ -1337,7 +1337,7 @@ class FuzzyTestCase(FormatterTestCase):
                                                            fields=['image', 'on_home_page', 'on_product_page'])),
                 ]),
         ])""")
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
         admin_site = AdminSite([ProductAdmin(model=TShirt, extra_context=admin_context,
                                              formsets=[FormsetContainer(_('Variants'), 'variants',
                                                                         inlineformset_factory(TShirt, TShirtVariant, extra=0,
@@ -1367,7 +1367,7 @@ class FuzzyTestCase(FormatterTestCase):
         self.assertFormats(code, expected, width=80, force=True)
 
     def test_long_list_formatting(self):
-        code = textwrap.dedent("""\
+        code = dedent("""\
             [
                 ('Alternative', 'Alternative'),
                 ('Blues', 'Blues'),
@@ -1395,7 +1395,7 @@ class FuzzyTestCase(FormatterTestCase):
                 ('Talk', 'Talk'),
                 ('Themes', 'Themes'),
             ]""")
-        expected = textwrap.dedent("""\
+        expected = dedent("""\
             [('Alternative',
               'Alternative'), ('Blues',
                                'Blues'),
