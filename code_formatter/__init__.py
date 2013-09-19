@@ -621,8 +621,8 @@ class AttributeFormatter(ExpressionFormatter):
 
 class ListOfExpressionsFormatter(CodeFormatter):
 
-    class EmptyFormatter(CodeFormatter):
-
+    class SuffixFormatter(CodeFormatter):
+        """Empty expression list returns this trivial object"""
         def _format_code(self, width, suffix=None):
             return suffix or CodeBlock()
 
@@ -641,18 +641,8 @@ class ListOfExpressionsFormatter(CodeFormatter):
             return expression_block
 
         def format_code(self, width, suffix=None, **extra):
-            if width <= 0 or (self._known_max_width_of_failure is not None and
-                              self._known_max_width_of_failure >= width):
-                raise NotEnoughSpace()
+            return self._format_code(width, suffix, **extra)
 
-            try:
-                code = self._format_code(width, suffix, **extra)
-            except NotEnoughSpace:
-                if (self._known_max_width_of_failure is None or
-                      self._known_max_width_of_failure < width):
-                    self._known_max_width_of_failure = width
-                raise
-            return code
 
     def __new__(cls, expressions_formatters, formatters_register, parent=None):
         if len(expressions_formatters) > 1:
