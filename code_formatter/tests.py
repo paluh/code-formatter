@@ -15,6 +15,7 @@ class FormatterTestCase(unittest.TestCase):
             formated = formatter(code, width=width, force=force)
             self.assertEqual(formated, expected)
         except AssertionError:
+            print formated
             print '\n'.join(difflib.unified_diff(expected.split('\n'), formated.split('\n'), fromfile='expected', tofile='formated'))
             raise
 
@@ -176,6 +177,13 @@ class ListDisplaysTestCase(FormatterTestCase):
                     ' 3]')
         self.assertFormats(code, expected, width=2, force=True)
 
+    def test_wrapping_uses_whole_line(self):
+        # REGRESSION
+        code = textwrap.dedent("""\
+            [v1, v2,
+             variable or x]""")
+        self.assertFormats(code, code)
+
 
 class GeneratorExpressionsTestCase(FormatterTestCase):
     """
@@ -231,19 +239,12 @@ class DictionaryDisplaysTestCase(FormatterTestCase):
 
     def test_forcing_dictionary_formatting(self):
         # REGRESSION
-        code = textwrap.dedent("""
-            result = {
-                'type': type(e).__name__,
-                'args': e.args,
-                'traceback': traceback or
-                             logging.Formatter().formatException(sys.exc_info())
-            }
-        """)
-        expected = textwrap.dedent("""\
+        code = textwrap.dedent("""\
             result = {'type': type(e).__name__, 'args': e.args,
                       'traceback': traceback or
                                    logging.Formatter().formatException(sys.exc_info())}""")
-        self.assertFormats(code, expected, width=30, force=True)
+        self.assertFormats(code, code, width=30, force=True)
+        #self.assertFormats(code, code, width=75)
 
     def test_comprehension_with_condition_wrapping(self):
         code = '{x: fun(x) for x in iterable if x>0}'
@@ -520,6 +521,26 @@ class CallsTestCase(FormatterTestCase):
         expected = ('f(g(x,\n'
                     '    y) == None)')
         self.assertFormats(code, expected)
+
+    def test_args_wrapping_uses_whole_line(self):
+        # REGRESSION
+        code = textwrap.dedent("""\
+            f(v1, v2,
+              variable or x)""")
+        self.assertFormats(code, code)
+
+    def test_kwargs_wrapping_uses_whole_line(self):
+        # REGRESSION
+        code = textwrap.dedent("""\
+            f(k1=v1, k2=v2,
+              k3=variable or x)""")
+        self.assertFormats(code, code)
+
+    def test_nested_function_call_wrapping(self):
+        code = textwrap.dedent("""\
+            f(x, g(x,
+                   x=2))""")
+        self.assertFormats(code, code)
 
 
 class BinaryArithmeticOperationsTestCase(FormatterTestCase):
@@ -1317,14 +1338,6 @@ class FuzzyTestCase(FormatterTestCase):
                                                                                   'on_product_page']))])""")
         self.assertFormats(code, code)
 
-    def test_nested_dictionaries_formatting(self):
-        code = textwrap.dedent("""\
-            {'urls': {'application/vnd.ms-sstr+xml': 'x',
-                      'application/sdp': 'rtsp://127.0.0.1:20222/live/test.stream',
-                      'application/x-fcs': 'rtmp://127.0.0.1:20222/live',
-                      'application/x-mpegurl': 'http://127.0.0.1:20222/live/test.stream/playlist.m3u8'}}""")
-        self.assertFormats(code, code, width=122, force=True)
-
     def test_nested_statement_formatting(self):
         code = textwrap.dedent("""\
         admin_site = AdminSite([
@@ -1379,6 +1392,75 @@ class FuzzyTestCase(FormatterTestCase):
                                                                                               fields=['image', 'on_home_page',
                                                                                                       'on_product_page']))])])""")
         self.assertFormats(code, expected, width=80, force=True)
+
+    def test_long_list_formatting(self):
+        code = textwrap.dedent("""\
+            [
+                ('Alternative', 'Alternative'),
+                ('Blues', 'Blues'),
+                ('Classical', 'Classical'),
+                ('Country', 'Country'),
+                ('Decades', 'Decades'),
+                ('Easy Listening', 'Easy Listening'),
+                ('Electronic', 'Electronic'),
+                ('Folk', 'Folk'),
+                ('Inspirational', 'Inspirational'),
+                ('International', 'International'),
+                ('Jazz', 'Jazz'),
+                ('Latin', 'Latin'),
+                ('Metal', 'Metal'),
+                ('Misc', 'Misc'),
+                ('New Age', 'New Age'),
+                ('Pop', 'Pop'),
+                ('Public Radio', 'Public Radio'),
+                ('R&B and Urban', 'R&B and Urban'),
+                ('Rap', 'Rap'),
+                ('Reggae', 'Reggae'),
+                ('Rock', 'Rock'),
+                ('Seasonal and Holiday', 'Seasonal and Holiday'),
+                ('Soundtracks', 'Soundtracks'),
+                ('Talk', 'Talk'),
+                ('Themes', 'Themes'),
+            ]""")
+        expected = textwrap.dedent("""\
+            [('Alternative',
+              'Alternative'), ('Blues',
+                               'Blues'),
+             ('Classical',
+              'Classical'), ('Country',
+                             'Country'),
+             ('Decades', 'Decades'),
+             ('Easy Listening',
+              'Easy Listening'),
+             ('Electronic',
+              'Electronic'), ('Folk',
+                              'Folk'),
+             ('Inspirational',
+              'Inspirational'),
+             ('International',
+              'International'), ('Jazz',
+                                 'Jazz'),
+             ('Latin',
+              'Latin'), ('Metal',
+                         'Metal'),
+             ('Misc',
+              'Misc'), ('New Age',
+                        'New Age'),
+             ('Pop',
+              'Pop'), ('Public Radio',
+                       'Public Radio'),
+             ('R&B and Urban',
+              'R&B and Urban'), ('Rap',
+                                 'Rap'),
+             ('Reggae',
+              'Reggae'), ('Rock', 'Rock'),
+             ('Seasonal and Holiday',
+              'Seasonal and Holiday'),
+             ('Soundtracks',
+              'Soundtracks'), ('Talk',
+                               'Talk'),
+             ('Themes', 'Themes')]""")
+        self.assertFormats(code, expected, width=30)
 
 
 class FormattersUnitTests(FormatterTestCase):
