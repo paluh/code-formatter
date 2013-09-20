@@ -70,6 +70,12 @@ My mappings for this plugin allow to change width dynamically (you can easily tr
 
 I'm TDD fanatic so if you are going to provide some custom formatters please provide appropriate tests for them.
 
+## Testing
+
+To run project test suite (`code_formatter.tests.test_suite`) just type:
+
+    $ python setup.py test
+
 ## Bug reporting
 
 If you found a bug please fill a ticket on project page on github.
