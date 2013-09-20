@@ -38,11 +38,12 @@ One of main principles of this project is to make this library easily extensible
 
 ## Customizing formatters
 
-You can easily customize single or bunch of formatters - subclass given formatter and override it's `format_code` method. Then you can use it as follows:
+You can easily customize single or bunch of formatters - subclass given formatter and override it's `format_code` method. Lets use some extra formatter (`code_formatter.extra.UnbreakableTupleFormatter`) as an example:
 
-    >>> from code_formatter.base import formatters, format_code, UnaryOperationFormatter
+    >>> from code_formatter.base import formatters, format_code
+    >>> from code_formatter.extra import UnbreakableTupleFormatter
     >>> my_formatters = dict(formatters,
-                             **{MyUnaryOperationFormatter.ast_type: MyUnaryOperationFormatter})
+                             **{UnbreakableTupleFormatter.ast_type: UnbreakableTupleFormatter})
     >>> format_code(code, formatters_register=my_formatters)
 
 For more examples check `code_formatter.extra` package (especially `tests` module there).
