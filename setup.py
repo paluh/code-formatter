@@ -24,9 +24,9 @@ setup(
     dependency_links=[],
     install_requires=[],
     url='https://github.com/paluh/code-formatter',
-    packages=['code_formatter'],
+    packages=['code_formatter', 'code_formatter.extra'],
     scripts=[],
-    test_suite='code_formatter.tests',
+    test_suite='code_formatter.tests.test_suite',
     zip_safe=False,
     version = '2013.8.1',
 )

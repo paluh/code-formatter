@@ -1,23 +1,16 @@
 #-*- coding: utf-8 -*-
 import ast
-import difflib
 from textwrap import dedent
+import sys
 import unittest
 
-from . import CodeBlock, CodeLine, format_code, _formatters, NotEnoughSpace
+from . import format_code
+from .base import formatters
+from .code import CodeBlock, CodeLine
+from .extra import tests
+from .exceptions import NotEnoughSpace
+from .utils import FormatterTestCase
 
-
-class FormatterTestCase(unittest.TestCase):
-
-    def assertFormats(self, code, expected, formatter=format_code, width=None, force=False):
-        width = width if width is not None else max(len(l) for l in expected.split('\n'))
-        try:
-            formated = formatter(code, width=width, force=force)
-            self.assertEqual(formated, expected)
-        except AssertionError:
-            print formated
-            print '\n'.join(difflib.unified_diff(expected.split('\n'), formated.split('\n'), fromfile='expected', tofile='formated'))
-            raise
 
 
 class LiteralsTestCase(FormatterTestCase):
@@ -1441,8 +1434,8 @@ class FormattersUnitTests(FormatterTestCase):
     def test_single_argument_call_is_not_formatable(self):
         code = "len(TShirtVariant.COLOR_CHOICES)"
         call_statement = ast.parse(code).body[0].value
-        call_formatter = _formatters[type(call_statement)](call_statement,
-                                                           formatters_register=_formatters)
+        call_formatter = formatters[type(call_statement)](call_statement,
+                                                           formatters_register=formatters)
         self.assertFalse(call_formatter.formatable)
 
     def test_binary_arithmetic_operation_is_passing_suffix_to_subexpression(self):
@@ -1479,3 +1472,7 @@ class FormattersUnitTests(FormatterTestCase):
                                                       '        y=fun(v=8,\n'
                                                       '              u=9)', 2))
 
+
+_test_loader = unittest.TestLoader()
+test_suite = _test_loader.loadTestsFromModule(tests)
+test_suite.addTests(_test_loader.loadTestsFromModule(sys.modules[__name__]))
