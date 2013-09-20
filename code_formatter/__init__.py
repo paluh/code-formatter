@@ -39,7 +39,7 @@ def _format_code(code, width, formatters_register, force=False):
             result.append(formatter.format_code(width))
     return result
 
-def format_code(code, width=80, formatters_register=base._formatters.copy(), force=False):
+def format_code(code, width=80, formatters_register=base.formatters.copy(), force=False):
     """Returns string as a result"""
     result = _format_code(code, width=width, formatters_register=formatters_register, force=force)
     return u'\n'.join(unicode(e) for e in result)

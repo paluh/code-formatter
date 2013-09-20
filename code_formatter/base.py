@@ -12,10 +12,10 @@ from .exceptions import NotEnoughSpace
 # It's better to avoid metaclasses in this case - simple register is sufficient and
 # you can customize it really easily - check API usage examples in README.md
 
-_formatters = {}
+formatters = {}
 
 def register(cls):
-    _formatters[cls.ast_type] = cls
+    formatters[cls.ast_type] = cls
     return cls
 
 
@@ -556,9 +556,9 @@ class ListOfExpressionsFormatter(CodeFormatter):
     def __init__(self, expressions_formatters, formatters_register, parent=None):
         super(ListOfExpressionsFormatter, self).__init__(formatters_register)
         self._expression_formatter = expressions_formatters[0]
-        self._expressions_formatter = ListOfExpressionsFormatter(expressions_formatters[1:],
-                                                                 formatters_register,
-                                                                 parent)
+        # allow easily subclass this monster
+        self._expressions_formatter = type(self)(expressions_formatters[1:],
+                                                 formatters_register, parent)
         self.formatable = True
         # line_width -> _known_max_width_of_failure
         self._known_max_width_of_failure = {}
@@ -572,10 +572,7 @@ class ListOfExpressionsFormatter(CodeFormatter):
                                   for e in expressions]
         return cls(expressions_formatters, parent.formatters_register)
 
-    def _format_code(self, width, suffix, line_width=None):
-        block = CodeBlock()
-        line_width = line_width or width
-        merged_block_indent = lambda: line_width - width + (block.last_line or CodeLine()).width
+    def _format_line_continuation(self, width, suffix, line_width):
         succeeding_width = None
         # binary search for maximal correct expression
         # width wich formats whole list of expression
@@ -610,20 +607,29 @@ class ListOfExpressionsFormatter(CodeFormatter):
                                                                                 separator.width,
                                                                                 suffix=suffix,
                                                                                 line_width=line_width)
-                block.merge(expression_block, indent=merged_block_indent())
+                block = CodeBlock()
+                block.merge(expression_block, indent=line_width - width)
                 block.merge(separator)
                 block.merge(expressions_block, indent=0)
                 return block
             elif upper_boundry - lower_boundry <= 1:
                 break
             curr_width = (lower_boundry + upper_boundry) / 2
+        raise NotEnoughSpace()
 
+    def _format_code(self, width, suffix, line_width=None):
+        line_width = line_width or width
+        try:
+            return self._format_line_continuation(width, suffix, line_width)
+        except NotEnoughSpace:
+            pass
         # break line
         separator = CodeBlock.from_tokens(',')
         expression_block = self._expression_formatter.format_code(width - separator.width)
         expressions_block = self._expressions_formatter.format_code(line_width, line_width=line_width,
                                                                     suffix=suffix)
-        block.merge(expression_block, indent=merged_block_indent())
+        block = CodeBlock()
+        block.merge(expression_block, indent=line_width-width)
         block.merge(separator)
         block.extend(expressions_block)
         return block
