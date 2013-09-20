@@ -1096,11 +1096,13 @@ class DictComprehensionFormatter(ExpressionFormatter):
 class TupleFormatter(ExpressionFormatter):
 
     ast_type = ast.Tuple
+    ListOfExpressionsFormatter = ListOfExpressionsFormatter
 
     def __init__(self, *args, **kwargs):
         super(TupleFormatter, self).__init__(*args, **kwargs)
         items = [v for v in self.expr.elts]
-        self._items_formatter = ListOfExpressionsFormatter.from_expressions(items, self)
+        self._items_formatter = self.ListOfExpressionsFormatter.from_expressions(items,
+                                                                                 self)
 
     def _format_code(self, width, suffix=None):
         block = CodeBlock()
