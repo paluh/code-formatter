@@ -4,6 +4,7 @@ import unittest
 from . import format_code
 from .base import formatters
 
+
 class FormatterTestCase(unittest.TestCase):
 
     def assertFormats(self, code, expected, formatters_register=formatters, width=None, force=False):
@@ -15,4 +16,3 @@ class FormatterTestCase(unittest.TestCase):
         except AssertionError:
             print '\n'.join(difflib.unified_diff(expected.split('\n'), formated.split('\n'), fromfile='expected', tofile='formated'))
             raise
-

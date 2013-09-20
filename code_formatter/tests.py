@@ -12,7 +12,6 @@ from .exceptions import NotEnoughSpace
 from .utils import FormatterTestCase
 
 
-
 class LiteralsTestCase(FormatterTestCase):
     """
     [5.2.2]

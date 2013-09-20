@@ -196,12 +196,9 @@ class UnaryOperationFormatter(OperationFormatter):
         self.value_formatter = self.get_formatter(self.expr.operand)
 
     def _format_code(self, width, suffix=None):
-        operator = '%s' % self.op_formatter.operator
-        separator = ' '
-        value_block = self.value_formatter.format_code(width - len(operator) -
-                                                       len(separator))
-        block = CodeBlock.from_tokens(operator)
-        block.merge(value_block, separator=' ')
+        block = CodeBlock.from_tokens(self.op_formatter.operator, ' ')
+        value_block = self.value_formatter.format_code(width - block.width)
+        block.merge(value_block)
         return block
 
 
@@ -573,15 +570,13 @@ class ListOfExpressionsFormatter(CodeFormatter):
         return cls(expressions_formatters, parent.formatters_register)
 
     def _format_line_continuation(self, width, suffix, line_width):
-        succeeding_width = None
-        # binary search for maximal correct expression
-        # width wich formats whole list of expression
+        # binary search for maximal correct (first) expression width:
         # * lower_boundry - max known width when first expression fails
         # * upper_boundry - min known/possible width to format rest of expressions
         lower_boundry = 0
         upper_boundry = curr_width = width
-        # try to continue line
         separator = CodeBlock.from_tokens(', ')
+        succeeding_width = None
         while True:
             try:
                 expression_block = self._expression_formatter.format_code(curr_width)
@@ -623,7 +618,7 @@ class ListOfExpressionsFormatter(CodeFormatter):
             return self._format_line_continuation(width, suffix, line_width)
         except NotEnoughSpace:
             pass
-        # break line
+        # try to break line
         separator = CodeBlock.from_tokens(',')
         expression_block = self._expression_formatter.format_code(width - separator.width)
         expressions_block = self._expressions_formatter.format_code(line_width, line_width=line_width,
@@ -1026,7 +1021,6 @@ class GeneratorFormatter(ExpressionFormatter):
 
         if with_brackets:
             block.append_tokens(')')
-        # FIXME: raise exception
         return block
 
 
@@ -1139,8 +1133,6 @@ class TupleFormatter(ExpressionFormatter):
                                                                      block.width,
                                                                      suffix=suffix)
         block.merge(expression_block)
-        # FIXME: to be 'super' consistent we should check last line
-        #        and enforce reformatting... or change API somehow
         return block
 
 
