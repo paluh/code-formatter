@@ -683,11 +683,12 @@ class ListOfExpressionsFormatter(CodeFormatter):
         line_width = line_width or width
         merged_block_indent = lambda: line_width - width + (block.last_line or CodeLine()).width
         succeeding_width = None
+        # binary search for maximal correct expression
+        # width wich formats whole list of expression
+        # * lower_boundry - max known width when first expression fails
+        # * upper_boundry - min known/possible width to format rest of expressions
+        lower_boundry = 0
         upper_boundry = curr_width = width
-        if not self._expression_formatter.formatable:
-            lower_boundry = width
-        else:
-            lower_boundry = 0
         # try to continue line
         separator = CodeBlock.from_tokens(', ')
         while True:
