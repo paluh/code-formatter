@@ -49,6 +49,13 @@ You can easily customize single or bunch of formatters - subclass given formatte
     [(x, y),
      (z, v)]
 
+    >>> # with standard "greedy" formatters result is different ;-)
+    ... print format_code('[(x,y), (z,v)]', width=1, force=True)
+    [(x,
+      y),
+     (z,
+      v)]
+
 For more examples check `code_formatter.extras` package (especially `tests` module there).
 
 ## Extra formatters
