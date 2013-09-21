@@ -42,8 +42,12 @@ class CallFormatterWithLineBreakingFallback(CustomFormatterTestCase):
 
     custom_formatters = [CallFormatterWithLineBreakingFallback]
 
-    def test_formatting(self):
+    def test_wrapping(self):
         code = dedent("""\
                 function(
                     1, 2)""")
+        self.assertFormats(code, code)
+
+    def test_formats_line_continuation_if_there_is_enough_space(self):
+        code = 'function(1, 2)'
         self.assertFormats(code, code)

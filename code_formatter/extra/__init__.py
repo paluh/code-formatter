@@ -27,7 +27,7 @@ class CallFormatterWithLineBreakingFallback(base.CallFormatter):
 
     def _format_code(self, width, suffix):
         try:
-            super(CallFormatterWithLineBreakingFallback, self)._format_code(width, suffix)
+            return super(CallFormatterWithLineBreakingFallback, self)._format_code(width, suffix)
         except NotEnoughSpace:
             pass
         suffix = self._extend_suffix(suffix, ')')
