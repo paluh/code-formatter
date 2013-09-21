@@ -236,7 +236,7 @@ class BinaryArithmeticOperationFormatter(BinaryOperationFormatter):
             block = CodeBlock()
             if with_brackets:
                 block.append_tokens('(')
-                s = CodeBlock.from_tokens(')').merge(suffix) if suffix else CodeBlock.from_tokens(')')
+                s = self._extend_suffix(suffix, ')')
             else:
                 s = suffix
             indent = block.width*' '
@@ -722,7 +722,7 @@ class CallFormatter(ExpressionFormatter):
         return formatters
 
     def _format_code(self, width, suffix=None):
-        suffix = CodeBlock.from_tokens(')').merge(suffix) if suffix else CodeBlock.from_tokens(')')
+        suffix = self._extend_suffix(suffix, ')')
         for i in range(width+1):
             curr_width = width - i
             block = self._func_formatter.format_code(curr_width)
@@ -772,7 +772,7 @@ class DictonaryFormatter(ExpressionFormatter):
 
     def _format_code(self, width, suffix=None):
         block = CodeBlock([CodeLine(['{'])])
-        suffix = CodeBlock.from_tokens('}').merge(suffix) if suffix else CodeBlock.from_tokens('}')
+        suffix = self._extend_suffix(suffix, '}')
         subblock = self._items_formatter.format_code(width=width-block.width, suffix=suffix)
         block.merge(subblock)
         return block
@@ -789,7 +789,7 @@ class ListFormatter(ExpressionFormatter):
 
     def _format_code(self, width, suffix=None):
         block = CodeBlock.from_tokens('[')
-        suffix = CodeBlock.from_tokens(']').merge(suffix) if suffix else CodeBlock.from_tokens(']')
+        suffix = self._extend_suffix(suffix, ']')
         subblock = self._items_formatter.format_code(width=width - block.width, suffix=suffix)
         block.merge(subblock)
         if block.width > width:
@@ -811,7 +811,7 @@ class ListComprehensionFormatter(ExpressionFormatter):
         indent = block.width * ' '
         elt_block = self.elt_formatter.format_code(width - block.width)
         block.merge(elt_block)
-        suffix = CodeBlock.from_tokens(']').merge(suffix) if suffix else CodeBlock.from_tokens(']')
+        suffix = self._extend_suffix(suffix, ']')
         try:
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width - 1,
@@ -895,7 +895,7 @@ class IfExpressionFormatter(ExpressionFormatter):
         # conditional expression has lowest priority
         def use_brackets():
             block.append_tokens('(')
-            return CodeBlock.from_tokens(')').merge(suffix) if suffix else CodeBlock.from_tokens(')')
+            return self._extend_suffix(suffix, ')')
         with_brackets = False
         if isinstance(self.parent, OperationFormatter):
             with_brackets = True
@@ -1229,7 +1229,7 @@ class LambdaFormatter(ExpressionFormatter):
                                                  IfExpressionFormatter))
         if with_brackets:
             block = CodeBlock.from_tokens('(lambda')
-            suffix = CodeBlock.from_tokens(')').merge(suffix) if suffix else CodeBlock.from_tokens(')')
+            suffix = self._extend_suffix(suffix, ')')
         else:
             block = CodeBlock.from_tokens('lambda')
         parameter_list_formatter = self.get_formatter(self.expr.args)
