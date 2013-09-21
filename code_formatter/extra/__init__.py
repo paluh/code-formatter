@@ -28,7 +28,7 @@ class UnbreakableTupleFormatter(base.TupleFormatter):
     ListOfExpressionsFormatter = UnbreakableListOfExpressionFormatter
 
 
-# FIXME: we shuld refactor this so "fallback" behaviour will be provided
+# FIXME: we should refactor this so "fallback" behaviour will be provided
 #        by generic Formatter aggregator
 class CallFormatterWithLinebreakingFallback(base.CallFormatter):
 
@@ -60,17 +60,29 @@ class CallFormatterWithLinebreakingFallback(base.CallFormatter):
 
 
 class LinebreakingAttributeFormatter(base.AttributeFormatter):
-    """This is really expermientall (I mean "hard core") formatter, but...
-    it doesn't do anything really special - it handles line breaking
-    on attributes references - for example this piece:
+    """This is really expermiental formatter (it hacks ast structure in many places).
+    It handles line breaking on attributes references - for example this piece:
 
          instance.method().attribute
 
-    it can transform into:
+    can be formatted into:
 
          (instance.method()
                   .attribute)
 
+    If you want to use it you have to replace also CallFormatter and SubscriptionFormatter - for example:
+
+        >>> from ast import Attribute, Call, Subscript
+        >>> from code_formatter import base, format_code
+        >>> from code_formatter.extra import LinebreakingAttributeFormatter
+        >>> formatters = dict(base.formatters,
+        ...                   **{Call: LinebreakingAttributeFormatter.CallFormatter,
+        ...                      Attribute: LinebreakingAttributeFormatter,
+        ...                      Subscript: LinebreakingAttributeFormatter.SubscriptionFormatter})
+        >>> print format_code('instance.identifier.identifier()',
+        ...                   formatters_register=formatters, width=3, force=True)
+        (instance.identifier
+                 .identifier())
     """
 
     class CallFormatter(CallFormatterWithLinebreakingFallback):
