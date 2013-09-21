@@ -354,18 +354,20 @@ class SlicingTestCase(FormatterTestCase):
 class CallsTestCase(FormatterTestCase):
     """
     [5.3.4]
-    call                 ::=  primary "(" [argument_list [","]
-                              | expression genexpr_for] ")"
-    argument_list        ::=  positional_arguments ["," keyword_arguments]
-                                ["," "*" expression] ["," keyword_arguments]
-                                ["," "**" expression]
-                              | keyword_arguments ["," "*" expression]
-                                ["," "**" expression]
-                              | "*" expression ["," "*" expression] ["," "**" expression]
-                              | "**" expression
-    positional_arguments ::=  expression ("," expression)*
-    keyword_arguments    ::=  keyword_item ("," keyword_item)*
-    keyword_item         ::=  identifier "=" expression
+    +   primary              ::=  atom | attributeref | subscription
+                                  | slicing | call
+    +   call                 ::=  primary "(" [argument_list [","]
+                                  | expression genexpr_for] ")"
+    +   argument_list        ::=  positional_arguments ["," keyword_arguments]
+                                    ["," "*" expression] ["," keyword_arguments]
+                                    ["," "**" expression]
+                                  | keyword_arguments ["," "*" expression]
+                                    ["," "**" expression]
+                                  | "*" expression ["," "*" expression] ["," "**" expression]
+                                  | "**" expression
+    +   positional_arguments ::=  expression ("," expression)*
+    +   keyword_arguments    ::=  keyword_item ("," keyword_item)*
+    +   keyword_item         ::=  identifier "=" expression
     """
 
     def test_method_call_alignment(self):

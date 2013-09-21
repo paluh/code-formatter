@@ -212,6 +212,8 @@ class BinaryOperationFormatter(OperationFormatter):
     def are_brackets_required(self):
         with_brackets = False
         if self.parent:
+            # FIXME: check against parent.expr and
+            #        handle parent.expr access in some sane way in Formatter API...
             with_brackets = ((isinstance(self.parent, OperationFormatter) and
                               self.parent.priority >= self.priority and
                               type(self.parent.expr.op) is not type(self.expr.op)) or
@@ -262,6 +264,8 @@ class BinaryArithmeticOperationFormatter(BinaryOperationFormatter):
             return block, right_block
         with_brackets = self.are_brackets_required()
         block, right_subblock = _format(with_brackets)
+        # FIXME: check against parent.expr and
+        #        handle parent.expr access in some sane way in Formatter API...
         if ((not self.parent or not isinstance(self.parent, (OperationFormatter,
                                                              CallFormatter, AttributeFormatter)) or
              isinstance(self.parent, OperationFormatter) and
@@ -286,6 +290,8 @@ class CompareFormatter(OperationFormatter):
     def are_brackets_required(self):
         with_brackets = False
         if self.parent:
+            # FIXME: check against parent.expr and
+            #        handle parent.expr access in some sane way in Formatter API...
             with_brackets = ((isinstance(self.parent, OperationFormatter) and
                               self.parent.priority >= self.priority) or
                              isinstance(self.parent, AttributeFormatter))
@@ -383,6 +389,8 @@ class BooleanOperationFormatter(BinaryOperationFormatter):
             return block, value_block
         with_brackets = self.are_brackets_required()
         block, last_subblock = _format(with_brackets)
+        # FIXME: check against parent.expr and
+        #        handle parent.expr access in some sane way in Formatter API...
         if (not with_brackets and not self._inside_scope() and block.height > 1 and
             last_subblock.height != block.height and
             (not isinstance(self.parent, BooleanOperationFormatter) or
@@ -449,6 +457,8 @@ class StringFormatter(ExpressionFormatter):
         real_parent = self.parent.parent if (isinstance(self.parent,
                                                         ExprFormatter) and
                                              self.parent.parent) else self.parent
+        # FIXME: check against parent.expr and
+        #        handle parent.expr access in some sane way in Formatter API...
         if isinstance(real_parent, (FunctionDefinitionFormatter,
                                      ClassDefinitionFormater)) and self.parent.expr == real_parent.expr.body[0]:
             lines = self._trim_docstring(self.expr.s).split('\n')
@@ -898,6 +908,8 @@ class IfExpressionFormatter(ExpressionFormatter):
             block.append_tokens('(')
             return self._extend_suffix(suffix, ')')
         with_brackets = False
+        # FIXME: check against parent.expr and
+        #        handle parent.expr access in some sane way in Formatter API...
         if isinstance(self.parent, OperationFormatter):
             with_brackets = True
             suffix = use_brackets()
@@ -1226,6 +1238,8 @@ class LambdaFormatter(ExpressionFormatter):
     ast_type = ast.Lambda
 
     def _format_code(self, width, suffix=None):
+        # FIXME: check against parent.expr and
+        #        handle parent.expr access in some sane way in Formatter API...
         with_brackets = isinstance(self.parent, (OperatorFormatter,
                                                  IfExpressionFormatter))
         if with_brackets:

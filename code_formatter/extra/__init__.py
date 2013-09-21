@@ -1,5 +1,7 @@
+import ast
+
 from .. import base
-from ..code import CodeLine
+from ..code import CodeBlock, CodeLine
 from ..exceptions import NotEnoughSpace
 
 
@@ -17,7 +19,11 @@ class LinebreakingListOfExpressionFormatter(base.ListOfExpressionsFormatter):
 
 
 class UnbreakableTupleFormatter(base.TupleFormatter):
-
+    """Keep tuples in one line - for example:
+        [('Alternative', 'Alternative'),
+         ('Blues', 'Blues'),
+         ('Classical', 'Classical')]
+    """
     ListOfExpressionsFormatter = UnbreakableListOfExpressionFormatter
 
 
@@ -47,4 +53,48 @@ class CallFormatterWithLineBreakingFallback(base.CallFormatter):
                 indent = max(unicode(block.last_line).rfind('.'), 0) + len(CodeLine.INDENT)
                 block.extend(subblock, indent=indent)
                 break
+        return block
+
+
+class LinebreakingAttributeFormatter(base.AttributeFormatter):
+
+    class IdentifierFormatter(base.CodeFormatter):
+
+        def __init__(self, identifier, formatters_register):
+            self.identifier = identifier
+            super(LinebreakingAttributeFormatter.IdentifierFormatter,
+                  self).__init__(formatters_register)
+
+        def _format_code(self, width, suffix=None):
+            block = CodeBlock.from_tokens(self.identifier)
+            if suffix is not None:
+                block.merge(suffix)
+            return block
+
+    def __init__(self, *args, **kwargs):
+        super(base.AttributeFormatter, self).__init__(*args, **kwargs)
+        self._attrs_formatters = [LinebreakingAttributeFormatter.IdentifierFormatter(self.expr.attr, self.formatters_register)]
+        expr = self.expr
+        if isinstance(expr.value, ast.Attribute):
+            while isinstance(expr.value, ast.Attribute):
+                expr = expr.value
+                self._attrs_formatters.insert(0,
+                                            LinebreakingAttributeFormatter.IdentifierFormatter(
+                                                                                     expr.attr, self.formatters_register))
+        self.value_formatter = self.get_formatter(expr.value)
+
+    def _format_code(self, width, suffix):
+        block = CodeBlock()
+        if len(self._attrs_formatters) > 1:
+            block.append_tokens('(')
+            suffix = self._extend_suffix(suffix, ')')
+        block.merge(self.value_formatter.format_code(width - block.width))
+        attr_ref_indent = block.width
+        separator = CodeBlock.from_tokens('.')
+        block.merge(separator.copy())
+        block.merge(self._attrs_formatters[0].format_code(width - attr_ref_indent))
+        for attr_formatter in self._attrs_formatters[1:]:
+            block.extend(separator, indent=attr_ref_indent)
+            s = suffix if self._attrs_formatters[-1] == attr_formatter else None
+            block.merge(attr_formatter.format_code(width - attr_ref_indent, suffix=s))
         return block

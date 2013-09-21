@@ -4,7 +4,8 @@ from .. import base
 from ..exceptions import NotEnoughSpace
 from ..utils import FormatterTestCase
 
-from . import CallFormatterWithLineBreakingFallback, UnbreakableTupleFormatter
+from . import (CallFormatterWithLineBreakingFallback, LinebreakingAttributeFormatter,
+               UnbreakableTupleFormatter)
 
 
 class CustomFormatterTestCase(FormatterTestCase):
@@ -62,9 +63,41 @@ class CallFormatterWithLineBreakingFallback(CustomFormatterTestCase):
             NotEnoughSpace, lambda: self.assertFormats(
                                         code, not_expected))
 
-    def test_indent_is_counted_from_last_attribute_access_subexpression(self):
+    def test_indent_is_counted_from_last_attribute_ref_subexpression(self):
         code = 'instance.attr.attr_method(1, 2)'
         expected = dedent("""\
              instance.attr.attr_method(
                               1, 2)""")
+        self.assertFormats(code, expected)
+
+
+class BreakingLineAttributeFormatter(CustomFormatterTestCase):
+    """
+    In general primary expression can produce attributeref expression
+        primary             ::=  atom | attributeref ...
+
+    According to this here are all cases where attributeref can occure as subexpression:
+
+    [5.3.1]
+    +   attributeref        ::=  primary "." identifier
+
+    [5.3.2]
+    -   subscription        ::=  primary "[" expression_list "]"
+
+    [5.3.3]
+    slicing                 ::=  simple_slicing | extended_slicing
+    -   simple_slicing      ::=  primary "[" short_slice "]"
+    -   extended_slicing    ::=  primary "[" slice_list "]"
+
+    [5.3.4]
+    -   call                ::=  primary "(" [argument_list [","]
+    """
+
+    custom_formatters = [LinebreakingAttributeFormatter]
+
+    def test_identifiers_wrapping(self):
+        code = 'fun().identifier1.identifier2'
+        expected = dedent("""\
+            (fun().identifier1
+                  .identifier2)""")
         self.assertFormats(code, expected)
