@@ -738,6 +738,11 @@ class BooleanOperationsTestCase(FormatterTestCase):
         expected = 'not x'
         self.assertFormats(code, expected)
 
+    def test_negation_handles_suffix_correctly(self):
+        code = 'fun(not x)'
+        self.assertFormats(code, code)
+
+
 class ConditionalExpressionsTestCase(FormatterTestCase):
     """
     [5.11]

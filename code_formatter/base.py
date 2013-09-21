@@ -202,7 +202,8 @@ class UnaryOperationFormatter(OperationFormatter):
 
     def _format_code(self, width, suffix=None):
         block = CodeBlock.from_tokens(self.op_formatter.operator, ' ')
-        value_block = self.value_formatter.format_code(width - block.width)
+        value_block = self.value_formatter.format_code(width - block.width,
+                                                       suffix=suffix)
         block.merge(value_block)
         return block
 
