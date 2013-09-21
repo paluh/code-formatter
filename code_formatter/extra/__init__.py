@@ -116,7 +116,7 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
 
     def _format_code(self, width, suffix):
         block = CodeBlock()
-        if len(self._attrs_formatters) > 1:
+        if len(self._attrs_formatters) > 1 and not self._inside_scope():
             block.append_tokens('(')
             suffix = self._extend_suffix(suffix, ')')
         block.merge(self.value_formatter.format_code(width - block.width))
