@@ -59,6 +59,17 @@ class CallFormatterWithLinebreakingFallback(base.CallFormatter):
 
 
 class LinebreakingAttributeFormatter(base.AttributeFormatter):
+    """This is really expermientall (I mean "hard core") formatter, but...
+       it doesn't do anything really special - it handles line breaking
+       on attributes references - for example this piece:
+
+            instance.method().attribute
+
+       it can transform into:
+
+            (instance.method()
+                     .attribute)
+    """
 
     class CallFormatter(CallFormatterWithLinebreakingFallback):
 
@@ -115,21 +126,34 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
         self.value_formatter = self.get_formatter(expr)
 
     def _format_code(self, width, suffix):
-        block = CodeBlock()
-        if len(self._attrs_formatters) > 1 and not self._inside_scope():
-            block.append_tokens('(')
-            suffix = self._extend_suffix(suffix, ')')
-        block.merge(self.value_formatter.format_code(width - block.width))
-        attr_ref_indent = block.width
-        separator = CodeBlock.from_tokens('.')
-        block.merge(separator.copy())
-        block.merge(
-                  self._attrs_formatters[0].format_code(
-                                                width - attr_ref_indent,
-                                                suffix=(suffix if len(self._attrs_formatters) == 1
-                                                               else None)))
-        for attr_formatter in self._attrs_formatters[1:]:
-            block.extend(separator, indent=attr_ref_indent)
-            s = suffix if self._attrs_formatters[-1] == attr_formatter else None
-            block.merge(attr_formatter.format_code(width - attr_ref_indent, suffix=s))
-        return block
+        def _format(inside_scope, prefix=None):
+            block = CodeBlock.from_tokens(prefix) if prefix else CodeBlock()
+            block.merge(self.value_formatter.format_code(width - block.width))
+            attr_ref_indent = block.width
+            separator = CodeBlock.from_tokens('.')
+            block.merge(separator.copy())
+            block.merge(self._attrs_formatters[0].format_code(
+                                                      width - attr_ref_indent,
+                                                      suffix=(suffix if len(self._attrs_formatters) == 1
+                                                                     else None)))
+            for attr_formatter in self._attrs_formatters[1:]:
+                s = suffix if self._attrs_formatters[-1] == attr_formatter else None
+                try:
+                    attr_block = attr_formatter.format_code(width - block.last_line.width - separator.width, suffix=s)
+
+                except NotEnoughSpace:
+                    if not inside_scope:
+                        raise
+                    block.extend(separator, indent=attr_ref_indent)
+                    block.merge(attr_formatter.format_code(width - attr_ref_indent, suffix=s))
+                else:
+                    block.merge(separator)
+                    block.merge(attr_block)
+            return block
+        try:
+            return _format(self._inside_scope())
+        except NotEnoughSpace:
+            if self._inside_scope():
+                raise
+        suffix = self._extend_suffix(suffix, ')')
+        return _format(True, '(')

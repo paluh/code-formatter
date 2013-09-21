@@ -536,7 +536,7 @@ class BinaryArithmeticOperationsTestCase(FormatterTestCase):
                         ' var3)' % (op, op))
             self.assertFormats(code, expected)
 
-    def test_subexpressions_adds_brackets_when_neccessary(self):
+    def test_subexpressions_adds_brackets_when_necessary(self):
         code = '(x+y+z)*(u+v+w)'
         expected = '(x + y + z) * (u + v + w)'
         self.assertEqual(format_code(code), expected)
@@ -687,7 +687,7 @@ class BooleanOperationsTestCase(FormatterTestCase):
                         ' v)' % {'op': op})
             self.assertFormats(code, expected)
 
-    def test_wrapping_brackets_are_used_only_when_neccessary(self):
+    def test_wrapping_brackets_are_used_only_when_necessary(self):
         code = 'x or fun(y,z,v)'
         expected = ('x or fun(y, z,\n'
                     '         v)')

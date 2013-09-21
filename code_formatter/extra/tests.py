@@ -114,3 +114,14 @@ class BreakingLineAttributeFormatter(CustomFormatterTestCase):
     def test_suffix_passing_for_single_element_chain(self):
         code = 'method1(instance2.method2)'
         self.assertFormats(code, code)
+
+    def test_wrapping_is_done_only_when_necessary(self):
+        code = 'fun().method1().method2().method3()'
+        expected = dedent("""\
+            (fun().method1().method2()
+                  .method3())""")
+        self.assertFormats(code, expected)
+
+    def test_wrapping_uses_brackets_only_when_necessary(self):
+        code = 'instance.method1().method2()'
+        self.assertFormats(code, code)
