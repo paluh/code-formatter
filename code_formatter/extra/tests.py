@@ -71,7 +71,7 @@ class CallFormatterWithLinebreakingFallback(CustomFormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class BreakingLineAttributeFormatter(CustomFormatterTestCase):
+class LinebreakingAttributeFormatterTestCase(CustomFormatterTestCase):
     """
     In general primary expression can produce attributeref expression
         primary             ::=  atom | attributeref ...
@@ -82,19 +82,20 @@ class BreakingLineAttributeFormatter(CustomFormatterTestCase):
     +   attributeref        ::=  primary "." identifier
 
     [5.3.2]
-    -   subscription        ::=  primary "[" expression_list "]"
+    +   subscription        ::=  primary "[" expression_list "]"
 
     [5.3.3]
-    slicing                 ::=  simple_slicing | extended_slicing
+    -   slicing             ::=  simple_slicing | extended_slicing
     -   simple_slicing      ::=  primary "[" short_slice "]"
     -   extended_slicing    ::=  primary "[" slice_list "]"
 
     [5.3.4]
-    -   call                ::=  primary "(" [argument_list [","]
+    +   call                ::=  primary "(" [argument_list [","]
     """
 
     custom_formatters = [LinebreakingAttributeFormatter,
-                         LinebreakingAttributeFormatter.CallFormatter]
+                         LinebreakingAttributeFormatter.CallFormatter,
+                         LinebreakingAttributeFormatter.SubscriptionFormatter]
 
     def test_identifiers_wrapping(self):
         code = 'fun().identifier1.identifier2'
@@ -103,7 +104,7 @@ class BreakingLineAttributeFormatter(CustomFormatterTestCase):
                   .identifier2)""")
         self.assertFormats(code, expected)
 
-    def test_methods_wrapping(self):
+    def test_call_wrapping(self):
         code = 'fun().method1().method2().method3()'
         expected = dedent("""\
             (fun().method1()
@@ -125,3 +126,17 @@ class BreakingLineAttributeFormatter(CustomFormatterTestCase):
     def test_wrapping_uses_brackets_only_when_necessary(self):
         code = 'instance.method1().method2()'
         self.assertFormats(code, code)
+
+    def test_subscription_wrapping(self):
+        code = 'identifier1[value1].identifier2[value2].identifier3[value3]'
+        expected = dedent("""\
+            (identifier1[value1].identifier2[value2]
+                                .identifier3[value3])""")
+        self.assertFormats(code, expected)
+
+    def test_slicing_wrapping(self):
+        code = 'identifier1[lower1:upper1:step1].identifier2[lower2:upper2:step2].identifier3[lower3:]'
+        expected = dedent("""\
+            (identifier1[lower1:upper1:step1].identifier2[lower2:upper2:step2]
+                                             .identifier3[lower3:])""")
+        self.assertFormats(code, expected)
