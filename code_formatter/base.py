@@ -211,16 +211,17 @@ class UnaryOperationFormatter(OperationFormatter):
 class BinaryOperationFormatter(OperationFormatter):
 
     def are_brackets_required(self):
-        with_brackets = False
-        if self.parent:
-            # FIXME: check against parent.expr and
-            #        handle parent.expr access in some sane way in Formatter API...
-            with_brackets = ((isinstance(self.parent, OperationFormatter) and
-                              self.parent.priority >= self.priority and
-                              type(self.parent.expr.op) is not type(self.expr.op)) or
-                             isinstance(self.parent, AttributeFormatter))
-        return with_brackets
+        # FIXME: check against parent.expr and
+        #        handle parent.expr access in some sane way in Formatter API...
+        return (self.parent is None or (isinstance(self.parent, OperationFormatter) and
+                                        self.parent.priority >= self.priority and
+                                        type(self.parent.expr.op) is not type(self.expr.op)) or
+                isinstance(self.parent, AttributeFormatter))
 
+        #if ((not self.parent or not isinstance(self.parent, (OperationFormatter,
+        #                                                     CallFormatter, AttributeFormatter)) or
+        #     isinstance(self.parent, OperationFormatter) and
+        #     self.parent.priority < self.priority) and
 
 
 @register
@@ -235,48 +236,39 @@ class BinaryArithmeticOperationFormatter(BinaryOperationFormatter):
         self.right_formatter = self.get_formatter(self.expr.right)
 
     def _format_code(self, width, suffix=None):
-        def _format(with_brackets):
-            block = CodeBlock()
-            if with_brackets:
-                block.append_tokens('(')
-                s = self._extend_suffix(suffix, ')')
-            else:
-                s = suffix
+        def _format(inside_scope, prefix=None):
+            block = CodeBlock.from_tokens(prefix) if prefix else CodeBlock()
             indent = block.width*' '
             try:
-                left_block = self.left_formatter.format_code(width-block.width)
+                left_block = self.left_formatter.format_code(width - block.width)
                 operator_block = self.opt_formatter.format_code(width - block.width -
                                                                 left_block.width - 1)
                 right_block = self.right_formatter.format_code(width - block.width -
                                                                operator_block.width - 2 -
                                                                left_block.width,
-                                                               suffix=s)
+                                                               suffix=suffix)
                 block.merge(left_block)
                 block.merge(operator_block, separator= ' ')
                 block.merge(right_block, separator=' ')
             except NotEnoughSpace:
+                if not inside_scope:
+                    raise
                 operator = self.opt_formatter.operator
                 left_block = self.left_formatter.format_code(width - len(indent))
                 right_block = self.right_formatter.format_code(width -
-                                                               len(indent), suffix=s)
+                                                               len(indent), suffix=suffix)
                 block.merge(left_block)
                 block.append_tokens(' ', operator)
                 block.extend(right_block, indent)
-            return block, right_block
-        with_brackets = self.are_brackets_required()
-        block, right_subblock = _format(with_brackets)
-        # FIXME: check against parent.expr and
-        #        handle parent.expr access in some sane way in Formatter API...
-        if ((not self.parent or not isinstance(self.parent, (OperationFormatter,
-                                                             CallFormatter, AttributeFormatter)) or
-             isinstance(self.parent, OperationFormatter) and
-             self.parent.priority < self.priority) and
-            block.height > 1 and
-            right_subblock.height != block.height):
-            block, _ = _format(not self._inside_scope())
-        if block.width > width:
-            raise NotEnoughSpace()
-        return block
+            return block
+        if not self.are_brackets_required():
+            try:
+                return _format(self._inside_scope())
+            except NotEnoughSpace:
+                if self._inside_scope():
+                    raise
+        suffix = self._extend_suffix(suffix, ')')
+        return _format(True, '(')
 
 
 @register
