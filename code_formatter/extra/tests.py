@@ -85,9 +85,9 @@ class LinebreakingAttributeFormatterTestCase(CustomFormatterTestCase):
     +   subscription        ::=  primary "[" expression_list "]"
 
     [5.3.3]
-    -   slicing             ::=  simple_slicing | extended_slicing
-    -   simple_slicing      ::=  primary "[" short_slice "]"
-    -   extended_slicing    ::=  primary "[" slice_list "]"
+    +   slicing             ::=  simple_slicing | extended_slicing
+    +   simple_slicing      ::=  primary "[" short_slice "]"
+    +   extended_slicing    ::=  primary "[" slice_list "]"
 
     [5.3.4]
     +   call                ::=  primary "(" [argument_list [","]
