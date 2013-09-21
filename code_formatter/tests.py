@@ -130,10 +130,10 @@ class ListDisplaysTestCase(FormatterTestCase):
 class GeneratorExpressionsTestCase(FormatterTestCase):
     """
     [5.2.5, 5.2.6]
-    comp_for             ::=  "for" target_list "in" or_test [comp_iter]
-    comp_iter            ::=  comp_for | comp_if
-    comp_if              ::=  "if" expression_nocond [comp_iter]
-    generator_expression ::=  "(" expression comp_for ")"
+    +   comp_for             ::=  "for" target_list "in" or_test [comp_iter]
+    +   comp_iter            ::=  comp_for | comp_if
+    +   comp_if              ::=  "if" expression_nocond [comp_iter]
+    +   generator_expression ::=  "(" expression comp_for ")"
     """
     def test_alignment(self):
         code = '(function(x) for x in iterable if x > 10)'
@@ -162,6 +162,10 @@ class GeneratorExpressionsTestCase(FormatterTestCase):
         expected = ("function(x='long '\n"
                     "           'string')")
         self.assertFormats(code, expected)
+
+    def test_complex_generator_alignemnt(self):
+        code = '(e for l in ll for e in l)'
+        self.assertFormats(code, code)
 
 
 class DictionaryDisplaysTestCase(FormatterTestCase):
@@ -235,7 +239,7 @@ class DictionaryDisplaysTestCase(FormatterTestCase):
 class SetDisplaysTestCase(FormatterTestCase):
     """
     [5.2.8]
-    + set_display ::=  "{" (expression_list | comprehension) "}"
+    +   set_display ::=  "{" (expression_list | comprehension) "}"
     """
     def test_simple_comprehension_alignment(self):
         code = '{x for x in iterable}'
@@ -524,9 +528,9 @@ class CallsTestCase(FormatterTestCase):
 class BinaryArithmeticOperationsTestCase(FormatterTestCase):
     """
     [5.6]
-    m_expr ::=  u_expr | m_expr "*" u_expr | m_expr "//" u_expr | m_expr "/" u_expr
-                | m_expr "%" u_expr
-    a_expr ::=  m_expr | a_expr "+" m_expr | a_expr "-" m_expr
+    +   m_expr ::=  u_expr | m_expr "*" u_expr | m_expr "//" u_expr | m_expr "/" u_expr
+                    | m_expr "%" u_expr
+    +   a_expr ::=  m_expr | a_expr "+" m_expr | a_expr "-" m_expr
     """
 
     OPERATORS = ['*', '//', '/', '%', '+', '-']
@@ -590,29 +594,31 @@ class BinaryArithmeticOperationsTestCase(FormatterTestCase):
 class BinaryBitwiseOperation(FormatterTestCase):
     """
     [5.8]
-    and_expr ::=  shift_expr | and_expr "&" shift_expr
-    xor_expr ::=  and_expr | xor_expr "^" and_expr
-    or_expr  ::=  xor_expr | or_expr "|" xor_expr
+    +   and_expr ::=  shift_expr | and_expr "&" shift_expr
+    +   xor_expr ::=  and_expr | xor_expr "^" and_expr
+    +   or_expr  ::=  xor_expr | or_expr "|" xor_expr
     """
 
     def test_alignment(self):
-        code = '8  |  4'
-        expected = '8 | 4'
-        self.assertEqual(format_code(code), expected)
+        for operator in ['|', '&', '^']:
+            code = '8  %s  4' % operator
+            expected = '8 %s 4' % operator
+            self.assertFormats(code, expected)
 
     def test_wrapping(self):
-        code = '88 | 44'
-        expected = ('(88 |\n'
-                    ' 44)')
-        self.assertFormats(code, expected)
+        for operator in ['|', '&', '^']:
+            code = '88 %s 44' % operator
+            expected = ('(88 %s\n'
+                        ' 44)') % operator
+            self.assertFormats(code, expected)
 
 
 class ComparisonsTestCase(FormatterTestCase):
     """
     [5.9]
-    comparison    ::=  or_expr ( comp_operator or_expr )*
-    comp_operator ::=  "<" | ">" | "==" | ">=" | "<=" | "<>" | "!="
-                       | "is" ["not"] | ["not"] "in"
+    +   comparison    ::=  or_expr ( comp_operator or_expr )*
+    +   comp_operator ::=  "<" | ">" | "==" | ">=" | "<=" | "<>" | "!="
+                           | "is" ["not"] | ["not"] "in"
     """
 
     def test_alignment(self):
@@ -674,9 +680,9 @@ class ComparisonsTestCase(FormatterTestCase):
 class BooleanOperationsTestCase(FormatterTestCase):
     """
     [5.10]
-    + or_test  ::=  and_test | or_test "or" and_test
-    + and_test ::=  not_test | and_test "and" not_test
-    + not_test ::=  comparison | "not" not_test
+    +   or_test  ::=  and_test | or_test "or" and_test
+    +   and_test ::=  not_test | and_test "and" not_test
+    +   not_test ::=  comparison | "not" not_test
     """
 
     BIN_OPERATORS = ['or', 'and']
@@ -735,8 +741,8 @@ class BooleanOperationsTestCase(FormatterTestCase):
 class ConditionalExpressionsTestCase(FormatterTestCase):
     """
     [5.11]
-    conditional_expression ::=  or_test ["if" or_test "else" expression]
-    expression             ::=  conditional_expression | lambda_form
+    +   conditional_expression ::=  or_test ["if" or_test "else" expression]
+    +   expression             ::=  conditional_expression | lambda_form
     """
     def test_alignment(self):
         self.assertEqual(format_code('x if    c   else y'),
@@ -758,15 +764,17 @@ class ConditionalExpressionsTestCase(FormatterTestCase):
         code = """width - left_block.last_line.width - (2 if with_brackets else 1)"""
         self.assertFormats(code, code)
 
+    def test_expression_with_lambda_form(self):
+        code = 'x if t else lambda: r'
+        self.assertFormats(code, code)
+
 
 class LambdasTestCase(FormatterTestCase):
     # FIXME: test old_lambda_form branch
     """
-    [5.12] - parameter_list related tests are
-             placed in FuncionDefinitionTestCase
-
-    lambda_form     ::=  "lambda" [parameter_list]: expression
-    old_lambda_form ::=  "lambda" [parameter_list]: old_expression
+    [5.12] (parameter_list related tests are placed in FuncionDefinitionTestCase)
+    +   lambda_form     ::=  "lambda" [parameter_list]: expression
+    +   old_lambda_form ::=  "lambda" [parameter_list]: old_expression
     """
     def test_aligment(self):
         code = 'lambda x,y,z:x+y+z'
@@ -786,8 +794,8 @@ class LambdasTestCase(FormatterTestCase):
 class ExpressionListTestCase(FormatterTestCase):
     """
     [5.13, 6.1]
-    expression_list ::=  expression ( "," expression )* [","]
-    expression_stmt ::=  expression_list
+    +   expression_list ::=  expression ( "," expression )* [","]
+    +   expression_stmt ::=  expression_list
     """
 
     def test_single_element_alignment(self):

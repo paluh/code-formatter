@@ -1257,8 +1257,7 @@ class LambdaFormatter(ExpressionFormatter):
     def _format_code(self, width, suffix=None):
         # FIXME: check against parent.expr and
         #        handle parent.expr access in some sane way in Formatter API...
-        with_brackets = isinstance(self.parent, (OperatorFormatter,
-                                                 IfExpressionFormatter))
+        with_brackets = isinstance(self.parent, OperatorFormatter) or isinstance(self.parent, IfExpressionFormatter) and self.parent.expr.orelse is not self.expr
         if with_brackets:
             block = CodeBlock.from_tokens('(lambda')
             suffix = self._extend_suffix(suffix, ')')
