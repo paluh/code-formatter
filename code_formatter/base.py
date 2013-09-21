@@ -37,6 +37,11 @@ class CodeFormatter(object):
                                                parent=(self if parent is None
                                                             else parent))
 
+    def _extend_suffix(self, suffix, *tokens):
+        if suffix:
+             return CodeBlock.from_tokens(*tokens).merge(suffix)
+        return CodeBlock.from_tokens(*tokens)
+
     def _format_code(self, width, suffix=None):
         raise NotImplementedError()
 
@@ -612,12 +617,7 @@ class ListOfExpressionsFormatter(CodeFormatter):
             curr_width = (lower_boundry + upper_boundry) / 2
         raise NotEnoughSpace()
 
-    def _format_code(self, width, suffix, line_width=None):
-        line_width = line_width or width
-        try:
-            return self._format_line_continuation(width, suffix, line_width)
-        except NotEnoughSpace:
-            pass
+    def _format_line_break(self, width, suffix, line_width=None):
         # try to break line
         separator = CodeBlock.from_tokens(',')
         expression_block = self._expression_formatter.format_code(width - separator.width)
@@ -628,6 +628,13 @@ class ListOfExpressionsFormatter(CodeFormatter):
         block.merge(separator)
         block.extend(expressions_block)
         return block
+
+    def _format_code(self, width, suffix, line_width=None):
+        line_width = line_width or width
+        try:
+            return self._format_line_continuation(width, suffix, line_width)
+        except NotEnoughSpace:
+            return self._format_line_break(width, suffix, line_width)
 
     def format_code(self, width, suffix=None, line_width=None):
         if width <= 0 or (self._known_max_width_of_failure.get(line_width, None) is not None and
@@ -696,13 +703,14 @@ class CallFormatter(ExpressionFormatter):
     def __init__(self, *args, **kwargs):
         super(CallFormatter, self).__init__(*args, **kwargs)
         self._func_formatter = self.get_formatter(self.expr.func)
-        self._arguments_formatter = self._get_arguments_formatter()
+        self._arguments_formatter = ListOfExpressionsFormatter(self._get_arguments_formatters(),
+                                                               self.formatters_register)
 
     @property
     def formatable(self):
         return self._func_formatter.formatable or self._arguments_formatter.formatable
 
-    def _get_arguments_formatter(self):
+    def _get_arguments_formatters(self):
         formatters = [self.get_formatter(e) for e in self.expr.args]
         if self.expr.starargs:
             formatters.append(CallFormatter.StarArgsFormatter(self.expr.starargs, '*',
@@ -711,7 +719,7 @@ class CallFormatter(ExpressionFormatter):
         if self.expr.kwargs:
             formatters.append(CallFormatter.StarArgsFormatter(self.expr.kwargs, '**',
                                                                formatters_register=self.formatters_register))
-        return ListOfExpressionsFormatter(formatters, self.formatters_register)
+        return formatters
 
     def _format_code(self, width, suffix=None):
         suffix = CodeBlock.from_tokens(')').merge(suffix) if suffix else CodeBlock.from_tokens(')')
@@ -1075,20 +1083,21 @@ class DictComprehensionFormatter(ExpressionFormatter):
         block.merge(key_block)
         block.append_tokens(separator)
         block.merge(value_block)
-
+        suffix = self._extend_suffix(suffix, '}')
         try:
             generators_block = format_generators(self.expr.generators,
                                                  width - block.width - 1,
                                                  parent=self,
-                                                 formatters_register=self.formatters_register)
+                                                 formatters_register=self.formatters_register,
+                                                 suffix=suffix)
             block.merge(generators_block, separator=' ')
         except NotEnoughSpace:
             generators_block = format_generators(self.expr.generators,
                                                  width - len(indent),
                                                  parent=self,
-                                                 formatters_register=self.formatters_register)
+                                                 formatters_register=self.formatters_register,
+                                                 suffix=suffix)
             block.extend(generators_block, indent)
-        block.append_tokens('}')
         return block
 
 

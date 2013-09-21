@@ -210,6 +210,10 @@ class DictionaryDisplaysTestCase(FormatterTestCase):
                     ' if x > 5}')
         self.assertFormats(code, expected)
 
+    def test_comprehension_preserves_suffix(self):
+        code = 'f({x: y for x, y in items})'
+        self.assertFormats(code, code)
+
     def test_key_datum_list_alignment(self):
         code = '{x: y,    z: s,   u   : v}'
         expected = '{x: y, z: s, u: v}'
