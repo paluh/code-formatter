@@ -28,5 +28,5 @@ setup(
     scripts=[],
     test_suite='code_formatter.tests.test_suite',
     zip_safe=False,
-    version = '2013.8.1',
+    version = '2013.9.1',
 )
