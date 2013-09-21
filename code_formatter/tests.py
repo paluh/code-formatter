@@ -314,22 +314,26 @@ class SubscriptionsTestCase(FormatterTestCase):
                     '                                argument_3=value)]')
         self.assertFormats(code, expected)
 
+    def test_subexpressions_handles_suffix_correctly(self):
+        code = 'fun(v[k])'
+        self.assertFormats(code, code)
+
 
 class SlicingTestCase(FormatterTestCase):
     """
     [5.3.3]
-    slicing          ::=  simple_slicing | extended_slicing
-    simple_slicing   ::=  primary "[" short_slice "]"
-    extended_slicing ::=  primary "[" slice_list "]"
-    slice_list       ::=  slice_item ("," slice_item)* [","]
-    slice_item       ::=  expression | proper_slice | ellipsis
-    proper_slice     ::=  short_slice | long_slice
-    short_slice      ::=  [lower_bound] ":" [upper_bound]
-    long_slice       ::=  short_slice ":" [stride]
-    lower_bound      ::=  expression
-    upper_bound      ::=  expression
-    stride           ::=  expression
-    ellipsis         ::=  "..."
+    -   slicing          ::=  simple_slicing | extended_slicing
+    +   simple_slicing   ::=  primary "[" short_slice "]"
+    -   extended_slicing ::=  primary "[" slice_list "]"
+    -   slice_list       ::=  slice_item ("," slice_item)* [","]
+    -   slice_item       ::=  expression | proper_slice | ellipsis
+    +   proper_slice     ::=  short_slice | long_slice
+    +   short_slice      ::=  [lower_bound] ":" [upper_bound]
+    +   long_slice       ::=  short_slice ":" [stride]
+    +   lower_bound      ::=  expression
+    +   upper_bound      ::=  expression
+    +   stride           ::=  expression
+    -   ellipsis         ::=  "..."
     """
 
     def test_simple_expression_slice_alignemnt(self):
@@ -340,6 +344,9 @@ class SlicingTestCase(FormatterTestCase):
 
     def test_short_slice_alignment(self):
         self.assertEqual(format_code('x [ y : z ]'), 'x[y:z]')
+
+    def test_short_slice_without_lower_and_upper_alignment(self):
+        self.assertEqual(format_code('x [ : ]'), 'x[:]')
 
     def test_short_slice_without_upper_alignment(self):
         self.assertEqual(format_code('x [ y : ]'), 'x[y:]')
@@ -1481,3 +1488,11 @@ class FormattersUnitTests(FormatterTestCase):
 _test_loader = unittest.TestLoader()
 test_suite = _test_loader.loadTestsFromModule(tests)
 test_suite.addTests(_test_loader.loadTestsFromModule(sys.modules[__name__]))
+
+# FIXME: strange line break in arithmetic operation and
+#        unecessary brackets in conditional expression
+#   block.merge(lower_formatter.format_code(
+#                                   width - block.width -
+#                                   1, suffix=(suffix if not self.expr.upper and
+#                                                        not self.expr.step
+#                                                     else None)))

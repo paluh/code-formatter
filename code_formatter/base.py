@@ -953,11 +953,16 @@ class SubscriptionFormatter(ExpressionFormatter):
 
     ast_type = ast.Subscript
 
+    def __init__(self, *args, **kwargs):
+        super(SubscriptionFormatter, self).__init__(*args, **kwargs)
+        self._value_formatter = self.get_formatter(self.expr.value)
+        self._slice_formatter = self.get_formatter(self.expr.slice)
+
     def _format_code(self, width, suffix=None):
-        value_formatter = self.get_formatter(self.expr.value)
-        block = value_formatter.format_code(width)
-        slice_formatter = self.get_formatter(self.expr.slice)
-        block.merge(slice_formatter.format_code(width - len(block.lines[-1])))
+        block = self._value_formatter.format_code(width)
+        block.merge(self._slice_formatter.format_code(width -
+                                                      len(block.lines[-1]),
+                                                      suffix=suffix))
         return block
 
 
@@ -966,25 +971,35 @@ class SliceFormatter(ExpressionFormatter):
 
     ast_type = ast.Slice
 
+    def __init__(self, *args, **kwargs):
+        super(SliceFormatter, self).__init__(*args, **kwargs)
+        self._lower_formatter = self.get_formatter(self.expr.lower) if self.expr.lower else None
+        self._upper_formatter = self.get_formatter(self.expr.upper) if self.expr.upper else None
+        self._step_formatter = self.get_formatter(self.expr.step) if self.expr.step else None
+
     def _format_code(self, width, suffix=None):
         block = CodeBlock.from_tokens('[')
-        if self.expr.lower:
-            lower_formatter = self.get_formatter(self.expr.lower)
-            block.merge(lower_formatter.format_code(width-block.width-1))
+        suffix = self._extend_suffix(suffix, ']')
+        if self._lower_formatter:
+            if not self._upper_formatter and not self._step_formatter:
+                suffix = self._extend_suffix(suffix, ':')
+                return block.merge(self._lower_formatter.format_code(width - block.width -
+                                                               1, suffix=suffix))
+            block.merge(self._lower_formatter.format_code(width - block.width - 1))
         block.append_tokens(':')
 
-        if self.expr.upper:
-            upper_formatter = self.get_formatter(self.expr.upper)
-            block.merge(upper_formatter.format_code(width-block.width-1))
-
-        if self.expr.step:
+        if self._upper_formatter:
+            block.merge(self._upper_formatter
+                            .format_code(width - block.width -
+                                         1, suffix=(suffix if not self.expr.step
+                                                           else None)))
+        if self._step_formatter:
             block.append_tokens(':')
-            step_formatter = self.get_formatter(self.expr.step)
-            block.merge(step_formatter.format_code(width-block.width-1))
-
-        block.append_tokens(']')
-        if block.width > width:
-            raise NotEnoughSpace()
+            block.merge(self._step_formatter.format_code(width -
+                                                         block.width -
+                                                         1, suffix=suffix))
+        if not self._upper_formatter and not self._step_formatter:
+            block.merge(suffix)
         return block
 
 
@@ -993,13 +1008,15 @@ class IndexFormatter(ExpressionFormatter):
 
     ast_type = ast.Index
 
+    def __init__(self, *args, **kwargs):
+        super(IndexFormatter, self).__init__(*args, **kwargs)
+        self._value_formatter = self.get_formatter(self.expr.value)
+
     def _format_code(self, width, suffix=None):
         block = CodeBlock.from_tokens('[')
-        value_formatter = self.get_formatter(self.expr.value)
-        block.merge(value_formatter.format_code(width - 2))
-        block.append_tokens(']')
-        if block.width > width:
-            raise NotEnoughSpace()
+        suffix = self._extend_suffix(suffix, ']')
+        block.merge(self._value_formatter.format_code(width - block.width,
+                                                      suffix=suffix))
         return block
 
 
