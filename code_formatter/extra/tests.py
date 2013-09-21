@@ -1,7 +1,8 @@
 from textwrap import dedent
 
-from ..utils import FormatterTestCase
 from .. import base
+from ..exceptions import NotEnoughSpace
+from ..utils import FormatterTestCase
 
 from . import CallFormatterWithLineBreakingFallback, UnbreakableTupleFormatter
 
@@ -51,3 +52,19 @@ class CallFormatterWithLineBreakingFallback(CustomFormatterTestCase):
     def test_formats_line_continuation_if_there_is_enough_space(self):
         code = 'function(1, 2)'
         self.assertFormats(code, code)
+
+    def test_empty_argument_list_doesnt_break(self):
+        code = 'function()'
+        not_expected = dedent("""\
+            function(
+                )""")
+        self.assertRaises(
+            NotEnoughSpace, lambda: self.assertFormats(
+                                        code, not_expected))
+
+    def test_indent_is_counted_from_last_attribute_access_subexpression(self):
+        code = 'instance.attr.attr_method(1, 2)'
+        expected = dedent("""\
+             instance.attr.attr_method(
+                              1, 2)""")
+        self.assertFormats(code, expected)

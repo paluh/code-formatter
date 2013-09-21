@@ -29,7 +29,8 @@ class CallFormatterWithLineBreakingFallback(base.CallFormatter):
         try:
             return super(CallFormatterWithLineBreakingFallback, self)._format_code(width, suffix)
         except NotEnoughSpace:
-            pass
+             if not self._arguments_formatters:
+                raise
         suffix = self._extend_suffix(suffix, ')')
         for i in range(width+1):
             curr_width = width - i
@@ -42,6 +43,8 @@ class CallFormatterWithLineBreakingFallback(base.CallFormatter):
             except NotEnoughSpace:
                 continue
             else:
-                block.extend(subblock, indent=len(CodeLine.INDENT))
+                # FIXME: this is really ugly way to detect last method access subexpression
+                indent = max(unicode(block.last_line).rfind('.'), 0) + len(CodeLine.INDENT)
+                block.extend(subblock, indent=indent)
                 break
         return block

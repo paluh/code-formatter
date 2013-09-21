@@ -703,7 +703,8 @@ class CallFormatter(ExpressionFormatter):
     def __init__(self, *args, **kwargs):
         super(CallFormatter, self).__init__(*args, **kwargs)
         self._func_formatter = self.get_formatter(self.expr.func)
-        self._arguments_formatter = ListOfExpressionsFormatter(self._get_arguments_formatters(),
+        self._arguments_formatters = self._get_arguments_formatters()
+        self._arguments_formatter = ListOfExpressionsFormatter(self._arguments_formatters,
                                                                self.formatters_register)
 
     @property
