@@ -4,7 +4,7 @@ from .. import base
 from ..exceptions import NotEnoughSpace
 from ..utils import FormatterTestCase
 
-from . import (CallFormatterWithLineBreakingFallback, LinebreakingAttributeFormatter,
+from . import (CallFormatterWithLinebreakingFallback, LinebreakingAttributeFormatter,
                UnbreakableTupleFormatter)
 
 
@@ -40,9 +40,9 @@ class UnbreakableTupleFormatterTestCase(CustomFormatterTestCase):
         self.assertFormats(code, code, width=3, force=True)
 
 
-class CallFormatterWithLineBreakingFallback(CustomFormatterTestCase):
+class CallFormatterWithLinebreakingFallback(CustomFormatterTestCase):
 
-    custom_formatters = [CallFormatterWithLineBreakingFallback]
+    custom_formatters = [CallFormatterWithLinebreakingFallback]
 
     def test_wrapping(self):
         code = dedent("""\
@@ -93,7 +93,8 @@ class BreakingLineAttributeFormatter(CustomFormatterTestCase):
     -   call                ::=  primary "(" [argument_list [","]
     """
 
-    custom_formatters = [LinebreakingAttributeFormatter]
+    custom_formatters = [LinebreakingAttributeFormatter,
+                         LinebreakingAttributeFormatter.CallFormatter]
 
     def test_identifiers_wrapping(self):
         code = 'fun().identifier1.identifier2'
@@ -101,3 +102,15 @@ class BreakingLineAttributeFormatter(CustomFormatterTestCase):
             (fun().identifier1
                   .identifier2)""")
         self.assertFormats(code, expected)
+
+    def test_methods_wrapping(self):
+        code = 'fun().method1().method2().method3()'
+        expected = dedent("""\
+            (fun().method1()
+                  .method2()
+                  .method3())""")
+        self.assertFormats(code, expected)
+
+    def test_suffix_passing_for_single_element_chain(self):
+        code = 'method1(instance2.method2)'
+        self.assertFormats(code, code)

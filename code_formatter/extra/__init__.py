@@ -27,13 +27,15 @@ class UnbreakableTupleFormatter(base.TupleFormatter):
     ListOfExpressionsFormatter = UnbreakableListOfExpressionFormatter
 
 
-class CallFormatterWithLineBreakingFallback(base.CallFormatter):
+# FIXME: we shuld refactor this so "fallback" behaviour will be provided
+#        by generic Formatter aggregator
+class CallFormatterWithLinebreakingFallback(base.CallFormatter):
 
     formatable = True
 
     def _format_code(self, width, suffix):
         try:
-            return super(CallFormatterWithLineBreakingFallback, self)._format_code(width, suffix)
+            return super(CallFormatterWithLinebreakingFallback, self)._format_code(width, suffix)
         except NotEnoughSpace:
              if not self._arguments_formatters:
                 raise
@@ -58,11 +60,20 @@ class CallFormatterWithLineBreakingFallback(base.CallFormatter):
 
 class LinebreakingAttributeFormatter(base.AttributeFormatter):
 
-    class IdentifierFormatter(base.CodeFormatter):
+    class CallFormatter(CallFormatterWithLinebreakingFallback):
 
-        def __init__(self, identifier, formatters_register):
+        def __new__(cls, expr, formatters_register, parent):
+            if isinstance(expr.func, ast.Attribute):
+                return LinebreakingAttributeFormatter(expr, formatters_register, parent)
+            return super(LinebreakingAttributeFormatter.CallFormatter, cls).__new__(cls, formatters_register, parent)
+
+
+    class _IdentifierFormatter(base.CodeFormatter):
+
+        def __init__(self, identifier, formatters_register, parent):
             self.identifier = identifier
-            super(LinebreakingAttributeFormatter.IdentifierFormatter,
+            self.parent = parent
+            super(LinebreakingAttributeFormatter._IdentifierFormatter,
                   self).__init__(formatters_register)
 
         def _format_code(self, width, suffix=None):
@@ -71,17 +82,37 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
                 block.merge(suffix)
             return block
 
+
+    class _CallFormatter(CallFormatterWithLinebreakingFallback):
+
+        def __init__(self, func_formatter, *args, **kwargs):
+            super(LinebreakingAttributeFormatter._CallFormatter, self).__init__(*args, **kwargs)
+            self._func_formatter = func_formatter
+
+
     def __init__(self, *args, **kwargs):
         super(base.AttributeFormatter, self).__init__(*args, **kwargs)
-        self._attrs_formatters = [LinebreakingAttributeFormatter.IdentifierFormatter(self.expr.attr, self.formatters_register)]
+        self._attrs_formatters = []
         expr = self.expr
-        if isinstance(expr.value, ast.Attribute):
-            while isinstance(expr.value, ast.Attribute):
-                expr = expr.value
+        while isinstance(expr, ast.Attribute) or isinstance(expr, ast.Call) and isinstance(expr.func, ast.Attribute):
+            if isinstance(expr, ast.Attribute):
                 self._attrs_formatters.insert(0,
-                                            LinebreakingAttributeFormatter.IdentifierFormatter(
-                                                                                     expr.attr, self.formatters_register))
-        self.value_formatter = self.get_formatter(expr.value)
+                                              LinebreakingAttributeFormatter._IdentifierFormatter(expr.attr,
+                                                                                                  self.formatters_register,
+                                                                                                  parent=self))
+                expr = expr.value
+            if isinstance(expr, ast.Call) and isinstance(expr.func, ast.Attribute):
+                func_formatter = LinebreakingAttributeFormatter._IdentifierFormatter(
+                                                                    (expr.func
+                                                                         .attr),
+                                                                    self.formatters_register,
+                                                                    parent=self)
+                self._attrs_formatters.insert(0,
+                                              LinebreakingAttributeFormatter._CallFormatter(func_formatter, expr,
+                                                                                            self.formatters_register,
+                                                                                            parent=self))
+                expr = expr.func.value
+        self.value_formatter = self.get_formatter(expr)
 
     def _format_code(self, width, suffix):
         block = CodeBlock()
@@ -92,7 +123,11 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
         attr_ref_indent = block.width
         separator = CodeBlock.from_tokens('.')
         block.merge(separator.copy())
-        block.merge(self._attrs_formatters[0].format_code(width - attr_ref_indent))
+        block.merge(
+                  self._attrs_formatters[0].format_code(
+                                                width - attr_ref_indent,
+                                                suffix=(suffix if len(self._attrs_formatters) == 1
+                                                               else None)))
         for attr_formatter in self._attrs_formatters[1:]:
             block.extend(separator, indent=attr_ref_indent)
             s = suffix if self._attrs_formatters[-1] == attr_formatter else None
