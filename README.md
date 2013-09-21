@@ -48,6 +48,9 @@ You can easily customize single or bunch of formatters - subclass given formatte
 
 For more examples check `code_formatter.extra` package (especially `tests` module there).
 
+## Extra formatters
+By default this package provides basic formatters (`code_formatter.base`) which I'm trying to keep as simple/straightforward as possible. I'm also want to provide one and exactly one formatter for givent `ast` node type. All additional formatters (usually more funny :-P) goes into `code_formatter.extra` package, so don't hesitate and check them.
+
 # Hacking
 
 ## Contributing
