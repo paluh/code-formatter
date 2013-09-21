@@ -3,23 +3,25 @@ from textwrap import dedent
 from ..utils import FormatterTestCase
 from .. import base
 
-from . import UnbreakableTupleFormatter
+from . import CallFormatterWithLineBreakingFallback, UnbreakableTupleFormatter
 
 
 class CustomFormatterTestCase(FormatterTestCase):
 
-    formatters_register = None
+    custom_formatters = []
+
+    def setUp(self):
+        self.formatters_register = dict(base.formatters, **{F.ast_type: F for F in self.custom_formatters})
 
     def assertFormats(self, code, expected, width=None, force=False):
-        assert self.formatters_register is not None, 'You have to setup custom `formatters_register` attribute'
+        assert self.formatters_register is not None, ('You have to setup custom '
+                                                      '`formatters_register` attribute')
         super(CustomFormatterTestCase, self).assertFormats(code, expected, width=width, force=force,
                                                            formatters_register=self.formatters_register)
 
 class UnbreakableTupleFormatterTestCase(CustomFormatterTestCase):
 
-    formatters_register = dict(base.formatters,
-                               **{UnbreakableTupleFormatter.ast_type: UnbreakableTupleFormatter})
-
+    custom_formatters = [UnbreakableTupleFormatter]
 
     def test_alignment(self):
         code = '(   1,   2,  3)'
@@ -34,3 +36,14 @@ class UnbreakableTupleFormatterTestCase(CustomFormatterTestCase):
              ('Country', 'Country'),
              ('Decades', 'Decades')]""")
         self.assertFormats(code, code, width=3, force=True)
+
+
+class CallFormatterWithLineBreakingFallback(CustomFormatterTestCase):
+
+    custom_formatters = [CallFormatterWithLineBreakingFallback]
+
+    def test_formatting(self):
+        code = dedent("""\
+                function(
+                    1, 2)""")
+        self.assertFormats(code, code)
