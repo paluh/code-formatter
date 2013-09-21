@@ -4,6 +4,9 @@ from .. import base
 from ..code import CodeBlock, CodeLine
 from ..exceptions import NotEnoughSpace
 
+__all__ = ['UnbreakableListOfExpressionFormatter', 'LinebreakingListOfExpressionFormatter',
+           'UnbreakableTupleFormatter', 'LinebreakingAttributeFormatter']
+
 
 class UnbreakableListOfExpressionFormatter(base.ListOfExpressionsFormatter):
 

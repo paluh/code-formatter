@@ -1,7 +1,11 @@
 import ast
 
 from . import base
+from . import extras
 from .exceptions import NotEnoughSpace
+
+
+__all__ = ['base', 'extras', 'format_code', 'NotEnoughSpace']
 
 
 def _format_code(code, width, formatters_register, force=False):
