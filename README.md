@@ -38,18 +38,18 @@ One of main principles of this project is to make this library easily extensible
 
 ## Customizing formatters
 
-You can easily customize single or bunch of formatters - subclass given formatter and override it's `_format_code` method. Lets use some extra formatter (`code_formatter.extra.UnbreakableTupleFormatter`) as an example:
+You can easily customize single or bunch of formatters - subclass given formatter and override it's `_format_code` method. Lets use some fancy formatter (from `code_formatter.extras`) as an example:
 
     >>> from code_formatter.base import formatters, format_code
-    >>> from code_formatter.extra import UnbreakableTupleFormatter
+    >>> from code_formatter.extras import UnbreakableTupleFormatter
     >>> my_formatters = dict(formatters,
                              **{UnbreakableTupleFormatter.ast_type: UnbreakableTupleFormatter})
     >>> format_code(code, formatters_register=my_formatters)
 
-For more examples check `code_formatter.extra` package (especially `tests` module there).
+For more examples check `code_formatter.extras` package (especially `tests` module there).
 
 ## Extra formatters
-By default this package provides basic formatters (`code_formatter.base`) which I'm trying to keep as simple/straightforward as possible. I'm also want to provide one and exactly one formatter for givent `ast` node type. All additional formatters (usually more funny :-P) goes into `code_formatter.extra` package, so don't hesitate and check them.
+By default this package provides basic formatters (`code_formatter.base`) which I'm trying to keep as simple/straightforward as possible. I'm also want to provide one and exactly one formatter for givent `ast` node type. All additional formatters (usually more funny :-P) goes into `code_formatter.extras` package, so don't hesitate and check them.
 
 # Hacking
 

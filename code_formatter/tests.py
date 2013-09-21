@@ -7,7 +7,7 @@ import unittest
 from . import format_code
 from .base import formatters
 from .code import CodeBlock, CodeLine
-from .extra import tests
+from .extras import tests
 from .exceptions import NotEnoughSpace
 from .utils import FormatterTestCase
 
