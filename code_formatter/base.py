@@ -677,6 +677,7 @@ class ListOfExpressionsFormatter(CodeFormatter):
 class CallFormatter(ExpressionFormatter):
 
     ast_type = ast.Call
+    ListOfExpressionsFormatter = ListOfExpressionsFormatter
 
     @register
     class KeywordArg(ExpressionFormatter):
@@ -723,8 +724,8 @@ class CallFormatter(ExpressionFormatter):
         super(CallFormatter, self).__init__(*args, **kwargs)
         self._func_formatter = self.get_formatter(self.expr.func)
         self._arguments_formatters = self._get_arguments_formatters()
-        self._arguments_formatter = ListOfExpressionsFormatter(self._arguments_formatters,
-                                                               self.formatters_register)
+        self._arguments_formatter = self.ListOfExpressionsFormatter(self._arguments_formatters,
+                                                                    self.formatters_register)
 
     @property
     def formatable(self):
@@ -763,6 +764,7 @@ class CallFormatter(ExpressionFormatter):
 class DictionaryFormatter(ExpressionFormatter):
 
     ast_type = ast.Dict
+    ListOfExpressionsFormatter = ListOfExpressionsFormatter
 
     class Item(CodeFormatter):
 
@@ -789,7 +791,8 @@ class DictionaryFormatter(ExpressionFormatter):
         expressions = [DictionaryFormatter.Item(k, v, formatters_register=self.formatters_register,
                                                 parent=self)
                        for (k, v) in zip(self.expr.keys, self.expr.values)]
-        self._items_formatter = ListOfExpressionsFormatter(expressions, self.formatters_register)
+        self._items_formatter = self.ListOfExpressionsFormatter(expressions,
+                                                                self.formatters_register)
 
     def _format_code(self, width, suffix=None):
         block = CodeBlock([CodeLine(['{'])])
@@ -803,10 +806,12 @@ class DictionaryFormatter(ExpressionFormatter):
 class ListFormatter(ExpressionFormatter):
 
     ast_type = ast.List
+    ListOfExpressionsFormatter = ListOfExpressionsFormatter
 
     def __init__(self, *args, **kwargs):
         super(ListFormatter, self).__init__(*args, **kwargs)
-        self._items_formatter = ListOfExpressionsFormatter.from_expressions(self.expr.elts, self)
+        self._items_formatter = (self.ListOfExpressionsFormatter
+                                     .from_expressions(self.expr.elts, self))
 
     def _format_code(self, width, suffix=None):
         block = CodeBlock.from_tokens('[')
@@ -855,10 +860,12 @@ class ListComprehensionFormatter(ExpressionFormatter):
 class SetFormatter(ExpressionFormatter):
 
     ast_type = ast.Set
+    ListOfExpressionsFormatter = ListOfExpressionsFormatter
 
     def __init__(self, *args, **kwargs):
         super(SetFormatter, self).__init__(*args, **kwargs)
-        self._items_formatter = ListOfExpressionsFormatter.from_expressions(self.expr.elts, self)
+        self._items_formatter = (self.ListOfExpressionsFormatter
+                                     .from_expressions(self.expr.elts, self))
 
 
     def _format_code(self, width, suffix=None):
@@ -1186,6 +1193,7 @@ class TupleFormatter(ExpressionFormatter):
 class ParameterListFormatter(AstFormatter):
 
     ast_type = ast.arguments
+    ListOfExpressionsFormatter = ListOfExpressionsFormatter
 
     class KwargFormatter(CodeFormatter):
 
@@ -1247,8 +1255,8 @@ class ParameterListFormatter(AstFormatter):
                                   in zip(self.expr.args[len(self.expr.args) -
                                                         len(self.expr.defaults):],
                                          self.expr.defaults)]
-        self._paramters_formatter = ListOfExpressionsFormatter(parameters_formatters,
-                                                               self.formatters_register)
+        self._paramters_formatter = self.ListOfExpressionsFormatter(parameters_formatters,
+                                                                    self.formatters_register)
 
     def _format_code(self, width, suffix=None):
         return self._paramters_formatter.format_code(width)
@@ -1342,12 +1350,13 @@ class ReturnFormatter(StatementFormatter):
 class PrintFormatter(StatementFormatter):
 
     ast_type = ast.Print
+    ListOfExpressionsFormatter = ListOfExpressionsFormatter
 
     def _format_code(self, width, suffix=None):
         block = CodeBlock.from_tokens('print ')
         values_formatters = [self.get_formatter(e) for e in self.expr.values]
-        values_formatter = ListOfExpressionsFormatter(values_formatters,
-                                                      self.formatters_register)
+        values_formatter = self.ListOfExpressionsFormatter(values_formatters,
+                                                           self.formatters_register)
         values_block = values_formatter.format_code(width=width)
         if values_block.height > 1:
             block.append_tokens('(')
@@ -1390,6 +1399,8 @@ class RaiseFormatter(StatementFormatter):
 
 class ImportFormatterBase(StatementFormatter):
 
+    ListOfExpressionsFormatter = ListOfExpressionsFormatter
+
     @register
     class AliasFormatter(StatementFormatter):
 
@@ -1413,7 +1424,7 @@ class ImportFormatterBase(StatementFormatter):
         block = CodeBlock()
         aliases = sorted([alias for alias in self.expr.names], key=lambda a: a.name.lower())
 
-        aliases_formatter = ListOfExpressionsFormatter.from_expressions(aliases, self)
+        aliases_formatter = self.ListOfExpressionsFormatter.from_expressions(aliases, self)
         aliases_block = aliases_formatter.format_code(width)
         if aliases_block.height > 1:
             block.append_tokens('(')
@@ -1650,12 +1661,13 @@ class FunctionDefinitionFormatter(StatementFormatter):
 class ClassDefinitionFormater(StatementFormatter):
 
     ast_type = ast.ClassDef
+    ListOfExpressionsFormatter = ListOfExpressionsFormatter
 
     def _format_code(self, width, suffix=None):
         block = CodeBlock.from_tokens('class', ' ', self.expr.name)
         if self.expr.bases:
             block.append_tokens('(')
-            bases_formatter = ListOfExpressionsFormatter.from_expressions(self.expr.bases, self)
+            bases_formatter = self.ListOfExpressionsFormatter.from_expressions(self.expr.bases, self)
             bases_block = bases_formatter.format_code(width - block.width)
             block.merge(bases_block)
             block.append_tokens(')')

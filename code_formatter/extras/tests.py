@@ -25,7 +25,8 @@ class CustomFormatterTestCase(FormatterTestCase):
 
 class SingleLineContinuationsListOfExpressionFormatterTestCase(CustomFormatterTestCase):
 
-    custom_formatters = [SingleLineContinuationsListOfExpressionFormatter]
+    custom_formatters = [type('TupleFormatter', (base.TupleFormatter,),
+                              {'ListOfExpressionsFormatter': SingleLineContinuationsListOfExpressionFormatter})]
 
     def test_line_breaking_can_occure_only_on(self):
         code = dedent("""\
@@ -86,6 +87,12 @@ class CallFormatterWithLinebreakingFallback(CustomFormatterTestCase):
              instance.attr.attr_method(
                               1, 2)""")
         self.assertFormats(code, expected)
+
+    def test_breaking_occur_only_when_there_are_at_least_to_columns_profit(self):
+        code = dedent("""\
+             test(
+                 1)""")
+        self.assertRaises(NotEnoughSpace, lambda: self.assertFormats(code, code))
 
 
 class LinebreakingAttributeFormatterTestCase(CustomFormatterTestCase):

@@ -62,6 +62,8 @@ class CallFormatterWithLinebreakingFallback(base.CallFormatter):
             else:
                 # FIXME: this is really ugly way to detect last method access subexpression
                 indent = max(unicode(block.last_line).rfind('.'), 0) + len(CodeLine.INDENT)
+                if indent + 1 >= block.last_line.width:
+                    continue
                 block.extend(subblock, indent=indent)
                 break
         return block

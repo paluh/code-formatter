@@ -1508,13 +1508,6 @@ _test_loader = unittest.TestLoader()
 test_suite = _test_loader.loadTestsFromModule(tests)
 test_suite.addTests(_test_loader.loadTestsFromModule(sys.modules[__name__]))
 
-# FIXME: strange line break in arithmetic operation and
-#        unecessary brackets in conditional expression
-#   block.merge(lower_formatter.format_code(
-#                                   width - block.width -
-#                                   1, suffix=(suffix if not self.expr.upper and
-#                                                        not self.expr.step
-#                                                     else None)))
-# FIXME: Line breaking at width = 80??
+# FIXME: No line breaking at width = 80??
 #    def test_string_field_processing(self, Form=containers.Dict.of(scalars.String
 #                                                                          .named('test-argument'))):
