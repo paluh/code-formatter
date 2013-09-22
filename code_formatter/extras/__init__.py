@@ -8,13 +8,13 @@ __all__ = ['UnbreakableListOfExpressionFormatter', 'LinebreakingListOfExpression
            'UnbreakableTupleFormatter', 'LinebreakingAttributeFormatter']
 
 
-class SingleLineContinuationsListOfExpressionFormatter(base.ListOfExpressionsFormatter):
+class ListOfExpressionsWithSingleLineContinuations(base.ListOfExpressionsFormatter):
     """To use this formatter you have to configure it in all
     related formatters (TupleFormatter, CallFormatter, etc.):
 
         class CustomTupleFormatter(base.TupleFormatter):
 
-            ListOfExpressionsFormatter = SingleLineContinuationsListOfExpressionFormatter
+            ListOfExpressionsFormatter = ListOfExpressionsWithSingleLineContinuations
 
         custom_formatters = dict(base.formatters, **{ast.Tuple: CustomTupleFormatter})
 
@@ -24,7 +24,7 @@ class SingleLineContinuationsListOfExpressionFormatter(base.ListOfExpressionsFor
 
         custom_formatters = dict(base.formatters,
                                  **{F.ast_type: type(F.__name__, (F,),
-                                                     {'ListOfExpressionsFormatter': SingleLineContinuationsListOfExpressionFormatter})
+                                                     {'ListOfExpressionsFormatter': ListOfExpressionsWithSingleLineContinuations})
                                     for F in [F for F in formatters if hasattr(F, 'ListOfExpressionsFormatter')]})
     """
 

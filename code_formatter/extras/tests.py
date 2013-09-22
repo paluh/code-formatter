@@ -5,7 +5,7 @@ from ..exceptions import NotEnoughSpace
 from ..utils import FormatterTestCase
 
 from . import (CallFormatterWithLinebreakingFallback, LinebreakingAttributeFormatter,
-               SingleLineContinuationsListOfExpressionFormatter,
+               ListOfExpressionsWithSingleLineContinuations,
                UnbreakableTupleFormatter)
 
 
@@ -23,10 +23,10 @@ class CustomFormatterTestCase(FormatterTestCase):
                                                            formatters_register=self.formatters_register)
 
 
-class SingleLineContinuationsListOfExpressionFormatterTestCase(CustomFormatterTestCase):
+class ListOfExpressionsWithSingleLineContinuationsTestCase(CustomFormatterTestCase):
 
     custom_formatters = [type('TupleFormatter', (base.TupleFormatter,),
-                              {'ListOfExpressionsFormatter': SingleLineContinuationsListOfExpressionFormatter})]
+                              {'ListOfExpressionsFormatter': ListOfExpressionsWithSingleLineContinuations})]
 
     def test_line_breaking_can_occure_only_on(self):
         code = dedent("""\
