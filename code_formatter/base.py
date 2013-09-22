@@ -539,7 +539,7 @@ class ListOfExpressionsFormatter(CodeFormatter):
             return self._format_code(width, suffix, line_width=line_width)
 
     # You can find second version of this class in extras:
-    # `code_formatter.extras.ListOfExpressionsWithSingleLineContinuations`
+    # `code_formatter.extras.ListOfExpressionsWithSingleLineContinuationsFormatter`
     #
     # * True - try to squash elements and continue line event if subelements
     #          are formatted in muliple lines already. This is really simple and
