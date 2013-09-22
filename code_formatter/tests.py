@@ -721,7 +721,6 @@ class BooleanOperationsTestCase(FormatterTestCase):
          z)""")
         self.assertFormats(code, expected)
 
-
     def test_brackets_are_preserved_in_case_of_mixed_operators_and_broken_line(self):
         # REGRESSION
         code = dedent("""\
@@ -1435,8 +1434,8 @@ class FuzzyTestCase(FormatterTestCase):
               'Latin'), ('Metal',
                          'Metal'),
              ('Misc',
-              'Misc'), ('New Age',
-                        'New Age'),
+              'Misc'), ('New Age', 'New '
+                                   'Age'),
              ('Pop',
               'Pop'), ('Public Radio',
                        'Public Radio'),
@@ -1509,3 +1508,6 @@ test_suite.addTests(_test_loader.loadTestsFromModule(sys.modules[__name__]))
 #                                   1, suffix=(suffix if not self.expr.upper and
 #                                                        not self.expr.step
 #                                                     else None)))
+# FIXME: Line breaking at width = 80??
+#    def test_string_field_processing(self, Form=containers.Dict.of(scalars.String
+#                                                                          .named('test-argument'))):

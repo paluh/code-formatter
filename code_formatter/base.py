@@ -28,6 +28,7 @@ class CodeFormatter(object):
 
     def __init__(self, formatters_register):
         self.formatters_register = formatters_register
+        self._known_max_width_of_failure = {}
 
     def get_formatter(self, expr, parent=None, formatters_register=None):
         formatters_register = (self.formatters_register if formatters_register is None
@@ -46,25 +47,22 @@ class CodeFormatter(object):
         raise NotImplementedError()
 
     def format_code(self, width, suffix=None):
-        # FIXME: this check should also take suffix into account
-        #        so we should check:
-        #        self._known_max_width_of_failure[suffix] >= width
-        if width <= 0 or (self._known_max_width_of_failure is not None and
-                          self._known_max_width_of_failure >= width):
+        if width <= 0 or (self._known_max_width_of_failure.get(suffix) is not None and
+                          self._known_max_width_of_failure[suffix] >= width):
             raise NotEnoughSpace()
 
         try:
             code = self._format_code(width, suffix)
         except NotEnoughSpace:
-            if (self._known_max_width_of_failure is None or
-                  self._known_max_width_of_failure < width):
-                self._known_max_width_of_failure = width
+            if (self._known_max_width_of_failure.get(suffix) is None or
+                  self._known_max_width_of_failure[suffix] < width):
+                self._known_max_width_of_failure[suffix] = width
             raise
 
         if code.width > width:
-            if (self._known_max_width_of_failure is None or
-                  self._known_max_width_of_failure < width):
-                self._known_max_width_of_failure = width
+            if (self._known_max_width_of_failure.get(suffix) is None or
+                  self._known_max_width_of_failure[suffix] < width):
+                self._known_max_width_of_failure[suffix] = width
             raise NotEnoughSpace()
         return code
 
@@ -640,20 +638,20 @@ class ListOfExpressionsFormatter(CodeFormatter):
             return self._format_line_break(width, suffix, line_width)
 
     def format_code(self, width, suffix=None, line_width=None):
-        if width <= 0 or (self._known_max_width_of_failure.get(line_width, None) is not None and
-                          self._known_max_width_of_failure[line_width] >= width):
+        if width <= 0 or (self._known_max_width_of_failure.get((suffix, line_width)) is not None and
+                          self._known_max_width_of_failure[(suffix, line_width)] >= width):
             raise NotEnoughSpace()
 
-        if (line_width, width) in self._cache:
-            return self._cache[(line_width, width)].copy()
+        if (width, suffix, line_width) in self._cache:
+            return self._cache[(width, suffix, line_width)].copy()
         try:
             code = self._format_code(width, suffix, line_width)
         except NotEnoughSpace:
-            if (self._known_max_width_of_failure.get(line_width, None) is None or
-                  self._known_max_width_of_failure[line_width] < width):
-                self._known_max_width_of_failure[line_width] = width
+            if (self._known_max_width_of_failure.get((suffix, line_width)) is None or
+                  self._known_max_width_of_failure[(suffix, line_width)] < width):
+                self._known_max_width_of_failure[(suffix, line_width)] = width
             raise
-        self._cache[(line_width, width)] = code.copy()
+        self._cache[(width, suffix, line_width)] = code.copy()
         return code
 
 
@@ -687,8 +685,8 @@ class CallFormatter(ExpressionFormatter):
     class StarArgsFormatter(CodeFormatter):
 
         def __init__(self, subexpression, prefix, formatters_register):
+            super(CallFormatter.StarArgsFormatter, self).__init__(formatters_register)
             self.subexpression = subexpression
-            self.formatters_register = formatters_register
             self.subexpression_formatter = self.formatters_register[type(self.subexpression)](self.subexpression,
                                                                                               formatters_register=self.formatters_register)
             self.prefix = prefix
@@ -744,18 +742,19 @@ class CallFormatter(ExpressionFormatter):
 
 
 @register
-class DictonaryFormatter(ExpressionFormatter):
+class DictionaryFormatter(ExpressionFormatter):
 
     ast_type = ast.Dict
 
-    class Item(ExpressionFormatter):
+    class Item(CodeFormatter):
 
-        def __init__(self, key, value, parent, formatters_register):
-            self.formatters_register = formatters_register
-            self.key = self.formatters_register[type(key)](key, parent=parent,
-                                                           formatters_register=formatters_register)
-            self.value = self.formatters_register[type(value)](value, parent=parent,
-                                                               formatters_register=formatters_register)
+        def __init__(self, key, value, formatters_register, parent):
+            super(DictionaryFormatter.Item, self).__init__(formatters_register)
+            self.parent = parent
+            self.key = self.formatters_register[type(key)](key, parent=self.parent,
+                                                           formatters_register=self.formatters_register)
+            self.value = self.formatters_register[type(value)](value, parent=self.parent,
+                                                               formatters_register=self.formatters_register)
 
         def _format_code(self, width, suffix=None):
             # FIXME: search for solution on failure
@@ -768,10 +767,10 @@ class DictonaryFormatter(ExpressionFormatter):
             return block
 
     def __init__(self, *args, **kwargs):
-        super(DictonaryFormatter, self).__init__(*args, **kwargs)
-        expressions = [DictonaryFormatter.Item(k, v, self, self.formatters_register)
-                       for k, v in zip(self.expr.keys,
-                                       self.expr.values)]
+        super(DictionaryFormatter, self).__init__(*args, **kwargs)
+        expressions = [DictionaryFormatter.Item(k, v, formatters_register=self.formatters_register,
+                                                parent=self)
+                       for (k, v) in zip(self.expr.keys, self.expr.values)]
         self._items_formatter = ListOfExpressionsFormatter(expressions, self.formatters_register)
 
     def _format_code(self, width, suffix=None):
@@ -1018,11 +1017,6 @@ class GeneratorFormatter(ExpressionFormatter):
 
     ast_type = ast.GeneratorExp
 
-    def __init__(self, expr, formatters_register, parent=None):
-        self.expr = expr
-        self.parent = parent
-        self.formatters_register = formatters_register
-
     def _format_code(self, width, suffix=None):
         value_formatter = self.get_formatter(self.expr.elt)
         with_brackets = (not self.parent or not isinstance(self.parent,
@@ -1178,10 +1172,10 @@ class ParameterListFormatter(AstFormatter):
     class KwargFormatter(CodeFormatter):
 
         def __init__(self, parameter, expression, parent, formatters_register):
+            super(ParameterListFormatter.KwargFormatter, self).__init__(formatters_register)
             self.parameter = parameter
             self.expression = expression
             self.parent = parent
-            super(ParameterListFormatter.KwargFormatter, self).__init__(formatters_register)
 
         def get_formatter(self, expression):
             return super(ParameterListFormatter.KwargFormatter,
@@ -1203,9 +1197,9 @@ class ParameterListFormatter(AstFormatter):
     class VarargFormatter(CodeFormatter):
 
         def __init__(self, vararg, parent, formatters_register):
+            super(ParameterListFormatter.VarargFormatter, self).__init__(formatters_register)
             self.vararg = vararg
             self.parent = parent
-            super(ParameterListFormatter.VarargFormatter, self).__init__(formatters_register)
 
         def get_formatter(self, expression):
             return super(ParameterListFormatter.VarargFormatter,
