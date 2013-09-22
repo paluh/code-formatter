@@ -593,20 +593,22 @@ class BinaryArithmeticOperationsTestCase(FormatterTestCase):
 
 class BinaryBitwiseOperation(FormatterTestCase):
     """
-    [5.8]
+    [5.7, 5.8]
+    +   shift_expr ::=  a_expr | shift_expr ( "<<" | ">>" ) a_expr
     +   and_expr ::=  shift_expr | and_expr "&" shift_expr
     +   xor_expr ::=  and_expr | xor_expr "^" and_expr
     +   or_expr  ::=  xor_expr | or_expr "|" xor_expr
     """
+    operators = ['|', '&', '^', '<<', '>>']
 
     def test_alignment(self):
-        for operator in ['|', '&', '^']:
+        for operator in self.operators:
             code = '8  %s  4' % operator
             expected = '8 %s 4' % operator
             self.assertFormats(code, expected)
 
     def test_wrapping(self):
-        for operator in ['|', '&', '^']:
+        for operator in self.operators:
             code = '88 %s 44' % operator
             expected = ('(88 %s\n'
                         ' 44)') % operator
@@ -774,11 +776,10 @@ class ConditionalExpressionsTestCase(FormatterTestCase):
 
 
 class LambdasTestCase(FormatterTestCase):
-    # FIXME: test old_lambda_form branch
     """
     [5.12] (parameter_list related tests are placed in FuncionDefinitionTestCase)
     +   lambda_form     ::=  "lambda" [parameter_list]: expression
-    +   old_lambda_form ::=  "lambda" [parameter_list]: old_expression
+    -   old_lambda_form ::=  "lambda" [parameter_list]: old_expression
     """
     def test_aligment(self):
         code = 'lambda x,y,z:x+y+z'
@@ -840,10 +841,10 @@ class OperatorPrecedenceTestCase(FormatterTestCase):
     +   not x                           Boolean NOT
     -   in, not in, is, is not,
     -   <, <=, >, >=, <>, !=, ==        Comparisons, including membership tests and identity tests
-    -   |                               Bitwise OR
-    -   ^                               Bitwise XOR
-    -   &                               Bitwise AND
-    -   <<, >>                          Shifts
+    +   |                               Bitwise OR
+    +   ^                               Bitwise XOR
+    +   &                               Bitwise AND
+    +   <<, >>                          Shifts
     -   +, -                            Addition and subtraction
     -   *, /, //, %                     Multiplication, division, remainder [8]
     -   +x, -x, ~x                      Positive, negative, bitwise NOT
@@ -883,13 +884,26 @@ class OperatorPrecedenceTestCase(FormatterTestCase):
     def test_bitwise_operators(self):
         code = '(((8 | 4) ^ (8 | 7)) & 3)'
         expected = '((8 | 4) ^ (8 | 7)) & 3'
-        self.assertEqual(format_code(code), expected)
+        self.assertFormats(code, expected)
+
+    def test_shifting_operators(self):
+        code = '(8 >> 4) << 2'
+        self.assertFormats(code, code)
+        code = '8 >> (4 << 2)'
+        self.assertFormats(code, code)
+
+    def test_shifting_operators_with_binary_arithmetics_operators_brackets_usage(self):
+        code = '8 >> (4 & 2)'
+        self.assertFormats(code, code)
+        code = '(8 >> 4) & 2'
+        expected = '8 >> 4 & 2'
+        self.assertFormats(code, expected)
 
     def test_brackets_are_preserved_for_different_operators_with_same_precendence(self):
         code = '8 / (2 * 4)'
         self.assertFormats(code, code)
 
-    def test_brackets_are_skiped_in_case_of_same_operators(self):
+    def test_brackets_are_skipped_in_case_of_same_operators(self):
         code = '1 + 1 + 1 + 1 + 1'
         self.assertFormats(code, code)
 

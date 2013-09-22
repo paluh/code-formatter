@@ -283,7 +283,6 @@ class CompareFormatter(OperationFormatter):
                              isinstance(self.parent, AttributeFormatter))
         return with_brackets
 
-
     def _format_operator_chain(self, width, operators, comparators):
         if not operators:
             return CodeBlock()
