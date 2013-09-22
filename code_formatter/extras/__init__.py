@@ -8,6 +8,11 @@ __all__ = ['UnbreakableListOfExpressionFormatter', 'LinebreakingListOfExpression
            'UnbreakableTupleFormatter', 'LinebreakingAttributeFormatter']
 
 
+class SingleLineContinuationsListOfExpressionFormatter(base.ListOfExpressionsFormatter):
+
+    multiline_continuation = False
+
+
 class UnbreakableListOfExpressionFormatter(base.ListOfExpressionsFormatter):
 
     def _format_code(self, width, suffix, line_width=None):

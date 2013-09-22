@@ -216,11 +216,6 @@ class BinaryOperationFormatter(OperationFormatter):
                                         type(self.parent.expr.op) is not type(self.expr.op)) or
                 isinstance(self.parent, AttributeFormatter))
 
-        #if ((not self.parent or not isinstance(self.parent, (OperationFormatter,
-        #                                                     CallFormatter, AttributeFormatter)) or
-        #     isinstance(self.parent, OperationFormatter) and
-        #     self.parent.priority < self.priority) and
-
 
 @register
 class BinaryArithmeticOperationFormatter(BinaryOperationFormatter):
@@ -543,6 +538,26 @@ class ListOfExpressionsFormatter(CodeFormatter):
         def format_code(self, width, suffix=None, line_width=None):
             return self._format_code(width, suffix, line_width=line_width)
 
+    # You can find second version of this class in extras:
+    # `code_formatter.extras.SingleLineContinuationsListOfExpressionFormatter`
+    #
+    # * True - try to squash elements and continue line event if subelements
+    #          are formatted in muliple lines already. This is really simple and
+    #          greedy and expected behaviour, so it is default. For example:
+    #
+    #       (('test '
+    #         'expression'), (z, y))
+    #
+    #
+    # * False - force joins only on single line of expressions. Line breaks can occur
+    #           only at the end of sublist or inside last element. This not obvious strategy
+    #           produces often more readable code, but it's behaviour is less expected.
+    #           Example formatting:
+    #
+    #       (('test expression'), (z,
+    #                              y))
+    multiline_continuation = True
+
 
     def __new__(cls, expressions_formatters, formatters_register, parent=None):
         if len(expressions_formatters) > 1:
@@ -589,16 +604,19 @@ class ListOfExpressionsFormatter(CodeFormatter):
             except NotEnoughSpace:
                 lower_boundry = curr_width
             else:
-                try:
-                    expressions_block = self._expressions_formatter.format_code(width -
-                                                                                expression_block.last_line.width -
-                                                                                separator.width,
-                                                                                suffix=suffix,
-                                                                                line_width=line_width)
-                except NotEnoughSpace:
-                    upper_boundry = curr_width
+                if not self.multiline_continuation and expression_block.height > 1:
+                    lower_boundry = curr_width
                 else:
-                    lower_boundry = succeeding_width = curr_width
+                    try:
+                        expressions_block = self._expressions_formatter.format_code(width -
+                                                                                    expression_block.last_line.width -
+                                                                                    separator.width,
+                                                                                    suffix=suffix,
+                                                                                    line_width=line_width)
+                    except NotEnoughSpace:
+                        upper_boundry = curr_width
+                    else:
+                        lower_boundry = succeeding_width = curr_width
 
             if succeeding_width and upper_boundry - succeeding_width <= 1:
                 if succeeding_width != curr_width:
@@ -1491,11 +1509,11 @@ def format_list_of_statements(parent, list_of_statements, width):
         block.extend(statement_formatter.format_code(width=width))
     return block
 
+
 @register
 class TryExceptFormatter(StatementFormatter):
 
     ast_type = ast.TryExcept
-
 
     @register
     class ExceptHandlerFormatter(StatementFormatter):
@@ -1515,7 +1533,6 @@ class TryExceptFormatter(StatementFormatter):
                                                    width - len(CodeLine.INDENT)),
                          indent=CodeLine.INDENT)
             return block
-
 
     def _format_code(self, width, suffix=None):
         block = CodeBlock.from_tokens('try:')
@@ -1549,7 +1566,6 @@ class TryFinallyFormatter(StatementFormatter):
         return block
 
 
-
 @register
 class AssignmentFormatter(StatementFormatter):
 
@@ -1567,6 +1583,7 @@ class AssignmentFormatter(StatementFormatter):
             block.append_tokens(' = ')
         block.merge(self.value_formatter.format_code(width - block.width))
         return block
+
 
 @register
 class AugAssigmentFormatter(StatementFormatter):

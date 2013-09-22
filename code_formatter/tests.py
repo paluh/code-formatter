@@ -822,6 +822,13 @@ class ExpressionListTestCase(FormatterTestCase):
                     ' fun(x, y))')
         self.assertFormats(code, expected)
 
+    def test_line_break_can_occur_everywhere(self):
+        code = dedent("""\
+            (var1 +
+             var2, var3,
+             var4)""")
+        self.assertFormats(code, code)
+
 
 class OperatorPrecedenceTestCase(FormatterTestCase):
     """
