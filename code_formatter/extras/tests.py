@@ -8,7 +8,6 @@ from . import (CallFormatterWithLinebreakingFallback, LinebreakingAttributeForma
                ListOfExpressionsWithSingleLineContinuationsFormatter,
                UnbreakableTupleFormatter)
 
-
 class CustomFormatterTestCase(FormatterTestCase):
 
     custom_formatters = []
@@ -25,8 +24,9 @@ class CustomFormatterTestCase(FormatterTestCase):
 
 class ListOfExpressionsWithSingleLineContinuationsFormatterTestCase(CustomFormatterTestCase):
 
-    custom_formatters = [type('TupleFormatter', (base.TupleFormatter,),
-                              {'ListOfExpressionsFormatter': ListOfExpressionsWithSingleLineContinuationsFormatter})]
+    custom_formatters = [type(F.__name__, (F,),
+                              {'ListOfExpressionsFormatter': ListOfExpressionsWithSingleLineContinuationsFormatter})
+                         for F in base.formatters.values() if hasattr(F, 'ListOfExpressionsFormatter')]
 
     def test_line_breaking_can_occure_only_on(self):
         code = dedent("""\
@@ -37,6 +37,13 @@ class ListOfExpressionsWithSingleLineContinuationsFormatterTestCase(CustomFormat
             (var1 + var2,
              var3, var4)""")
         self.assertFormats(code, expected)
+
+    def test_nested_list_wrapping(self):
+        # REGRESSION
+        code = dedent("""\
+            [['/m', 'm'], ['/s',
+                           's']]""")
+        self.assertFormats(code, code)
 
 
 class UnbreakableTupleFormatterTestCase(CustomFormatterTestCase):

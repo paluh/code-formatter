@@ -25,7 +25,7 @@ class ListOfExpressionsWithSingleLineContinuationsFormatter(base.ListOfExpressio
         custom_formatters = dict(base.formatters,
                                  **{F.ast_type: type(F.__name__, (F,),
                                                      {'ListOfExpressionsFormatter': ListOfExpressionsWithSingleLineContinuationsFormatter})
-                                    for F in [F for F in formatters if hasattr(F, 'ListOfExpressionsFormatter')]})
+                                    for F in base.formatters.values() if hasattr(F, 'ListOfExpressionsFormatter')})
     """
 
     multiline_continuation = False
