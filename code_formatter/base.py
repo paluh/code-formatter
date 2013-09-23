@@ -30,13 +30,18 @@ class CodeFormatter(object):
         self.formatters_register = formatters_register
         self._known_max_width_of_failure = {}
 
+    def get_formatter_class(self, expr, formatters_register=None):
+        formatters_register = (self.formatters_register if formatters_register is None
+                                                        else formatters_register)
+        return formatters_register[type(expr)]
+
     def get_formatter(self, expr, parent=None, formatters_register=None):
         formatters_register = (self.formatters_register if formatters_register is None
                                                         else formatters_register)
-        return formatters_register[type(expr)](expr=expr,
-                                               formatters_register=formatters_register,
-                                               parent=(self if parent is None
-                                                            else parent))
+        return self.get_formatter_class(expr, formatters_register=formatters_register)(expr=expr,
+                                              formatters_register=formatters_register,
+                                              parent=(self if parent is None
+                                                           else parent))
 
     def _extend_suffix(self, suffix, *tokens):
         if suffix:

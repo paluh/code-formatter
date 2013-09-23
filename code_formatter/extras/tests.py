@@ -1,3 +1,4 @@
+import ast
 from textwrap import dedent
 
 from .. import base
@@ -44,6 +45,33 @@ class ListOfExpressionsWithSingleLineContinuationsFormatterTestCase(CustomFormat
             [['/m', 'm'], ['/s',
                            's']]""")
         self.assertFormats(code, code)
+
+
+class CustomCallFormatterMixedWithListOfExpressionsWithSingleLineContinuationsFormatterTestCase(CustomFormatterTestCase):
+
+    # lets overwrite some formatters
+    _formatters = dict(base.formatters, **{F.ast_type: type(F.__name__, (F,), {'ListOfExpressionsFormatter': ListOfExpressionsWithSingleLineContinuationsFormatter})
+                   for F in base.formatters.values() if hasattr(F, 'ListOfExpressionsFormatter')})
+
+    # now lets overwrite some of them with generated types from LinebreakingAttributeFormatter
+    custom_formatters = dict(_formatters,
+            **{ast.Attribute: LinebreakingAttributeFormatter,
+               ast.Subscript: LinebreakingAttributeFormatter.subscription_formatter_factory(_formatters[ast.Subscript]),
+               ast.Call: LinebreakingAttributeFormatter.call_formatter_factory(_formatters[ast.Call])}).values()
+
+    def test_line_continuation_formatter_mixed_with_line_breaking_attribute_formatter(self):
+        code = dedent("""\
+            instance.attribute_instance.method(key1=value1, key2=value2, key3=value3,
+                                      list_param=['element 1', 'element 2',
+                                                  'element 3'], key4=v4)""")
+        # we expected mixed effect: attribute line breaking + line
+        expected = dedent("""\
+            (instance.attribute_instance
+                     .method(key1=value1, key2=value2, key3=value3,
+                             list_param=['element 1', 'element 2',
+                                         'element 3'],
+                             key4=v4))""")
+        self.assertFormats(code, expected)
 
 
 class UnbreakableTupleFormatterTestCase(CustomFormatterTestCase):
@@ -125,8 +153,8 @@ class LinebreakingAttributeFormatterTestCase(CustomFormatterTestCase):
     """
 
     custom_formatters = [LinebreakingAttributeFormatter,
-                         LinebreakingAttributeFormatter.CallFormatter,
-                         LinebreakingAttributeFormatter.SubscriptionFormatter]
+                         LinebreakingAttributeFormatter.call_formatter_factory(base.formatters[ast.Call]),
+                         LinebreakingAttributeFormatter.subscription_formatter_factory(base.formatters[ast.Subscript])]
 
     def test_identifiers_wrapping(self):
         code = 'fun().identifier1.identifier2'

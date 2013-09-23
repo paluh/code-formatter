@@ -88,8 +88,9 @@ class CallFormatterWithLinebreakingFallback(base.CallFormatter):
 
 
 class LinebreakingAttributeFormatter(base.AttributeFormatter):
-    """This is really expermiental formatter (it hacks ast structure in many places).
-    It handles line breaking on attributes references - for example this piece:
+    """This is really expermiental (API requires a lot of cleanup) formatter
+    (it hacks ast structure in many places). It handles line breaking on attributes
+    references - for example this piece:
 
          instance.method().attribute
 
@@ -98,38 +99,59 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
          (instance.method()
                   .attribute)
 
-    If you want to use it you have to replace also CallFormatter and SubscriptionFormatter - for example:
+    If you want to use it you have to replace AttributeFormatter (which is clear) but also
+    CallFormatter and SubscriptionFormatter by derived formatters from your formatters - for example:
 
         >>> from ast import Attribute, Call, Subscript
         >>> from code_formatter import base, format_code
         >>> from code_formatter.extra import LinebreakingAttributeFormatter
         >>> formatters = dict(base.formatters,
-        ...                   **{Call: LinebreakingAttributeFormatter.CallFormatter,
+        ...                   **{Call: LinebreakingAttributeFormatter.call_formatter_factory(base.formatters[ast.Call]),
         ...                      Attribute: LinebreakingAttributeFormatter,
-        ...                      Subscript: LinebreakingAttributeFormatter.SubscriptionFormatter})
+        ...                      Subscript: LinebreakingAttributeFormatter.subscription_formatter_factory(base.formatters[ast.Subscript])})
         >>> print format_code('instance.identifier.identifier()',
         ...                   formatters_register=formatters, width=3, force=True)
         (instance.identifier
                  .identifier())
+
+    Proposed API can change as it is not really intuitive. It allows mixing
+    multiple custom formatters with this one - for example you can provide custom Call
+    formatter class to `LinebreakingAttributeFormatter.call_formatter_factory`.
     """
 
-    class CallFormatter(CallFormatterWithLinebreakingFallback):
+    @classmethod
+    def call_formatter_factory(cls, CallFormatter):
+        class RedirectingCallFormatter(CallFormatter):
+            def __new__(cls, expr, formatters_register, parent=None, func_formatter=None):
+                # if func_formatter is not provided check wether we are not part of method call
+                if func_formatter is None and isinstance(expr.func, ast.Attribute):
+                    return LinebreakingAttributeFormatter(expr, formatters_register, parent)
+                return super(RedirectingCallFormatter, cls).__new__(cls,
+                                                             expr=expr,
+                                                             formatters_register=formatters_register,
+                                                             parent=parent,  func_formatter=func_formatter)
+            def __init__(self, expr, formatters_register, parent=None, func_formatter=None):
+                super(RedirectingCallFormatter, self).__init__(expr, formatters_register, parent)
+                if func_formatter:
+                    self._func_formatter = func_formatter
+        return RedirectingCallFormatter
 
-        def __new__(cls, expr, formatters_register, parent):
-            if isinstance(expr.func, ast.Attribute):
-                return LinebreakingAttributeFormatter(expr, formatters_register, parent)
-            return super(LinebreakingAttributeFormatter.CallFormatter, cls).__new__(cls,
-                                                                                    formatters_register,
-                                                                                    parent)
-
-    class SubscriptionFormatter(base.SubscriptionFormatter):
-
-        def __new__(cls, expr, formatters_register, parent):
-            if isinstance(expr.value, ast.Attribute):
-                return LinebreakingAttributeFormatter(expr, formatters_register, parent)
-            return super(LinebreakingAttributeFormatter.SubscriptionFormatter, cls).__new__(cls,
-                                                                                            formatters_register,
-                                                                                            parent)
+    @classmethod
+    def subscription_formatter_factory(cls, SubscriptionFormatter):
+        class RedirectingSubsriptionFormatter(SubscriptionFormatter):
+            def __new__(cls, expr, formatters_register, parent=None, value_formatter=None):
+                # if value_formatter is not provided check wether we are not part of attribute ref
+                if value_formatter is None and isinstance(expr.value, ast.Attribute):
+                    return LinebreakingAttributeFormatter(expr, formatters_register, parent)
+                return super(RedirectingSubsriptionFormatter, cls).__new__(cls,
+                                                             expr=expr,
+                                                             formatters_register=formatters_register,
+                                                             parent=parent,  value_formatter=value_formatter)
+            def __init__(self, expr, formatters_register, parent=None, value_formatter=None):
+                super(RedirectingSubsriptionFormatter, self).__init__(expr, formatters_register, parent)
+                if value_formatter:
+                    self._value_formatter = value_formatter
+        return RedirectingSubsriptionFormatter
 
 
     class _IdentifierFormatter(base.CodeFormatter):
@@ -147,18 +169,12 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
             return block
 
 
-    class _CallFormatter(base.CallFormatter):
-
-        def __init__(self, func_formatter, *args, **kwargs):
-            super(LinebreakingAttributeFormatter._CallFormatter, self).__init__(*args, **kwargs)
-            self._func_formatter = func_formatter
-
-
     class _SubscriptionFormatter(base.SubscriptionFormatter):
 
         def __init__(self, value_formatter, *args, **kwargs):
             super(LinebreakingAttributeFormatter._SubscriptionFormatter, self).__init__(*args, **kwargs)
             self._value_formatter = value_formatter
+
 
     def __init__(self, *args, **kwargs):
         super(base.AttributeFormatter, self).__init__(*args, **kwargs)
@@ -181,22 +197,21 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
                                                                          .attr),
                                                                     self.formatters_register,
                                                                     parent=self)
-                self._attrs_formatters.insert(0,
-                                              LinebreakingAttributeFormatter._CallFormatter(func_formatter, expr,
-                                                                                            self.formatters_register,
-                                                                                            parent=self))
+                CallFormatter = self.get_formatter_class(expr)
+                call_formater = CallFormatter(func_formatter=func_formatter, expr=expr,
+                                              formatters_register=self.formatters_register, parent=self)
+                self._attrs_formatters.insert(0, call_formater)
                 expr = expr.func.value
             elif isinstance(expr, ast.Subscript):
                 value_formatter = LinebreakingAttributeFormatter._IdentifierFormatter(
                                                                     (expr.value.attr),
                                                                     self.formatters_register,
                                                                     parent=self)
-                (self._attrs_formatters
-                     .insert(0,
-                             LinebreakingAttributeFormatter._SubscriptionFormatter(
-                                                                value_formatter, expr,
-                                                                self.formatters_register,
-                                                                parent=self)))
+                SubscriptionFormatter = self.get_formatter_class(expr)
+                subscription_formatter = SubscriptionFormatter(value_formatter=value_formatter, expr=expr,
+                                                                formatters_register=self.formatters_register,
+                                                                parent=self)
+                self._attrs_formatters.insert(0, subscription_formatter)
                 expr = expr.value.value
         self.value_formatter = self.get_formatter(expr)
 
