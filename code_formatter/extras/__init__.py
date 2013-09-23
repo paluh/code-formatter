@@ -140,10 +140,9 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
                 # if func_formatter is not provided check wether we are not part of method call
                 if func_formatter is None and isinstance(expr.func, ast.Attribute):
                     return LinebreakingAttributeFormatter(expr, formatters_register, parent)
-                return super(RedirectingCallFormatter, cls).__new__(cls,
-                                                             expr=expr,
-                                                             formatters_register=formatters_register,
-                                                             parent=parent,  func_formatter=func_formatter)
+                return super(RedirectingCallFormatter, cls).__new__(cls, expr=expr,
+                                                                    formatters_register=formatters_register,
+                                                                    parent=parent, func_formatter=func_formatter)
             def __init__(self, expr, formatters_register, parent=None, func_formatter=None):
                 super(RedirectingCallFormatter, self).__init__(expr, formatters_register, parent)
                 if func_formatter:
@@ -211,13 +210,13 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
         def _format(inside_scope, prefix=None):
             block = CodeBlock.from_tokens(prefix) if prefix else CodeBlock()
             block.merge(self.value_formatter.format_code(width - block.width))
-            attr_ref_indent = block.width
             separator = CodeBlock.from_tokens('.')
+            attr_ref_indent = block.width
             block.merge(separator.copy())
-            block.merge(self._attrs_formatters[0].format_code(
-                                                      width - attr_ref_indent,
-                                                      suffix=(suffix if len(self._attrs_formatters) == 1
-                                                                     else None)))
+            block.merge(self._attrs_formatters[0]
+                            .format_code(width - block.width,
+                                         suffix=(suffix if len(self._attrs_formatters) == 1
+                                                        else None)))
             for attr_formatter in self._attrs_formatters[1:]:
                 s = suffix if self._attrs_formatters[-1] == attr_formatter else None
                 try:

@@ -705,10 +705,10 @@ class CallFormatter(ExpressionFormatter):
             return block
 
 
-    class StarArgsFormatter(CodeFormatter):
+    class _StarArgsFormatter(CodeFormatter):
 
         def __init__(self, subexpression, prefix, formatters_register):
-            super(CallFormatter.StarArgsFormatter, self).__init__(formatters_register)
+            super(CallFormatter._StarArgsFormatter, self).__init__(formatters_register)
             self.subexpression = subexpression
             self.subexpression_formatter = self.formatters_register[type(self.subexpression)](self.subexpression,
                                                                                               formatters_register=self.formatters_register)
@@ -738,11 +738,11 @@ class CallFormatter(ExpressionFormatter):
     def _get_arguments_formatters(self):
         formatters = [self.get_formatter(e) for e in self.expr.args]
         if self.expr.starargs:
-            formatters.append(CallFormatter.StarArgsFormatter(self.expr.starargs, '*',
+            formatters.append(CallFormatter._StarArgsFormatter(self.expr.starargs, '*',
                                                               formatters_register=self.formatters_register))
         formatters += [self.get_formatter(e) for e in self.expr.keywords]
         if self.expr.kwargs:
-            formatters.append(CallFormatter.StarArgsFormatter(self.expr.kwargs, '**',
+            formatters.append(CallFormatter._StarArgsFormatter(self.expr.kwargs, '**',
                                                                formatters_register=self.formatters_register))
         return formatters
 
@@ -1012,14 +1012,13 @@ class SliceFormatter(ExpressionFormatter):
 
         if self._upper_formatter:
             block.merge(self._upper_formatter
-                            .format_code(width - block.width -
-                                         1, suffix=(suffix if not self.expr.step
-                                                           else None)))
+                            .format_code(width - block.width,
+                                         suffix=(suffix if not self.expr.step
+                                                        else None)))
         if self._step_formatter:
             block.append_tokens(':')
-            block.merge(self._step_formatter.format_code(width -
-                                                         block.width -
-                                                         1, suffix=suffix))
+            block.merge(self._step_formatter.format_code(width - block.width,
+                                                         suffix=suffix))
         if not self._upper_formatter and not self._step_formatter:
             block.merge(suffix)
         return block

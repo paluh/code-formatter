@@ -73,6 +73,12 @@ class CustomCallFormatterMixedWithListOfExpressionsWithSingleLineContinuationsFo
                              key4=v4))""")
         self.assertFormats(code, expected)
 
+    def test(self):
+        code = dedent("""\
+                r.m(_register=register,
+                    parent=parent,
+                    func_formatter=fun)""")
+        self.assertFormats(code, code, width=37)
 
 class UnbreakableTupleFormatterTestCase(CustomFormatterTestCase):
 
