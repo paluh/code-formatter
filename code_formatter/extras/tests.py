@@ -177,6 +177,34 @@ class LinebreakingAttributeFormatterTestCase(CustomFormatterTestCase):
                   .method3())""")
         self.assertFormats(code, expected)
 
+    def test_wrapping_skips_parentheses_inside_function_call(self):
+        code = 'fun(instance.method1().method2())'
+        expected = dedent("""\
+            fun(instance.method1()
+                        .method2())""")
+        self.assertFormats(code, expected)
+
+    def test_wrapping_skips_parentheses_inside_list(self):
+        code = '[instance.method1().method2()]'
+        expected = dedent("""\
+            [instance.method1()
+                     .method2()]""")
+        self.assertFormats(code, expected)
+
+    def test_wrapping_skips_parentheses_inside_nested_binary_operation(self):
+        code = 'fun(8 + instance.method1().method2())'
+        expected = dedent("""\
+            fun(8 + instance.method1()
+                            .method2())""")
+        self.assertFormats(code, expected)
+
+    def test_wrapping_uses_parentheses_inside_binary_operation_when_necessary(self):
+        code = '8 + instance.method1().method2()'
+        expected = dedent("""\
+            8 + (instance.method1()
+                         .method2())""")
+        self.assertFormats(code, expected)
+
     def test_suffix_passing_for_single_element_chain(self):
         code = 'method1(instance2.method2)'
         self.assertFormats(code, code)

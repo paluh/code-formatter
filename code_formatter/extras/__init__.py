@@ -207,23 +207,25 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
         self.value_formatter = self.get_formatter(expr)
 
     def _format_code(self, width, continuation, suffix):
-        def _format(inside_scope, prefix=None):
+        def _format(continuation, prefix=None):
             block = CodeBlock.from_tokens(prefix) if prefix else CodeBlock()
             block.merge(self.value_formatter.format_code(width - block.width))
             separator = CodeBlock.from_tokens('.')
             attr_ref_indent = block.width
             block.merge(separator.copy())
             block.merge(self._attrs_formatters[0]
-                            .format_code(width - block.width, continuation,
+                            .format_code(width - block.width, False,
                                          suffix=(suffix if len(self._attrs_formatters) == 1
                                                         else None)))
             for attr_formatter in self._attrs_formatters[1:]:
                 s = suffix if self._attrs_formatters[-1] == attr_formatter else None
                 try:
-                    attr_block = attr_formatter.format_code(width - block.last_line.width - separator.width, continuation, suffix=s)
+                    attr_block = attr_formatter.format_code(width - block.last_line.width -
+                                                            separator.width,
+                                                            False, suffix=s)
 
                 except NotEnoughSpace:
-                    if not inside_scope:
+                    if not continuation:
                         raise
                     block.extend(separator, indent=attr_ref_indent)
                     block.merge(attr_formatter.format_code(width - attr_ref_indent, continuation, suffix=s))
@@ -232,9 +234,9 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
                     block.merge(attr_block)
             return block
         try:
-            return _format(self._inside_scope())
+            return _format(continuation)
         except NotEnoughSpace:
-            if self._inside_scope():
+            if continuation:
                 raise
         suffix = self._extend_suffix(suffix, ')')
         return _format(True, '(')

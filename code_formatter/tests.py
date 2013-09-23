@@ -552,6 +552,14 @@ class BinaryArithmeticOperationsTestCase(FormatterTestCase):
                         ' var3)' % (op, op))
             self.assertFormats(code, expected)
 
+    def test_long_wrapping(self):
+        # REGRESSION
+        code = '1 + 2 + 3'
+        expected = ('(1 +\n'
+                    ' 2 +\n'
+                    ' 3)')
+        self.assertFormats(code, expected, width=4)
+
     def test_subexpressions_adds_parentheses_when_necessary(self):
         code = '(x+y+z)*(u+v+w)'
         expected = '(x + y + z) * (u + v + w)'
