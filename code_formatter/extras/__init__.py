@@ -64,7 +64,7 @@ class CallFormatterWithLinebreakingFallback(base.CallFormatter):
         except NotEnoughSpace:
              if not self._arguments_formatters:
                 raise
-        suffix = self._extend_suffix(suffix, ')')
+        suffix = self._append_to_suffix(suffix, ')')
         for i in range(width+1):
             curr_width = width - i
             block = self._func_formatter.format_code(curr_width)
@@ -236,5 +236,5 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
         except NotEnoughSpace:
             if continuation:
                 raise
-        suffix = self._extend_suffix(suffix, ')')
+        suffix = self._append_to_suffix(suffix, ')')
         return _format(True, '(')
