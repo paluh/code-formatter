@@ -38,6 +38,18 @@ One of main principles of this project is to make this library easily extensible
 
 ## Customizing formatters
 
+### Base formatters
+
+Default formatters (`code_formatter.base`) follow simple logic:
+
+    * use as much space as possible (it tries to find formatting with maximal width, which is lower or equal to given value)
+
+    * if you use `force` parameter in `format_code` helper it uses above strategy, but in case of failure (desired width is to small for given statement) it tries to find smallest possible width which allows formatting
+
+Above algorithm generates really compact formatting and is quite easy to follow and test. And what is really important, it is quite simple and we all know that "simple is better than complex"... so I've decided to use it as a base. But as "readability counts" there is a lot of space for possible customization of formatting strategy. I've created `extras` package for such extentions (contributions welcome).
+
+### Custom formatters
+
 You can easily customize single or bunch of formatters - subclass given formatter and override it's `_format_code` method. Lets use some fancy formatter (from `code_formatter.extras`) as an example:
 
     >>> from format_code improt base, format_code
