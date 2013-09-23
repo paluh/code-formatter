@@ -9,8 +9,8 @@ __all__ = ['UnbreakableListOfExpressionFormatter', 'LinebreakingListOfExpression
 
 
 class ListOfExpressionsWithSingleLineContinuationsFormatter(base.ListOfExpressionsFormatter):
-    """To use this formatter you have to configure it in all
-    related formatters (TupleFormatter, CallFormatter, etc.):
+    """To use this formatter you have to configure it in all related
+    formatters (TupleFormatter, CallFormatter, etc.):
 
         class CustomTupleFormatter(base.TupleFormatter):
 
@@ -18,8 +18,8 @@ class ListOfExpressionsWithSingleLineContinuationsFormatter(base.ListOfExpressio
 
         custom_formatters = dict(base.formatters, **{ast.Tuple: CustomTupleFormatter})
 
-    There is convention to use `ListOfExpressionsFormatter` in all formatters which are
-    using ListOfExpressionsFormatter internally so whole customization can be done in
+    There is convention to use `ListOfExpressionsFormatter` attribute in all formatters which
+    use ListOfExpressionsFormatter internally, so whole customization can be done in
     more automatic manner:
 
         custom_formatters = dict(base.formatters,
@@ -88,8 +88,8 @@ class CallFormatterWithLinebreakingFallback(base.CallFormatter):
 
 
 class LinebreakingAttributeFormatter(base.AttributeFormatter):
-    """This is really expermiental (API requires a lot of cleanup) formatter
-    (it hacks ast structure in many places). It handles line breaking on attributes
+    """This is really expermiental (it requires API requires cleanup and it hacks
+    ast structure in many places) formatter. It handles line breaking on attributes
     references - for example this piece:
 
          instance.method().attribute
@@ -99,7 +99,7 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
          (instance.method()
                   .attribute)
 
-    If you want to use it you have to replace AttributeFormatter (which is clear) but also
+    If you want to use it you have to replace AttributeFormatter (which is quite obvious) but also
     CallFormatter and SubscriptionFormatter by derived formatters from your formatters - for example:
 
         >>> from ast import Attribute, Call, Subscript
@@ -118,6 +118,20 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
     multiple custom formatters with this one - for example you can provide custom Call
     formatter class to `LinebreakingAttributeFormatter.call_formatter_factory`.
     """
+    class _IdentifierFormatter(base.CodeFormatter):
+
+        def __init__(self, identifier, formatters_register, parent):
+            self.identifier = identifier
+            self.parent = parent
+            super(LinebreakingAttributeFormatter._IdentifierFormatter,
+                  self).__init__(formatters_register)
+
+        def _format_code(self, width, suffix=None):
+            block = CodeBlock.from_tokens(self.identifier)
+            if suffix is not None:
+                block.merge(suffix)
+            return block
+
 
     @classmethod
     def call_formatter_factory(cls, CallFormatter):
@@ -152,28 +166,6 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
                 if value_formatter:
                     self._value_formatter = value_formatter
         return RedirectingSubsriptionFormatter
-
-
-    class _IdentifierFormatter(base.CodeFormatter):
-
-        def __init__(self, identifier, formatters_register, parent):
-            self.identifier = identifier
-            self.parent = parent
-            super(LinebreakingAttributeFormatter._IdentifierFormatter,
-                  self).__init__(formatters_register)
-
-        def _format_code(self, width, suffix=None):
-            block = CodeBlock.from_tokens(self.identifier)
-            if suffix is not None:
-                block.merge(suffix)
-            return block
-
-
-    class _SubscriptionFormatter(base.SubscriptionFormatter):
-
-        def __init__(self, value_formatter, *args, **kwargs):
-            super(LinebreakingAttributeFormatter._SubscriptionFormatter, self).__init__(*args, **kwargs)
-            self._value_formatter = value_formatter
 
 
     def __init__(self, *args, **kwargs):

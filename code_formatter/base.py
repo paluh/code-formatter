@@ -770,10 +770,10 @@ class DictionaryFormatter(ExpressionFormatter):
     ast_type = ast.Dict
     ListOfExpressionsFormatter = ListOfExpressionsFormatter
 
-    class Item(CodeFormatter):
+    class _ItemFormatter(CodeFormatter):
 
         def __init__(self, key, value, formatters_register, parent):
-            super(DictionaryFormatter.Item, self).__init__(formatters_register)
+            super(DictionaryFormatter._ItemFormatter, self).__init__(formatters_register)
             self.parent = parent
             self.key = self.formatters_register[type(key)](key, parent=self.parent,
                                                            formatters_register=self.formatters_register)
@@ -792,8 +792,9 @@ class DictionaryFormatter(ExpressionFormatter):
 
     def __init__(self, *args, **kwargs):
         super(DictionaryFormatter, self).__init__(*args, **kwargs)
-        expressions = [DictionaryFormatter.Item(k, v, formatters_register=self.formatters_register,
-                                                parent=self)
+        expressions = [DictionaryFormatter._ItemFormatter(k, v,
+                                                          formatters_register=self.formatters_register,
+                                                          parent=self)
                        for (k, v) in zip(self.expr.keys, self.expr.values)]
         self._items_formatter = self.ListOfExpressionsFormatter(expressions,
                                                                 self.formatters_register)

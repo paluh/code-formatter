@@ -1349,7 +1349,7 @@ class FuzzyTestCase(FormatterTestCase):
                                                                                   'on_product_page']))])""")
         self.assertFormats(code, code)
 
-    def test_nested_statement_formatting(self):
+    def test_nested_expressions_formatting(self):
         code = dedent("""\
         admin_site = AdminSite([
                 ProductAdmin(model=TShirt, extra_context=admin_context, formsets=[
