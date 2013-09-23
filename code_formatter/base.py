@@ -10,8 +10,7 @@ from .exceptions import NotEnoughSpace
 
 
 # It's better to avoid metaclasses in this case - simple register is sufficient and
-# you can customize it really easily - check API usage examples in README.md
-
+# it can be customized quite easily
 formatters = {}
 
 def register(cls):
@@ -341,7 +340,12 @@ class BooleanOperationFormatter(BinaryOperationFormatter):
 
     ast_type = ast.BoolOp
 
-    def _format_code(self, width, continuation, suffix):
+    def __init__(self, *args, **kwargs):
+        super(BooleanOperationFormatter, self).__init__(*args, **kwargs)
+        self._operator_formatter = self.get_formatter(self.expr.op)
+        self._values_formatters = [self.get_formatter(v) for v in self.expr.values]
+
+    def __format_code(self, width, continuation, suffix):
         def _format(with_parentheses):
             block = CodeBlock()
             if with_parentheses:
@@ -382,6 +386,42 @@ class BooleanOperationFormatter(BinaryOperationFormatter):
         if suffix:
             block.merge(suffix)
         return block
+
+    def _format_code(self, width, continuation, suffix):
+        def _format(continuation, prefix=None):
+            block = CodeBlock.from_tokens(prefix) if prefix else CodeBlock()
+            indent = block.width * ' '
+            block.merge(self._values_formatters[0]
+                            .format_code(width - block.width,
+                                         continuation=continuation))
+            for value_formatter in self._values_formatters[1:]:
+                s = suffix if value_formatter is self._values_formatters[-1] else None
+                try:
+                    operator_block = self._operator_formatter.format_code(width - 2)
+                    value_block = value_formatter.format_code(width - block.width -
+                                                              operator_block.width - 2,
+                                                              continuation=continuation,
+                                                              suffix=s)
+                    block.merge(operator_block, separator=' ')
+                    block.merge(value_block, separator=' ')
+                except NotEnoughSpace:
+                    if not continuation:
+                        raise
+                    operator_block = self._operator_formatter.format_code(width - 1)
+                    value_block = value_formatter.format_code(width - len(indent),
+                                                              continuation=continuation,
+                                                              suffix=s)
+                    block.merge(operator_block, separator=' ')
+                    block.extend(value_block, indent)
+            return block
+        if not self.are_parentheses_required():
+            try:
+                return _format(continuation)
+            except NotEnoughSpace:
+                if continuation:
+                    raise
+        suffix = self._extend_suffix(suffix, ')')
+        return _format(True, '(')
 
 
 @register
@@ -780,7 +820,7 @@ class DictionaryFormatter(ExpressionFormatter):
             block = self.key.format_code(width - len(separator) - 2 -
                                          (suffix or CodeBlock()).width)
             block.lines[-1].append(separator)
-            block.merge(self.value.format_code(width - block.width, continuation, suffix=suffix),
+            block.merge(self.value.format_code(width - block.width, True, suffix=suffix),
                         separator=' ')
             return block
 
@@ -796,7 +836,9 @@ class DictionaryFormatter(ExpressionFormatter):
     def _format_code(self, width, continuation, suffix):
         block = CodeBlock([CodeLine(['{'])])
         suffix = self._extend_suffix(suffix, '}')
-        subblock = self._items_formatter.format_code(width-block.width, continuation, suffix=suffix)
+        subblock = self._items_formatter.format_code(width - block.width,
+                                                     continuation=True,
+                                                     suffix=suffix)
         block.merge(subblock)
         return block
 
@@ -815,7 +857,9 @@ class ListFormatter(ExpressionFormatter):
     def _format_code(self, width, continuation, suffix):
         block = CodeBlock.from_tokens('[')
         suffix = self._extend_suffix(suffix, ']')
-        subblock = self._items_formatter.format_code(width - block.width, continuation, suffix=suffix)
+        subblock = self._items_formatter.format_code(width - block.width,
+                                                     continuation=True,
+                                                     suffix=suffix)
         block.merge(subblock)
         if block.width > width:
             raise NotEnoughSpace()

@@ -719,15 +719,6 @@ class BooleanOperationsTestCase(FormatterTestCase):
         fun((value or Value()).width)""")
         self.assertFormats(code, code)
 
-    def test_parentheses_are_skiped_in_case_of_same_priority_operators(self):
-        # REGRESSION
-        code = '(x or y) or z'
-        expected = dedent("""\
-        (x or
-         y or
-         z)""")
-        self.assertFormats(code, expected)
-
     def test_parentheses_are_preserved_in_case_of_mixed_operators_and_broken_line(self):
         # REGRESSION
         code = dedent("""\
@@ -748,6 +739,34 @@ class BooleanOperationsTestCase(FormatterTestCase):
         code = 'fun(not x)'
         self.assertFormats(code, code)
 
+    def test_parentheses_are_skipped_in_case_of_same_operators(self):
+        # REGRESSION
+        code = '(x or y) or z'
+        expected = dedent("""\
+        (x or
+         y or
+         z)""")
+        self.assertFormats(code, expected)
+
+    def test_wrapping_skips_unnecessary_parentheses(self):
+        code = dedent("""\
+            (x or
+             y and
+             z)""")
+        self.assertFormats(code, code)
+
+    def test_wrapping_subexpression_uses_parentheses_if_necessary(self):
+        # should be expand this to single "expression"
+        code = dedent("""\
+            x or (y and
+                  z)""")
+        self.assertFormats(code, code)
+
+    def test_wrapping_uses_parentheses_if_necessary_for_same_operators(self):
+        code = dedent("""\
+            (x or y or
+             z)""")
+        self.assertFormats(code, code)
 
 class ConditionalExpressionsTestCase(FormatterTestCase):
     """
