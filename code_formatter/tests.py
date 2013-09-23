@@ -43,13 +43,13 @@ class LiteralsTestCase(FormatterTestCase):
                                  " 'and\\n'\n"
                                  " 'some short')")
 
-    def test_string_wrapping_skips_brackets_in_function_call(self):
+    def test_string_wrapping_skips_parentheses_in_function_call(self):
         code = "fun('long string')"
         expected = ("fun('long '\n"
                     "    'string')")
         self.assertFormats(code, expected)
 
-    def test_string_wrapping_skips_brackets_in_dictionary_expression(self):
+    def test_string_wrapping_skips_parentheses_in_dictionary_expression(self):
         code = "{'key': 'long string'}"
         expected = ("{'key': 'long '\n"
                     "        'string'}")
@@ -108,7 +108,7 @@ class ListDisplaysTestCase(FormatterTestCase):
                     ' if x > 5]')
         self.assertFormats(code, expected)
 
-    def test_tuple_brackets_are_preserved(self):
+    def test_tuple_parentheses_are_preserved(self):
         code = '[(x, y) for (x, y) in iterable]'
         self.assertFormats(code, code)
 
@@ -142,7 +142,7 @@ class GeneratorExpressionsTestCase(FormatterTestCase):
                     ' if x > 10)')
         self.assertFormats(code, expected)
 
-    def test_generator_inside_call_skips_brackets_when_possible(self):
+    def test_generator_inside_call_skips_parentheses_when_possible(self):
         code = 'function((x for x in iterable if x>10))'
         expected = 'function(x for x in iterable if x > 10)'
         self.assertEqual(format_code(code), expected)
@@ -152,12 +152,12 @@ class GeneratorExpressionsTestCase(FormatterTestCase):
 
         self.assertEqual(format_code(code), expected)
 
-    def test_generator_inside_call_preserves_brackets_when_necessary(self):
+    def test_generator_inside_call_preserves_parentheses_when_necessary(self):
         code = 'function((x, y) for x, y in iterable)'
         expected = 'function((x, y) for (x, y) in iterable)'
         self.assertFormats(code, expected)
 
-    def test_string_wrapping_inside_call_skips_brackets(self):
+    def test_string_wrapping_inside_call_skips_parentheses(self):
         code = "function(x='long string')"
         expected = ("function(x='long '\n"
                     "           'string')")
@@ -288,7 +288,7 @@ class AttributeRefTestCase(FormatterTestCase):
         self.assertEqual(format_code('instance.attribute   =  x'),
                          'instance.attribute = x')
 
-    def test_attribute_formatting_preserves_brackets_of_subexpression(self):
+    def test_attribute_formatting_preserves_parentheses_of_subexpression(self):
         # REGRESSION
         code = dedent("""\
             x.timegm((f(x=0) -
@@ -407,7 +407,7 @@ class CallsTestCase(FormatterTestCase):
         code = 'fun(     \n )'
         self.assertFormats(code, 'fun()')
 
-    def test_tuple_args_preserves_brackets(self):
+    def test_tuple_args_preserves_parentheses(self):
         code = 'fun((x,),(y,z))'
         self.assertEqual(format_code(code), 'fun((x,), (y, z))')
 
@@ -552,7 +552,7 @@ class BinaryArithmeticOperationsTestCase(FormatterTestCase):
                         ' var3)' % (op, op))
             self.assertFormats(code, expected)
 
-    def test_subexpressions_adds_brackets_when_necessary(self):
+    def test_subexpressions_adds_parentheses_when_necessary(self):
         code = '(x+y+z)*(u+v+w)'
         expected = '(x + y + z) * (u + v + w)'
         self.assertEqual(format_code(code), expected)
@@ -561,12 +561,12 @@ class BinaryArithmeticOperationsTestCase(FormatterTestCase):
         expected = 'x + y + z * u + v + w'
         self.assertEqual(format_code(code), expected)
 
-    def test_string_formatting_operator_forces_brackets_on_parameters_tuple(self):
+    def test_string_formatting_operator_forces_parentheses_on_parameters_tuple(self):
         code = "'value: %x, %y'%(1,2)"
         expected = "'value: %x, %y' % (1, 2)"
         self.assertEqual(format_code(code), expected)
 
-    def test_string_formatting_operator_preserves_parameter_without_brackets(self):
+    def test_string_formatting_operator_preserves_parameter_without_parentheses(self):
         code = "'value: %x'%1"
         expected = "'value: %x' % 1"
         self.assertEqual(format_code(code), expected)
@@ -661,14 +661,14 @@ class ComparisonsTestCase(FormatterTestCase):
                                                                               'spc': len(opt)*' '})
             self.assertFormats(code, expected)
 
-    def test_brackets_usage_with_mixed_expression(self):
+    def test_parentheses_usage_with_mixed_expression(self):
         code = '(x < y) | (z < v)'
         expected = ('((x < y) |\n'
                     ' (z < v))')
         self.assertFormats(code, expected)
 
 
-    def test_brackets_usage_in_assignemnt(self):
+    def test_parentheses_usage_in_assignemnt(self):
         code = 'r = (x < y) | (z < v)'
         expected = ('r = ((x < y) |\n'
                     '     (z < v))')
@@ -707,19 +707,19 @@ class BooleanOperationsTestCase(FormatterTestCase):
                         ' v)' % {'op': op})
             self.assertFormats(code, expected)
 
-    def test_wrapping_brackets_are_used_only_when_necessary(self):
+    def test_wrapping_parentheses_are_used_only_when_necessary(self):
         code = 'x or fun(y,z,v)'
         expected = ('x or fun(y, z,\n'
                     '         v)')
         self.assertFormats(code, expected)
 
-    def test_brackets_are_preserved_in_case_of_attr_ref_expression(self):
+    def test_parentheses_are_preserved_in_case_of_attr_ref_expression(self):
         # REGRESSION
         code = dedent("""\
         fun((value or Value()).width)""")
         self.assertFormats(code, code)
 
-    def test_brackets_are_skiped_in_case_of_same_priority_operators(self):
+    def test_parentheses_are_skiped_in_case_of_same_priority_operators(self):
         # REGRESSION
         code = '(x or y) or z'
         expected = dedent("""\
@@ -728,7 +728,7 @@ class BooleanOperationsTestCase(FormatterTestCase):
          z)""")
         self.assertFormats(code, expected)
 
-    def test_brackets_are_preserved_in_case_of_mixed_operators_and_broken_line(self):
+    def test_parentheses_are_preserved_in_case_of_mixed_operators_and_broken_line(self):
         # REGRESSION
         code = dedent("""\
             if x <= 0 or y is not None and y >= x:
@@ -771,8 +771,8 @@ class ConditionalExpressionsTestCase(FormatterTestCase):
                     '                                 else hour or datetime.datetime.now())')
         self.assertFormats(code, expected)
 
-    def test_inside_bigger_operation_brackets_are_forced(self):
-        code = """width - left_block.last_line.width - (2 if with_brackets else 1)"""
+    def test_inside_bigger_operation_parentheses_are_forced(self):
+        code = """width - left_block.last_line.width - (2 if with_parentheses else 1)"""
         self.assertFormats(code, code)
 
     def test_expression_with_lambda_form(self):
@@ -817,7 +817,7 @@ class ExpressionListTestCase(FormatterTestCase):
         expected = '3, 8 + 9, fun(x, y)'
         self.assertEqual(format_code(code), expected)
 
-    def test_nested_expression_list_preserves_brackets(self):
+    def test_nested_expression_list_preserves_parentheses(self):
         code = '((x,),(y,z))'
         self.assertEqual(format_code(code), '(x,), (y, z)')
 
@@ -897,18 +897,18 @@ class OperatorPrecedenceTestCase(FormatterTestCase):
         code = '8 >> (4 << 2)'
         self.assertFormats(code, code)
 
-    def test_shifting_operators_with_binary_arithmetics_operators_brackets_usage(self):
+    def test_shifting_operators_with_binary_arithmetics_operators_parentheses_usage(self):
         code = '8 >> (4 & 2)'
         self.assertFormats(code, code)
         code = '(8 >> 4) & 2'
         expected = '8 >> 4 & 2'
         self.assertFormats(code, expected)
 
-    def test_brackets_are_preserved_for_different_operators_with_same_precendence(self):
+    def test_parentheses_are_preserved_for_different_operators_with_same_precendence(self):
         code = '8 / (2 * 4)'
         self.assertFormats(code, code)
 
-    def test_brackets_are_skipped_in_case_of_same_operators(self):
+    def test_parentheses_are_skipped_in_case_of_same_operators(self):
         code = '1 + 1 + 1 + 1 + 1'
         self.assertFormats(code, code)
 

@@ -205,7 +205,7 @@ class UnaryOperationFormatter(OperationFormatter):
 
 class BinaryOperationFormatter(OperationFormatter):
 
-    def are_brackets_required(self):
+    def are_parentheses_required(self):
         # FIXME: check against parent.expr and
         #        handle parent.expr access in some sane way in Formatter API...
         return (self.parent is None or (isinstance(self.parent, OperationFormatter) and
@@ -251,7 +251,7 @@ class BinaryArithmeticOperationFormatter(BinaryOperationFormatter):
                 block.append_tokens(' ', operator)
                 block.extend(right_block, indent)
             return block
-        if not self.are_brackets_required():
+        if not self.are_parentheses_required():
             try:
                 return _format(self._inside_scope())
             except NotEnoughSpace:
@@ -270,15 +270,15 @@ class CompareFormatter(OperationFormatter):
     def priority(self):
         return ast_operator2priority[type(self.expr.ops[0])]
 
-    def are_brackets_required(self):
-        with_brackets = False
+    def are_parentheses_required(self):
+        with_parentheses = False
         if self.parent:
             # FIXME: check against parent.expr and
             #        handle parent.expr access in some sane way in Formatter API...
-            with_brackets = ((isinstance(self.parent, OperationFormatter) and
+            with_parentheses = ((isinstance(self.parent, OperationFormatter) and
                               self.parent.priority >= self.priority) or
                              isinstance(self.parent, AttributeFormatter))
-        return with_brackets
+        return with_parentheses
 
     def _format_operator_chain(self, width, operators, comparators):
         if not operators:
@@ -312,14 +312,14 @@ class CompareFormatter(OperationFormatter):
     def _format_code(self, width, continuation, suffix):
         block = CodeBlock()
         left_formatter = self.get_formatter(self.expr.left)
-        with_brackets = self.are_brackets_required()
-        if with_brackets:
+        with_parentheses = self.are_parentheses_required()
+        if with_parentheses:
             block.append_tokens('(')
         for i in range(width-block.width+1):
             left_block = left_formatter.format_code(width-block.width-i)
             try:
                 chain_block = self._format_operator_chain(width - left_block.last_line.width -
-                                                          (2 if with_brackets else 1),
+                                                          (2 if with_parentheses else 1),
                                                           self.expr.ops, self.expr.comparators)
             except NotEnoughSpace:
                 continue
@@ -327,7 +327,7 @@ class CompareFormatter(OperationFormatter):
                 block.merge(left_block)
                 block.merge(chain_block, separator=' ')
                 break
-        if with_brackets:
+        if with_parentheses:
             block.append_tokens(')')
         if suffix:
             block.merge(suffix)
@@ -342,9 +342,9 @@ class BooleanOperationFormatter(BinaryOperationFormatter):
     ast_type = ast.BoolOp
 
     def _format_code(self, width, continuation, suffix):
-        def _format(with_brackets):
+        def _format(with_parentheses):
             block = CodeBlock()
-            if with_brackets:
+            if with_parentheses:
                 block.append_tokens('(')
             # FIXME: move creation of subformatters to constructors
             opt_formatter = self.get_formatter(self.expr.op)
@@ -366,14 +366,14 @@ class BooleanOperationFormatter(BinaryOperationFormatter):
                                                               len(indent) - 1)
                     block.append_tokens(' ', opt_formatter.operator)
                     block.extend(value_block, indent)
-            if with_brackets:
+            if with_parentheses:
                 block.append_tokens(')')
             return block, value_block
-        with_brackets = self.are_brackets_required()
-        block, last_subblock = _format(with_brackets)
+        with_parentheses = self.are_parentheses_required()
+        block, last_subblock = _format(with_parentheses)
         # FIXME: check against parent.expr and
         #        handle parent.expr access in some sane way in Formatter API...
-        if (not with_brackets and not self._inside_scope() and block.height > 1 and
+        if (not with_parentheses and not self._inside_scope() and block.height > 1 and
             last_subblock.height != block.height and
             (not isinstance(self.parent, BooleanOperationFormatter) or
              self.parent.priority < self.priority)):
@@ -920,15 +920,15 @@ class IfExpressionFormatter(ExpressionFormatter):
     def _format_code(self, width, continuation, suffix):
         block = CodeBlock()
         # conditional expression has lowest priority
-        def use_brackets():
+        def use_parentheses():
             block.append_tokens('(')
             return self._extend_suffix(suffix, ')')
-        with_brackets = False
+        with_parentheses = False
         # FIXME: check against parent.expr and
         #        handle parent.expr access in some sane way in Formatter API...
         if isinstance(self.parent, OperationFormatter):
-            with_brackets = True
-            suffix = use_brackets()
+            with_parentheses = True
+            suffix = use_parentheses()
         body_block = self._body_formatter.format_code(width)
         if_keyword_block = CodeBlock.from_tokens(' ', 'if', ' ')
         test_block = self._test_formatter.format_code(width - block.width -
@@ -942,8 +942,8 @@ class IfExpressionFormatter(ExpressionFormatter):
                                                               test_block.width,
                                                               suffix=suffix)
         except NotEnoughSpace:
-            if not with_brackets:
-                suffix = use_brackets()
+            if not with_parentheses:
+                suffix = use_parentheses()
                 body_block = self._body_formatter.format_code(width -
                                                               block.width)
                 test_block = self._test_formatter.format_code(width - block.width -
@@ -1042,10 +1042,10 @@ class GeneratorFormatter(ExpressionFormatter):
 
     def _format_code(self, width, continuation, suffix):
         value_formatter = self.get_formatter(self.expr.elt)
-        with_brackets = (not self.parent or not isinstance(self.parent,
+        with_parentheses = (not self.parent or not isinstance(self.parent,
                                                            CallFormatter) or
                          len(self.parent.expr.args) != 1)
-        if with_brackets:
+        if with_parentheses:
             block = CodeBlock([CodeLine(['('])])
             indent = block.width * ' '
             block.merge(value_formatter.format_code(width))
@@ -1067,7 +1067,7 @@ class GeneratorFormatter(ExpressionFormatter):
                                                  suffix=suffix)
             block.extend(generators_block, indent)
 
-        if with_brackets:
+        if with_parentheses:
             block.append_tokens(')')
         return block
 
@@ -1268,8 +1268,8 @@ class LambdaFormatter(ExpressionFormatter):
     def _format_code(self, width, continuation, suffix):
         # FIXME: check against parent.expr and
         #        handle parent.expr access in some sane way in Formatter API...
-        with_brackets = isinstance(self.parent, OperatorFormatter) or isinstance(self.parent, IfExpressionFormatter) and self.parent.expr.orelse is not self.expr
-        if with_brackets:
+        with_parentheses = isinstance(self.parent, OperatorFormatter) or isinstance(self.parent, IfExpressionFormatter) and self.parent.expr.orelse is not self.expr
+        if with_parentheses:
             block = CodeBlock.from_tokens('(lambda')
             suffix = self._extend_suffix(suffix, ')')
         else:

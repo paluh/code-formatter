@@ -188,7 +188,7 @@ class LinebreakingAttributeFormatterTestCase(CustomFormatterTestCase):
                   .method3())""")
         self.assertFormats(code, expected)
 
-    def test_wrapping_uses_brackets_only_when_necessary(self):
+    def test_wrapping_uses_parentheses_only_when_necessary(self):
         code = 'instance.method1().method2()'
         self.assertFormats(code, code)
 
