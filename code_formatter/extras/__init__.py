@@ -58,8 +58,6 @@ class UnbreakableTupleFormatter(base.TupleFormatter):
 #        by generic Formatter aggregator
 class CallFormatterWithLinebreakingFallback(base.CallFormatter):
 
-    formatable = True
-
     def _format_code(self, width, continuation, suffix):
         try:
             return super(CallFormatterWithLinebreakingFallback, self)._format_code(width, continuation, suffix)

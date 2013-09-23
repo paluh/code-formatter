@@ -20,8 +20,6 @@ def register(cls):
 
 class CodeFormatter(object):
 
-    # if given formatter instance allows multiple formattings
-    formatable = True
     # cache max failure width to speedup search
     _known_max_width_of_failure = None
 
@@ -112,8 +110,6 @@ class NameFormatter(AtomFormatter):
 
     ast_type = ast.Name
 
-    formatable = False
-
     def _format(self, width):
         return unicode(self.expr.id)
 
@@ -122,8 +118,6 @@ class OperatorFormatter(AtomFormatter):
 
     operator = None
     priority = 0
-
-    formatable = False
 
     def _format(self, width):
         return self.operator
@@ -379,8 +373,6 @@ class NumFormatter(AtomFormatter):
 
     ast_type = ast.Num
 
-    formatable = False
-
     def _format(self, width):
         return repr(self.expr.n)
 
@@ -392,7 +384,6 @@ class StringFormatter(ExpressionFormatter):
 
     def __init__(self, *args, **kwargs):
         super(StringFormatter, self).__init__(*args, **kwargs)
-        self.formatable = re.match('^\w+$', self.expr.s) is not None
 
     def _trim_docstring(self, docstring):
         """Taken from: http://www.python.org/dev/peps/pep-0257/#handling-docstring-indentation"""
@@ -488,10 +479,6 @@ class AttributeFormatter(ExpressionFormatter):
         super(AttributeFormatter, self).__init__(*args, **kwargs)
         self.value_formatter = self.get_formatter(self.expr.value)
 
-    @property
-    def formatable(self):
-        return self.value_formatter.formatable
-
     def _format_code(self, width, continuation, suffix):
         block = self.value_formatter.format_code(width-len(self.expr.attr)-1)
         block.append_tokens('.', self.expr.attr)
@@ -513,7 +500,6 @@ class ListOfExpressionsFormatter(CodeFormatter):
         def __init__(self, expression_formatter, *args, **kwargs):
             super(ListOfExpressionsFormatter.FormatterAdapter, self).__init__(*args, **kwargs)
             self._expression_formatter = expression_formatter
-            self.formatable = self._expression_formatter.formatable
 
         def _format_code(self, width, continuation, suffix, line_width=None):
             expression_block = self._expression_formatter.format_code(width, continuation,
@@ -564,7 +550,6 @@ class ListOfExpressionsFormatter(CodeFormatter):
         # allow easily subclass this monster
         self._expressions_formatter = type(self)(expressions_formatters[1:],
                                                  formatters_register, parent)
-        self.formatable = True
         # (continuation, suffix, line_width) -> _known_max_width_of_failure
         self._known_max_width_of_failure = {}
         self._cache = {}
@@ -680,10 +665,6 @@ class CallFormatter(ExpressionFormatter):
             super(CallFormatter.KeywordArg, self).__init__(*args, **kwargs)
             self.expression_formatter = self.get_formatter(self.expr.value)
 
-        @property
-        def formatable(self):
-            return self.expression_formatter.formatable
-
         def _format_code(self, width, continuation, suffix):
             block = CodeBlock([CodeLine(['%s=' % self.expr.arg])])
             expression_block = self.expression_formatter.format_code(width - block.width,
@@ -703,10 +684,6 @@ class CallFormatter(ExpressionFormatter):
                                                                  parent=parent)
             self.prefix = prefix
 
-        @property
-        def formatable(self):
-            return self.subexpression_formatter.formatable
-
         def _format_code(self, width, continuation, suffix):
             block = CodeBlock.from_tokens(self.prefix)
             block.merge(self.subexpression_formatter.format_code(width - block.width,
@@ -720,10 +697,6 @@ class CallFormatter(ExpressionFormatter):
         self._arguments_formatters = self._get_arguments_formatters()
         self._arguments_formatter = self.ListOfExpressionsFormatter(self._arguments_formatters,
                                                                     self.formatters_register)
-
-    @property
-    def formatable(self):
-        return self._func_formatter.formatable or self._arguments_formatter.formatable
 
     def _get_arguments_formatters(self):
         formatters = [self.get_formatter(e) for e in self.expr.args]

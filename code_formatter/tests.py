@@ -1,11 +1,9 @@
 #-*- coding: utf-8 -*-
-import ast
 from textwrap import dedent
 import sys
 import unittest
 
 from . import format_code
-from .base import formatters
 from .code import CodeBlock, CodeLine
 from .extras import tests
 from .exceptions import NotEnoughSpace
@@ -1507,13 +1505,6 @@ class FuzzyTestCase(FormatterTestCase):
 
 
 class FormattersUnitTests(FormatterTestCase):
-
-    def test_single_argument_call_is_not_formatable(self):
-        code = "len(TShirtVariant.COLOR_CHOICES)"
-        call_statement = ast.parse(code).body[0].value
-        call_formatter = formatters[type(call_statement)](call_statement,
-                                                           formatters_register=formatters)
-        self.assertFalse(call_formatter.formatable)
 
     def test_binary_arithmetic_operation_is_passing_suffix_to_subexpression(self):
         code = 'f(x - y)'
