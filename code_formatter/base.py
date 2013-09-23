@@ -89,17 +89,9 @@ class AstFormatter(CodeFormatter):
                  self.parent._inside_scope()))
 
 
-@register
-class ExprFormatter(AstFormatter):
+class StatementFormatter(AstFormatter):
 
-    ast_type = ast.Expr
-
-    def __init__(self, *args, **kwargs):
-        super(ExprFormatter, self).__init__(*args, **kwargs)
-        self.formatter = self.get_formatter(self.expr.value)
-
-    def _format_code(self, *args, **kwargs):
-        return self.formatter.format_code(*args, **kwargs)
+    pass
 
 
 class ExpressionFormatter(AstFormatter):
@@ -344,48 +336,6 @@ class BooleanOperationFormatter(BinaryOperationFormatter):
         super(BooleanOperationFormatter, self).__init__(*args, **kwargs)
         self._operator_formatter = self.get_formatter(self.expr.op)
         self._values_formatters = [self.get_formatter(v) for v in self.expr.values]
-
-    def __format_code(self, width, continuation, suffix):
-        def _format(with_parentheses):
-            block = CodeBlock()
-            if with_parentheses:
-                block.append_tokens('(')
-            # FIXME: move creation of subformatters to constructors
-            opt_formatter = self.get_formatter(self.expr.op)
-            value_formatter = self.get_formatter(self.expr.values[0])
-            indent = block.width*' '
-            block.merge(value_formatter.format_code(width - block.width))
-            for e in self.expr.values[1:]:
-                value_formatter = self.get_formatter(e)
-                try:
-                    operator_block = opt_formatter.format_code(width-2)
-                    value_block = value_formatter.format_code(width -
-                                                              block.width -
-                                                              operator_block.width -
-                                                              2)
-                    block.merge(operator_block, separator=' ')
-                    block.merge(value_block, separator=' ')
-                except NotEnoughSpace:
-                    value_block = value_formatter.format_code(width -
-                                                              len(indent) - 1)
-                    block.append_tokens(' ', opt_formatter.operator)
-                    block.extend(value_block, indent)
-            if with_parentheses:
-                block.append_tokens(')')
-            return block, value_block
-        with_parentheses = self.are_parentheses_required()
-        block, last_subblock = _format(with_parentheses)
-        # FIXME: check against parent.expr and
-        #        handle parent.expr access in some sane way in Formatter API...
-        if (not with_parentheses and not self._inside_scope() and block.height > 1 and
-            last_subblock.height != block.height and
-            (not isinstance(self.parent, BooleanOperationFormatter) or
-             self.parent.priority < self.priority)):
-            block, _ = _format(True)
-        # FIXME: suffix should be passed to last expression value formatter
-        if suffix:
-            block.merge(suffix)
-        return block
 
     def _format_code(self, width, continuation, suffix):
         def _format(continuation, prefix=None):
@@ -1331,9 +1281,33 @@ class LambdaFormatter(ExpressionFormatter):
         return block
 
 
-class StatementFormatter(AstFormatter):
+@register
+class ExprFormatter(StatementFormatter):
 
-    pass
+    ast_type = ast.Expr
+
+    def __init__(self, *args, **kwargs):
+        super(ExprFormatter, self).__init__(*args, **kwargs)
+        self.formatter = self.get_formatter(self.expr.value)
+
+    def _format_code(self, *args, **kwargs):
+        return self.formatter.format_code(*args, **kwargs)
+
+
+class SimpleStatementFormatterBase(AstFormatter):
+
+    keyword = None
+
+    def _format_code(self, width, continuation, suffix):
+        block = CodeBlock.from_tokens(self.keyword)
+        if block.width > width:
+            raise NotEnoughSpace
+        return block
+
+
+for keyword, ast_type in [('pass', ast.Pass), ('continue', ast.Continue), ('break', ast.Break)]:
+    register(type(keyword.capitalize() + 'Formatter', (SimpleStatementFormatterBase,),
+             {'keyword': keyword, 'ast_type': ast_type}))
 
 
 @register
@@ -1354,22 +1328,6 @@ class AssertStatementFormatter(StatementFormatter):
             block.merge(test_formatter.format_code(width -
                                                    block.width, suffix=suffix))
         return block
-
-
-class SimpleStatementFormatterBase(AstFormatter):
-
-    keyword = None
-
-    def _format_code(self, width, continuation, suffix):
-        block = CodeBlock.from_tokens(self.keyword)
-        if block.width > width:
-            raise NotEnoughSpace
-        return block
-
-
-for keyword, ast_type in [('pass', ast.Pass), ('continue', ast.Continue), ('break', ast.Break)]:
-    register(type(keyword.capitalize() + 'Formatter', (SimpleStatementFormatterBase,),
-             {'keyword': keyword, 'ast_type': ast_type}))
 
 
 @register
