@@ -362,6 +362,7 @@ class SlicingTestCase(FormatterTestCase):
         self.assertEqual(format_code('x [ y : z : 1 ]'), 'x[y:z:1]')
 
     def test_long_slice_precise_formatting(self):
+        # REGRESSION
         code = 'identifier2[lower2:upper2:step2]'
         self.assertFormats(code, code, width=32)
 
