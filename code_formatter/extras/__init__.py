@@ -33,15 +33,15 @@ class ListOfExpressionsWithSingleLineContinuationsFormatter(base.ListOfExpressio
 
 class UnbreakableListOfExpressionFormatter(base.ListOfExpressionsFormatter):
 
-    def _format_code(self, width, suffix, line_width=None):
+    def _format_code(self, width, continuation, suffix, line_width=None):
         line_width = line_width or width
-        return self._format_line_continuation(width, suffix, line_width)
+        return self._format_line_continuation(width, continuation, suffix, line_width)
 
 
 class LinebreakingListOfExpressionFormatter(base.ListOfExpressionsFormatter):
 
-    def _format_code(self, width, suffix, line_width=None):
-        return self._format_line_break(width, suffix, line_width or width)
+    def _format_code(self, width, continuation, suffix, line_width=None):
+        return self._format_line_break(width, continuation, suffix, line_width or width)
 
 
 class UnbreakableTupleFormatter(base.TupleFormatter):
@@ -60,9 +60,9 @@ class CallFormatterWithLinebreakingFallback(base.CallFormatter):
 
     formatable = True
 
-    def _format_code(self, width, suffix):
+    def _format_code(self, width, continuation, suffix):
         try:
-            return super(CallFormatterWithLinebreakingFallback, self)._format_code(width, suffix)
+            return super(CallFormatterWithLinebreakingFallback, self)._format_code(width, continuation, suffix)
         except NotEnoughSpace:
              if not self._arguments_formatters:
                 raise
@@ -126,7 +126,7 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
             super(LinebreakingAttributeFormatter._IdentifierFormatter,
                   self).__init__(formatters_register)
 
-        def _format_code(self, width, suffix=None):
+        def _format_code(self, width, continuation, suffix):
             block = CodeBlock.from_tokens(self.identifier)
             if suffix is not None:
                 block.merge(suffix)
@@ -206,7 +206,7 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
                 expr = expr.value.value
         self.value_formatter = self.get_formatter(expr)
 
-    def _format_code(self, width, suffix):
+    def _format_code(self, width, continuation, suffix):
         def _format(inside_scope, prefix=None):
             block = CodeBlock.from_tokens(prefix) if prefix else CodeBlock()
             block.merge(self.value_formatter.format_code(width - block.width))
@@ -214,19 +214,19 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
             attr_ref_indent = block.width
             block.merge(separator.copy())
             block.merge(self._attrs_formatters[0]
-                            .format_code(width - block.width,
+                            .format_code(width - block.width, continuation,
                                          suffix=(suffix if len(self._attrs_formatters) == 1
                                                         else None)))
             for attr_formatter in self._attrs_formatters[1:]:
                 s = suffix if self._attrs_formatters[-1] == attr_formatter else None
                 try:
-                    attr_block = attr_formatter.format_code(width - block.last_line.width - separator.width, suffix=s)
+                    attr_block = attr_formatter.format_code(width - block.last_line.width - separator.width, continuation, suffix=s)
 
                 except NotEnoughSpace:
                     if not inside_scope:
                         raise
                     block.extend(separator, indent=attr_ref_indent)
-                    block.merge(attr_formatter.format_code(width - attr_ref_indent, suffix=s))
+                    block.merge(attr_formatter.format_code(width - attr_ref_indent, continuation, suffix=s))
                 else:
                     block.merge(separator)
                     block.merge(attr_block)
