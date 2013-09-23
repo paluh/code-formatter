@@ -42,15 +42,15 @@ One of main principles of this project is to make this library easily extensible
 
 Default formatters (`code_formatter.base`) follow simple logic:
 
-    * use as much space as possible (it tries to find formatting with maximal width, which is lower or equal to given value)
+* use as much space as possible - try to find formatting with maximal width, which is lower or equal to given value
 
-    * if you use `force` parameter in `format_code` helper it uses above strategy, but in case of failure (desired width is to small for given statement) it tries to find smallest possible width which allows formatting
+* if you use `force` parameter in `format_code` helper it uses above strategy, but in case of failure (desired width is to small for given statement) it tries to find smallest possible width which allows formatting
 
 Above algorithm generates really compact formatting and is quite easy to follow and test. And what is really important, it is quite simple and we all know that "simple is better than complex"... so I've decided to use it as a base. But as "readability counts" there is a lot of space for possible customization of formatting strategy. I've created `extras` package for such extentions (contributions welcome).
 
 ### Custom formatters
 
-You can easily customize single or bunch of formatters - subclass given formatter and override it's `_format_code` method. Lets use some fancy formatter (from `code_formatter.extras`) as an example:
+All formatters are kept in dictionary (`ast_type -> Formatter`) and are passed around, so you can replace given formatter quite easily. If you want to change some formatter, then subclass one and override it's `_format_code` method (of course you can completly replace it if it's necessary - just use interface which is defined by `base.AstFormatter`). Lets use some fancy formatter (from `extras`) as an example:
 
     >>> from format_code improt base, format_code
     >>> from code_formatter.extras import UnbreakableTupleFormatter
@@ -68,7 +68,9 @@ You can easily customize single or bunch of formatters - subclass given formatte
      (z,
       v)]
 
-For more examples check `code_formatter.extras` package (especially `tests` module there).
+For more examples check `extras` package (especially `tests` module there).
+
+P.S. There are more complicated scenarios as some formatters doesn't stricly map to `ast` types. If you are interested take a look at `ListOfExpressionsFormatter` based classes in `extras` package.
 
 ## Extra formatters
 By default this package provides basic formatters (`code_formatter.base`) which I'm trying to keep as simple/straightforward as possible. I'm also want to provide one and exactly one formatter for givent `ast` node type. All additional formatters (usually more funny :-P) goes into `code_formatter.extras` package, so don't hesitate and check them.
