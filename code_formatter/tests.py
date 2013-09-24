@@ -941,14 +941,14 @@ class OperatorPrecedenceTestCase(FormatterTestCase):
 class AssignmentTestCase(FormatterTestCase):
     """
     [6.2]
-    assignment_stmt ::=  (target_list "=")+ (expression_list | yield_expression)
-    target_list     ::=  target ("," target)* [","]
-    target          ::=  identifier
-                         | "(" target_list ")"
-                         | "[" target_list "]"
-                         | attributeref
-                         | subscription
-                         | slicing
+    +   assignment_stmt ::=  (target_list "=")+ (expression_list | yield_expression)
+    +   target_list     ::=  target ("," target)* [","]
+    +   target          ::=  identifier
+                             | "(" target_list ")"
+                             | "[" target_list "]"
+                             | attributeref
+                             | subscription
+                             | slicing
     """
 
     def test_identifires_target_list_aligment(self):
@@ -986,10 +986,10 @@ class AssignmentTestCase(FormatterTestCase):
 class AugmentAssignmentTestCase(FormatterTestCase):
     """
     [6.2.1]
-    augmented_assignment_stmt ::=  augtarget augop (expression_list | yield_expression)
-    augtarget                 ::=  identifier | attributeref | subscription | slicing
-    augop                     ::=  "+=" | "-=" | "*=" | "/=" | "//=" | "%=" | "**="
-                                   | ">>=" | "<<=" | "&=" | "^=" | "|="
+    -   augmented_assignment_stmt ::=  augtarget augop (expression_list | yield_expression)
+    -   augtarget                 ::=  identifier | attributeref | subscription | slicing
+    -   augop                     ::=  "+=" | "-=" | "*=" | "/=" | "//=" | "%=" | "**="
+    -                                  | ">>=" | "<<=" | "&=" | "^=" | "|="
     """
     def test_simple_statement_aligment(self):
         for augop in ['+=', '-=', '*=', '/=', '//=', '%=', '**=', '>>=', '<<=', '&=', '^=', '|=']:
@@ -1024,19 +1024,19 @@ class AssertTestCase(FormatterTestCase):
 class SimpleStatementsTestCase(FormatterTestCase):
     """
     [6.4, 6.5, 6.7, 6.8, 6.9, 6.10, 6.11, 6.13]
-    simple_stmt ::=  assert_stmt
-                     | pass_stmt
-                     | del_stmt
-                     | print_stmt
-                     | return_stmt
-                     | yield_stmt
-                     | raise_stmt
-                     | break_stmt
-                     | continue_stmt
-                     | global_stmt
-                     | exec_stmt
-        return_stmt ::=  "return" [expression_list]
-        raise_stmt ::=  "raise" [expression ["," expression ["," expression]]]
+    +   simple_stmt ::=    assert_stmt
+    +                    | pass_stmt
+    -                    | del_stmt
+    +                    | print_stmt
+    +                    | return_stmt
+    +                    | yield_stmt
+    +                    | raise_stmt
+    +                    | break_stmt
+    +                    | continue_stmt
+    -                    | global_stmt
+    -                    | exec_stmt
+    +       return_stmt ::=  "return" [expression_list]
+    +       raise_stmt ::=  "raise" [expression ["," expression ["," expression]]]
     """
 
     def test_return_alignment(self):
@@ -1061,7 +1061,7 @@ class SimpleStatementsTestCase(FormatterTestCase):
 class PrintStatementTestCase(FormatterTestCase):
     """
     [6.6]
-        print_stmt ::=  "print" ([expression ("," expression)* [","]]
+    +   print_stmt ::=  "print" ([expression ("," expression)* [","]]
                         | ">>" expression [("," expression)+ [","]])
     """
     # FIXME: a lot more to test
@@ -1073,15 +1073,15 @@ class PrintStatementTestCase(FormatterTestCase):
 class ImportStatementTestCase(FormatterTestCase):
     """
     [6.12]
-    import_stmt     ::=  "import" module ["as" name] ( "," module ["as" name] )*
-                         | "from" relative_module "import" identifier ["as" name]
-                         ( "," identifier ["as" name] )*
-                         | "from" relative_module "import" "(" identifier ["as" name]
-                         ( "," identifier ["as" name] )* [","] ")"
-                         | "from" module "import" "*"
-    module          ::=  (identifier ".")* identifier
-    relative_module ::=  "."* module | "."+
-    name            ::=  identifier
+    +   import_stmt     ::=  "import" module ["as" name] ( "," module ["as" name] )*
+                             | "from" relative_module "import" identifier ["as" name]
+                             ( "," identifier ["as" name] )*
+                             | "from" relative_module "import" "(" identifier ["as" name]
+                             ( "," identifier ["as" name] )* [","] ")"
+                             | "from" module "import" "*"
+    +   module          ::=  (identifier ".")* identifier
+    +   relative_module ::=  "."* module | "."+
+    +   name            ::=  identifier
     """
 
     def test_simple_form_alignment(self):
@@ -1136,9 +1136,9 @@ class ImportStatementTestCase(FormatterTestCase):
 class IfTestCase(FormatterTestCase):
     """
     [7.1]
-    if_stmt ::=  "if" expression ":" suite
-                 ( "elif" expression ":" suite )*
-                 ["else" ":" suite]
+    +   if_stmt ::=  "if" expression ":" suite
+                     ( "elif" expression ":" suite )*
+                     ["else" ":" suite]
     """
     def test_if_alignment(self):
         code = 'if    x >   8: pass'
@@ -1156,8 +1156,8 @@ class IfTestCase(FormatterTestCase):
 class WhileStatementTestCase(FormatterTestCase):
     """
     [7.2]
-    while_stmt ::=  "while" expression ":" suite
-                    ["else" ":" suite]
+    +   while_stmt ::=  "while" expression ":" suite
+                        ["else" ":" suite]
     """
     def test_simple_form_alignment(self):
         code = dedent("""\
@@ -1190,8 +1190,8 @@ class WhileStatementTestCase(FormatterTestCase):
 class ForStatementTestCase(FormatterTestCase):
     """
     [7.3]
-    for_stmt ::=  "for" target_list "in" expression_list ":" suite
-                  ["else" ":" suite]
+    +   for_stmt ::=  "for" target_list "in" expression_list ":" suite
+                      ["else" ":" suite]
     """
 
     def test_simple_for_statement(self):
@@ -1267,22 +1267,30 @@ class TryExceptStatementTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
+class TheWithStatementTestCase(FormatterTestCase):
+    """
+    [7.5]
+    -   with_stmt ::=  "with" with_item ("," with_item)* ":" suite
+    -   with_item ::=  expression ["as" target]
+    """
+
+
 class FunctionDefinitionTestCase(FormatterTestCase):
     """
     [7.6]
-    decorated      ::=  decorators (classdef | funcdef)
-    decorators     ::=  decorator+
-    decorator      ::=  "@" dotted_name ["(" [argument_list [","]] ")"] NEWLINE
-    funcdef        ::=  "def" funcname "(" [parameter_list] ")" ":" suite
-    dotted_name    ::=  identifier ("." identifier)*
-    parameter_list ::=  (defparameter ",")*
-                        (  "*" identifier ["," "**" identifier]
-                        | "**" identifier
-                        | defparameter [","] )
-    defparameter   ::=  parameter ["=" expression]
-    sublist        ::=  parameter ("," parameter)* [","]
-    parameter      ::=  identifier | "(" sublist ")"
-    funcname       ::=  identifier
+    -   decorated      ::=  decorators (classdef | funcdef)
+    -   decorators     ::=  decorator+
+    -   decorator      ::=  "@" dotted_name ["(" [argument_list [","]] ")"] NEWLINE
+    +   funcdef        ::=  "def" funcname "(" [parameter_list] ")" ":" suite
+    -   dotted_name    ::=  identifier ("." identifier)*
+    +   parameter_list ::=  (defparameter ",")*
+                            (  "*" identifier ["," "**" identifier]
+                            | "**" identifier
+                            | defparameter [","] )
+    +   defparameter   ::=  parameter ["=" expression]
+    +   sublist        ::=  parameter ("," parameter)* [","]
+    +   parameter      ::=  identifier | "(" sublist ")"
+    +   funcname       ::=  identifier
     """
     def test_identifiers_parameter_list_alignment(self):
         code = ('def fun(x,y,z):\n'
@@ -1336,9 +1344,9 @@ class FunctionDefinitionTestCase(FormatterTestCase):
 class ClassDefinitionTestCase(FormatterTestCase):
     """
     [7.7]
-    classdef    ::=  "class" classname [inheritance] ":" suite
-    inheritance ::=  "(" [expression_list] ")"
-    classname   ::=  identifier
+    +   classdef    ::=  "class" classname [inheritance] ":" suite
+    +   inheritance ::=  "(" [expression_list] ")"
+    +   classname   ::=  identifier
     """
     def test_definition_alignment(self):
         code = 'class     A:\n    pass'
@@ -1357,7 +1365,7 @@ class ClassDefinitionTestCase(FormatterTestCase):
 class FuzzyTestCase(FormatterTestCase):
     """
     [665.999]
-    Some regression/random code samples formatting tests
+    *   Some regression/random code samples formatting tests
     """
 
     def test_README_example(self):
