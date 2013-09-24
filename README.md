@@ -50,13 +50,16 @@ Above algorithm generates really compact formatting and is quite easy to follow 
 
 ### Custom formatters
 
-All formatters are kept in tiny wrapper around standard python `dict` which is passed around. It maps `ast_type` to `Formatter` and introduces trivial protocol of registration operations, so you can replace given formatter quite easily. If you want to change some formatter, then subclass one and override it's `_format_code` method (of course you can completly replace it if it's necessary - just use interface which is defined by `base.AstFormatter`). Lets use some fancy formatter (from `extras`) as an example:
+### `code_formatter.extras`
 
-    >>> from format_code improt base, format_code
+All formatters are kept is small subclass standard python `dict` which is passed around. It maps `ast_type` to `Formatter` and introduces trivial protocol of registration operations, so you can replace given formatter quite easily. Lets use some ready formatters from `extras` package:
+
+
+    >>> from code_formatter improt base, format_code
     >>> from code_formatter.extras import UnbreakableTupleFormatter
     >>> my_formatters = base.formatters.copy().register(UnbreakableTupleFormatter)
     >>> print format_code('[(x,y), (z,v)]',
-    ...                   formatters_register=my_formatters, width=1, force=2)
+    ...                   formatters_register=my_formatters, width=1, force=True)
     [(x, y),
      (z, v)]
 
@@ -67,9 +70,29 @@ All formatters are kept in tiny wrapper around standard python `dict` which is p
      (z,
       v)]
 
-For more examples check `extras` package (especially `tests` module there).
+Or even more interesting one:
 
-P.S. There are more complicated scenarios as some formatters doesn't stricly map to `ast` types. If you are interested take a look at `ListOfExpressionsFormatter` based classes in `extras` package.
+    >>> from code_formatter.extras import LinebreakingAttributeFormatter
+    >>> my_formatters.register(LinebreakingAttributeFormatter)
+    >>> code = 'session.query(User).filter(User.active==True, User.country=="PL").count()'
+    >>> print format_code(code, formatters_register=my_formatters, width=1, force=True)
+    (session.query(User)
+            .filter(User.active == True,
+                    User.country == 'PL')
+            .count())
+    >>> # and now standard "straightforward" ast based formatting
+    ... print format_code(code, width=1, force=True)
+    session.query(User).filter(User.active == True,
+                               User.country == 'PL').count()
+
+
+
+### Own formatters
+
+If you want to change some formatter, then have to subclass one and override it's `_format_code` method. Of course you can completly replace it if it's necessary - just use interface which is defined by `base.AstFormatter`.
+
+    TODO: example
+
 
 ## Extra formatters
 By default this package provides basic formatters (`code_formatter.base`) which I'm trying to keep as simple/straightforward as possible. I'm also want to provide one and exactly one formatter for givent `ast` node type. All additional formatters (usually more funny :-P) goes into `code_formatter.extras` package, so don't hesitate and check them.
