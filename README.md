@@ -50,7 +50,7 @@ Above algorithm generates really compact formatting and is quite easy to follow 
 
 ### Custom formatters
 
-### `code_formatter.extras`
+### `extras` package
 
 All formatters are kept is small subclass standard python `dict` which is passed around. It maps `ast_type` to `Formatter` and introduces trivial protocol of registration operations, so you can replace given formatter quite easily. Lets use some ready formatters from `extras` package:
 
