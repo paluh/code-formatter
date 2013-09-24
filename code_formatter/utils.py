@@ -1,16 +1,61 @@
+import ast
 import difflib
 import unittest
 
-from . import format_code
-from .base import formatters
+from .exceptions import NotEnoughSpace
 
 
-class FormatterTestCase(unittest.TestCase):
+def _format_code(code, width, formatters_register, force=False):
+    """Returns CodeBlock instance as a result"""
+    tree = ast.parse(code)
+    result = []
+    for e in tree.body:
+        formatter = formatters_register[type(e)](expr=e,
+                                                 formatters_register=formatters_register,
+                                                 parent=None)
+        if force:
+            statement_width = width
+            failing_statement_width = None
+            succeeding_statement_width = None
+            while True:
+                try:
+                    s = formatter.format_code(statement_width)
+                except NotEnoughSpace:
+                    failing_statement_width = statement_width
+                else:
+                    succeeding_statement_width = statement_width
+                    if (failing_statement_width is None or
+                        statement_width - 1 == failing_statement_width):
+                        result.append(s)
+                        break
+                if (succeeding_statement_width and failing_statement_width and
+                    succeeding_statement_width - failing_statement_width == 1):
+                    s = formatter.format_code(succeeding_statement_width)
+                    result.append(s)
+                    break
+                statement_width = ((failing_statement_width +
+                                    (succeeding_statement_width or
+                                     3 * failing_statement_width)) / 2)
+        else:
+            result.append(formatter.format_code(width))
+    return result
 
-    def assertFormats(self, code, expected, formatters_register=formatters, width=None, force=False):
+def format_code(code, width, formatters_register, force=False):
+    """Returns string as a result"""
+    result = _format_code(code, width=width, formatters_register=formatters_register, force=force)
+    return u'\n'.join(unicode(e) for e in result)
+
+
+class FormattersTestCase(unittest.TestCase):
+
+    formatters_register = None
+
+    def assertFormats(self, code, expected, formatters_register=None, width=None, force=False):
+        self.formatters_register = formatters_register or self.formatters_register
+        assert self.formatters_register is not None
         width = width if width is not None else max(len(l) for l in expected.split('\n'))
         formated = format_code(code, width=width, force=force,
-                               formatters_register=formatters_register)
+                               formatters_register=self.formatters_register)
         try:
             self.assertEqual(formated, expected)
         except AssertionError:
@@ -18,58 +63,23 @@ class FormatterTestCase(unittest.TestCase):
             raise
 
 
-_missing = object()
+class FormattersRegister(dict):
 
-# ripped from Werkzeug
-class cached_property(object):
-    """A decorator that converts a function into a lazy property.  The
-    function wrapped is called the first time to retrieve the result
-    and then that calculated result is used the next time you access
-    the value::
+    def copy(self):
+        return type(self)(self)
 
-        class Foo(object):
+    def register_formatter(self, Formatter):
+        try:
+            Formatter.register(self)
+        except NotImplementedError:
+            try:
+                self[Formatter.ast_type] = Formatter
+            except AttributeError:
+                raise ValueError('Provided Formatter: %s should implement '
+                                 '`register` method or contain `ast_type` '
+                                 'attribute' % Formatter)
 
-            @cached_property
-            def foo(self):
-                # calculate something important here
-                return 42
-
-    The class has to have a `__dict__` in order for this property to
-    work.
-
-    .. versionchanged:: 0.6
-       the `writeable` attribute and parameter was deprecated.  If a
-       cached property is writeable or not has to be documented now.
-       For performance reasons the implementation does not honor the
-       writeable setting and will always make the property writeable.
-    """
-
-    # implementation detail: this property is implemented as non-data
-    # descriptor.  non-data descriptors are only invoked if there is
-    # no entry with the same name in the instance's __dict__.
-    # this allows us to completely get rid of the access function call
-    # overhead.  If one choses to invoke __get__ by hand the property
-    # will still work as expected because the lookup logic is replicated
-    # in __get__ for manual invocation.
-
-    def __init__(self, func, name=None, doc=None, writeable=False):
-        if writeable:
-            from warnings import warn
-            warn(DeprecationWarning('the writeable argument to the '
-                                    'cached property is a noop since 0.6 '
-                                    'because the property is writeable '
-                                    'by default for performance reasons'))
-
-        self.__name__ = name or func.__name__
-        self.__module__ = func.__module__
-        self.__doc__ = doc or func.__doc__
-        self.func = func
-
-    def __get__(self, obj, type=None):
-        if obj is None:
-            return self
-        value = obj.__dict__.get(self.__name__, _missing)
-        if value is _missing:
-            value = self.func(obj)
-            obj.__dict__[self.__name__] = value
-        return value
+    def register(self, *Formatters):
+        for Formatter in Formatters:
+            self.register_formatter(Formatter)
+        return self

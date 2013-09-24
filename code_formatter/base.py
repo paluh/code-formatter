@@ -7,14 +7,16 @@ import sys
 
 from .code import CodeBlock, CodeLine
 from .exceptions import NotEnoughSpace
+from .utils import FormattersRegister
 
 
 # It's better to avoid metaclasses in this case - simple register is sufficient and
 # it can be customized quite easily
-formatters = {}
+formatters = FormattersRegister()
 
+# formatters.register returns itself to simpify chaining, but decorator has to return decorated class
 def register(cls):
-    formatters[cls.ast_type] = cls
+    formatters.register(cls)
     return cls
 
 
@@ -66,6 +68,10 @@ class CodeFormatter(object):
                 self._known_max_width_of_failure[context] = width
             raise NotEnoughSpace()
         return code
+
+    @classmethod
+    def register(cls, formatters_register):
+        raise NotImplementedError()
 
 
 class AstFormatter(CodeFormatter):
@@ -149,9 +155,9 @@ for priority, ast_type, operator in [(10, ast.Pow, '**'),
                                      (0, ast.Or, 'or')]:
     ast_operator2priority[ast_type] = priority
     register(type('%sFormatter' % ast_type.__name__, (OperatorFormatter,),
-                  {'ast_type': ast_type,
-                   'operator': operator,
-                   'priority': priority}))
+                        {'ast_type': ast_type,
+                         'operator': operator,
+                         'priority': priority}))
 
 
 class OperationFormatter(ExpressionFormatter):
@@ -646,6 +652,15 @@ class ListOfExpressionsFormatter(CodeFormatter):
             raise
         self._cache[context] = code.copy()
         return code
+
+    @classmethod
+    def register(cls, formatters_register):
+        # replace itself in all Formatters which uses internally ListOfExpressionsFormatter
+        for F in [F for F in formatters_register.values()
+                    if hasattr(F, 'ListOfExpressionsFormatter')]:
+            Formatter = type(F.__name__, (F,),
+                             {'ListOfExpressionsFormatter': cls})
+            formatters_register.register(Formatter)
 
 
 @register
@@ -1296,7 +1311,7 @@ class SimpleStatementFormatterBase(AstFormatter):
 
 for keyword, ast_type in [('pass', ast.Pass), ('continue', ast.Continue), ('break', ast.Break)]:
     register(type(keyword.capitalize() + 'Formatter', (SimpleStatementFormatterBase,),
-             {'keyword': keyword, 'ast_type': ast_type}))
+                        {'keyword': keyword, 'ast_type': ast_type}))
 
 
 @register

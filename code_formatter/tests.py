@@ -4,13 +4,19 @@ import sys
 import unittest
 
 from . import format_code
+from .base import formatters
 from .code import CodeBlock, CodeLine
 from .extras import tests
 from .exceptions import NotEnoughSpace
-from .utils import FormatterTestCase
+from .utils import FormattersTestCase
 
 
-class LiteralsTestCase(FormatterTestCase):
+class BaseFormattersTestCase(FormattersTestCase):
+
+    formatters_register = formatters
+
+
+class LiteralsTestCase(BaseFormattersTestCase):
     """
     [5.2.2]
     +   literal ::=  stringliteral | integer | longinteger
@@ -70,7 +76,7 @@ class LiteralsTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class ListDisplaysTestCase(FormatterTestCase):
+class ListDisplaysTestCase(BaseFormattersTestCase):
     """
     [5.2.4]
     +   list_display        ::=  "[" [expression_list | list_comprehension] "]"
@@ -125,7 +131,7 @@ class ListDisplaysTestCase(FormatterTestCase):
         self.assertFormats(code, code)
 
 
-class GeneratorExpressionsTestCase(FormatterTestCase):
+class GeneratorExpressionsTestCase(BaseFormattersTestCase):
     """
     [5.2.5, 5.2.6]
     +   comp_for             ::=  "for" target_list "in" or_test [comp_iter]
@@ -166,7 +172,7 @@ class GeneratorExpressionsTestCase(FormatterTestCase):
         self.assertFormats(code, code)
 
 
-class DictionaryDisplaysTestCase(FormatterTestCase):
+class DictionaryDisplaysTestCase(BaseFormattersTestCase):
     """
     [5.2.7]
     +   dict_display       ::=  "{" [key_datum_list | dict_comprehension] "}"
@@ -234,7 +240,7 @@ class DictionaryDisplaysTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class SetDisplaysTestCase(FormatterTestCase):
+class SetDisplaysTestCase(BaseFormattersTestCase):
     """
     [5.2.8]
     +   set_display ::=  "{" (expression_list | comprehension) "}"
@@ -263,7 +269,7 @@ class SetDisplaysTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class AttributeRefTestCase(FormatterTestCase):
+class AttributeRefTestCase(BaseFormattersTestCase):
     """
     [5.3.1]
     +   primary ::=  atom | attributeref | subscription | slicing | call
@@ -294,7 +300,7 @@ class AttributeRefTestCase(FormatterTestCase):
         self.assertFormats(code, code)
 
 
-class SubscriptionsTestCase(FormatterTestCase):
+class SubscriptionsTestCase(BaseFormattersTestCase):
     """
     [5.3.2]
     +   subscription ::=  primary "[" expression_list "]"
@@ -321,7 +327,7 @@ class SubscriptionsTestCase(FormatterTestCase):
         self.assertFormats(code, code)
 
 
-class SlicingTestCase(FormatterTestCase):
+class SlicingTestCase(BaseFormattersTestCase):
     """
     [5.3.3]
     -   slicing          ::=  simple_slicing | extended_slicing
@@ -365,7 +371,7 @@ class SlicingTestCase(FormatterTestCase):
         self.assertFormats(code, code, width=32)
 
 
-class CallsTestCase(FormatterTestCase):
+class CallsTestCase(BaseFormattersTestCase):
     """
     [5.3.4]
     +   primary              ::=  atom | attributeref | subscription
@@ -528,7 +534,7 @@ class CallsTestCase(FormatterTestCase):
         self.assertFormats(code, code)
 
 
-class BinaryArithmeticOperationsTestCase(FormatterTestCase):
+class BinaryArithmeticOperationsTestCase(BaseFormattersTestCase):
     """
     [5.6]
     +   m_expr ::=  u_expr | m_expr "*" u_expr | m_expr "//" u_expr | m_expr "/" u_expr
@@ -602,7 +608,7 @@ class BinaryArithmeticOperationsTestCase(FormatterTestCase):
         self.assertFormats(code, expected, width=2, force=True)
 
 
-class BinaryBitwiseOperation(FormatterTestCase):
+class BinaryBitwiseOperation(BaseFormattersTestCase):
     """
     [5.7, 5.8]
     +   shift_expr ::=  a_expr | shift_expr ( "<<" | ">>" ) a_expr
@@ -626,7 +632,7 @@ class BinaryBitwiseOperation(FormatterTestCase):
             self.assertFormats(code, expected)
 
 
-class ComparisonsTestCase(FormatterTestCase):
+class ComparisonsTestCase(BaseFormattersTestCase):
     """
     [5.9]
     +   comparison    ::=  or_expr ( comp_operator or_expr )*
@@ -690,7 +696,7 @@ class ComparisonsTestCase(FormatterTestCase):
         self.assertFormats(code, code, width=6, force=True)
 
 
-class BooleanOperationsTestCase(FormatterTestCase):
+class BooleanOperationsTestCase(BaseFormattersTestCase):
     """
     [5.10]
     +   or_test  ::=  and_test | or_test "or" and_test
@@ -774,7 +780,7 @@ class BooleanOperationsTestCase(FormatterTestCase):
              z)""")
         self.assertFormats(code, code)
 
-class ConditionalExpressionsTestCase(FormatterTestCase):
+class ConditionalExpressionsTestCase(BaseFormattersTestCase):
     """
     [5.11]
     +   conditional_expression ::=  or_test ["if" or_test "else" expression]
@@ -805,7 +811,7 @@ class ConditionalExpressionsTestCase(FormatterTestCase):
         self.assertFormats(code, code)
 
 
-class LambdasTestCase(FormatterTestCase):
+class LambdasTestCase(BaseFormattersTestCase):
     """
     [5.12] (parameter_list related tests are placed in FuncionDefinitionTestCase)
     +   lambda_form     ::=  "lambda" [parameter_list]: expression
@@ -826,7 +832,7 @@ class LambdasTestCase(FormatterTestCase):
         self.assertFormats(code, code)
 
 
-class ExpressionListTestCase(FormatterTestCase):
+class ExpressionListTestCase(BaseFormattersTestCase):
     """
     [5.13, 6.1]
     +   expression_list ::=  expression ( "," expression )* [","]
@@ -861,7 +867,7 @@ class ExpressionListTestCase(FormatterTestCase):
         self.assertFormats(code, code)
 
 
-class OperatorPrecedenceTestCase(FormatterTestCase):
+class OperatorPrecedenceTestCase(BaseFormattersTestCase):
     """
     [5.15]
     +   lambda                          Lambda expression
@@ -938,7 +944,7 @@ class OperatorPrecedenceTestCase(FormatterTestCase):
         self.assertFormats(code, code)
 
 
-class AssignmentTestCase(FormatterTestCase):
+class AssignmentTestCase(BaseFormattersTestCase):
     """
     [6.2]
     +   assignment_stmt ::=  (target_list "=")+ (expression_list | yield_expression)
@@ -983,7 +989,7 @@ class AssignmentTestCase(FormatterTestCase):
         self.assertEqual(format_code(code), 's, t = u, v = z = x')
 
 
-class AugmentAssignmentTestCase(FormatterTestCase):
+class AugmentAssignmentTestCase(BaseFormattersTestCase):
     """
     [6.2.1]
     -   augmented_assignment_stmt ::=  augtarget augop (expression_list | yield_expression)
@@ -1004,7 +1010,7 @@ class AugmentAssignmentTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class AssertTestCase(FormatterTestCase):
+class AssertTestCase(BaseFormattersTestCase):
     """
     [6.3]
     assert_stmt ::=  "assert" expression ["," expression]
@@ -1021,7 +1027,7 @@ class AssertTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class SimpleStatementsTestCase(FormatterTestCase):
+class SimpleStatementsTestCase(BaseFormattersTestCase):
     """
     [6.4, 6.5, 6.7, 6.8, 6.9, 6.10, 6.11, 6.13]
     +   simple_stmt ::=    assert_stmt
@@ -1058,7 +1064,7 @@ class SimpleStatementsTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class PrintStatementTestCase(FormatterTestCase):
+class PrintStatementTestCase(BaseFormattersTestCase):
     """
     [6.6]
     +   print_stmt ::=  "print" ([expression ("," expression)* [","]]
@@ -1070,7 +1076,7 @@ class PrintStatementTestCase(FormatterTestCase):
         self.assertFormats(code, code)
 
 
-class ImportStatementTestCase(FormatterTestCase):
+class ImportStatementTestCase(BaseFormattersTestCase):
     """
     [6.12]
     +   import_stmt     ::=  "import" module ["as" name] ( "," module ["as" name] )*
@@ -1133,7 +1139,7 @@ class ImportStatementTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class IfTestCase(FormatterTestCase):
+class IfTestCase(BaseFormattersTestCase):
     """
     [7.1]
     +   if_stmt ::=  "if" expression ":" suite
@@ -1153,7 +1159,7 @@ class IfTestCase(FormatterTestCase):
                     '    pass')
         self.assertFormats(code, expected)
 
-class WhileStatementTestCase(FormatterTestCase):
+class WhileStatementTestCase(BaseFormattersTestCase):
     """
     [7.2]
     +   while_stmt ::=  "while" expression ":" suite
@@ -1187,7 +1193,7 @@ class WhileStatementTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class ForStatementTestCase(FormatterTestCase):
+class ForStatementTestCase(BaseFormattersTestCase):
     """
     [7.3]
     +   for_stmt ::=  "for" target_list "in" expression_list ":" suite
@@ -1200,7 +1206,7 @@ class ForStatementTestCase(FormatterTestCase):
         self.assertEqual(format_code(code), expected)
 
 
-class TryExceptStatementTestCase(FormatterTestCase):
+class TryExceptStatementTestCase(BaseFormattersTestCase):
     """
     [7.4]
     try_stmt  ::=  try1_stmt | try2_stmt
@@ -1267,7 +1273,7 @@ class TryExceptStatementTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class TheWithStatementTestCase(FormatterTestCase):
+class TheWithStatementTestCase(BaseFormattersTestCase):
     """
     [7.5]
     -   with_stmt ::=  "with" with_item ("," with_item)* ":" suite
@@ -1275,7 +1281,7 @@ class TheWithStatementTestCase(FormatterTestCase):
     """
 
 
-class FunctionDefinitionTestCase(FormatterTestCase):
+class FunctionDefinitionTestCase(BaseFormattersTestCase):
     """
     [7.6]
     -   decorated      ::=  decorators (classdef | funcdef)
@@ -1341,7 +1347,7 @@ class FunctionDefinitionTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class ClassDefinitionTestCase(FormatterTestCase):
+class ClassDefinitionTestCase(BaseFormattersTestCase):
     """
     [7.7]
     +   classdef    ::=  "class" classname [inheritance] ":" suite
@@ -1362,7 +1368,7 @@ class ClassDefinitionTestCase(FormatterTestCase):
         self.assertFormats(code, expected)
 
 
-class FuzzyTestCase(FormatterTestCase):
+class FuzzyTestCase(BaseFormattersTestCase):
     """
     [665.999]
     *   Some regression/random code samples formatting tests
@@ -1512,7 +1518,7 @@ class FuzzyTestCase(FormatterTestCase):
         self.assertFormats(code, expected, width=30)
 
 
-class FormattersUnitTests(FormatterTestCase):
+class FormattersUnitTests(BaseFormattersTestCase):
 
     def test_binary_arithmetic_operation_is_passing_suffix_to_subexpression(self):
         code = 'f(x - y)'

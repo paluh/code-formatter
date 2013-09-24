@@ -1,33 +1,18 @@
-import ast
 from textwrap import dedent
 
 from .. import base
 from ..exceptions import NotEnoughSpace
-from ..utils import FormatterTestCase
+from ..utils import FormattersTestCase
 
 from . import (CallFormatterWithLinebreakingFallback, LinebreakingAttributeFormatter,
                ListOfExpressionsWithSingleLineContinuationsFormatter,
                UnbreakableTupleFormatter)
 
-class CustomFormatterTestCase(FormatterTestCase):
 
-    custom_formatters = []
+class ListOfExpressionsWithSingleLineContinuationsFormatterTestCase(FormattersTestCase):
 
-    def setUp(self):
-        self.formatters_register = dict(base.formatters, **{F.ast_type: F for F in self.custom_formatters})
-
-    def assertFormats(self, code, expected, width=None, force=False):
-        assert self.formatters_register is not None, ('You have to setup custom '
-                                                      '`formatters_register` attribute')
-        super(CustomFormatterTestCase, self).assertFormats(code, expected, width=width, force=force,
-                                                           formatters_register=self.formatters_register)
-
-
-class ListOfExpressionsWithSingleLineContinuationsFormatterTestCase(CustomFormatterTestCase):
-
-    custom_formatters = [type(F.__name__, (F,),
-                              {'ListOfExpressionsFormatter': ListOfExpressionsWithSingleLineContinuationsFormatter})
-                         for F in base.formatters.values() if hasattr(F, 'ListOfExpressionsFormatter')]
+    formatters_register = (base.formatters.copy()
+                               .register(ListOfExpressionsWithSingleLineContinuationsFormatter))
 
     def test_line_breaking_can_occure_only_on(self):
         code = dedent("""\
@@ -47,17 +32,11 @@ class ListOfExpressionsWithSingleLineContinuationsFormatterTestCase(CustomFormat
         self.assertFormats(code, code)
 
 
-class CustomCallFormatterMixedWithListOfExpressionsWithSingleLineContinuationsFormatterTestCase(CustomFormatterTestCase):
+class CustomCallFormatterMixedWithListOfExpressionsWithSingleLineContinuationsFormatterTestCase(FormattersTestCase):
 
-    # lets overwrite some formatters
-    _formatters = dict(base.formatters, **{F.ast_type: type(F.__name__, (F,), {'ListOfExpressionsFormatter': ListOfExpressionsWithSingleLineContinuationsFormatter})
-                   for F in base.formatters.values() if hasattr(F, 'ListOfExpressionsFormatter')})
-
-    # now lets overwrite some of them with generated types from LinebreakingAttributeFormatter
-    custom_formatters = dict(_formatters,
-            **{ast.Attribute: LinebreakingAttributeFormatter,
-               ast.Subscript: LinebreakingAttributeFormatter.subscription_formatter_factory(_formatters[ast.Subscript]),
-               ast.Call: LinebreakingAttributeFormatter.call_formatter_factory(_formatters[ast.Call])}).values()
+    formatters_register = (base.formatters.copy()
+                               .register(ListOfExpressionsWithSingleLineContinuationsFormatter)
+                               .register(LinebreakingAttributeFormatter))
 
     def test_line_continuation_formatter_mixed_with_line_breaking_attribute_formatter(self):
         code = dedent("""\
@@ -80,9 +59,10 @@ class CustomCallFormatterMixedWithListOfExpressionsWithSingleLineContinuationsFo
                     func_formatter=fun)""")
         self.assertFormats(code, code, width=37)
 
-class UnbreakableTupleFormatterTestCase(CustomFormatterTestCase):
 
-    custom_formatters = [UnbreakableTupleFormatter]
+class UnbreakableTupleFormatterTestCase(FormattersTestCase):
+
+    formatters_register = base.formatters.copy().register(UnbreakableTupleFormatter)
 
     def test_alignment(self):
         code = '(   1,   2,  3)'
@@ -99,9 +79,9 @@ class UnbreakableTupleFormatterTestCase(CustomFormatterTestCase):
         self.assertFormats(code, code, width=3, force=True)
 
 
-class CallFormatterWithLinebreakingFallback(CustomFormatterTestCase):
+class CallFormatterWithLinebreakingFallback(FormattersTestCase):
 
-    custom_formatters = [CallFormatterWithLinebreakingFallback]
+    formatters_register = base.formatters.copy().register(CallFormatterWithLinebreakingFallback)
 
     def test_wrapping(self):
         code = dedent("""\
@@ -136,7 +116,7 @@ class CallFormatterWithLinebreakingFallback(CustomFormatterTestCase):
         self.assertRaises(NotEnoughSpace, lambda: self.assertFormats(code, code))
 
 
-class LinebreakingAttributeFormatterTestCase(CustomFormatterTestCase):
+class LinebreakingAttributeFormatterTestCase(FormattersTestCase):
     """
     In general primary expression can produce attributeref expression
         primary             ::=  atom | attributeref ...
@@ -157,10 +137,7 @@ class LinebreakingAttributeFormatterTestCase(CustomFormatterTestCase):
     [5.3.4]
     +   call                ::=  primary "(" [argument_list [","]
     """
-
-    custom_formatters = [LinebreakingAttributeFormatter,
-                         LinebreakingAttributeFormatter.call_formatter_factory(base.formatters[ast.Call]),
-                         LinebreakingAttributeFormatter.subscription_formatter_factory(base.formatters[ast.Subscript])]
+    formatters_register = base.formatters.copy().register(LinebreakingAttributeFormatter)
 
     def test_identifiers_wrapping(self):
         code = 'fun().identifier1.identifier2'

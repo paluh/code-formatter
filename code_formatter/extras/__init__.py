@@ -164,6 +164,12 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
                     self._value_formatter = value_formatter
         return RedirectingSubsriptionFormatter
 
+    @classmethod
+    def register(cls, formatters_register):
+        formatters_register[ast.Attribute] = cls
+        formatters_register[ast.Subscript] = cls.subscription_formatter_factory(formatters_register[ast.Subscript])
+        formatters_register[ast.Call] = cls.call_formatter_factory(formatters_register[ast.Call])
+        return formatters_register
 
     def __init__(self, *args, **kwargs):
         super(base.AttributeFormatter, self).__init__(*args, **kwargs)
