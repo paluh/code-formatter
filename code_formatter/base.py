@@ -28,19 +28,6 @@ class CodeFormatter(object):
         # maps formatting context to max failing width
         self._known_max_width_of_failure = {}
 
-    def get_formatter_class(self, expr, formatters_register=None):
-        formatters_register = (self.formatters_register if formatters_register is None
-                                                        else formatters_register)
-        return formatters_register[type(expr)]
-
-    def get_formatter(self, expr, parent=None, formatters_register=None):
-        formatters_register = (self.formatters_register if formatters_register is None
-                                                        else formatters_register)
-        return self.get_formatter_class(expr, formatters_register=formatters_register)(expr=expr,
-                                              formatters_register=formatters_register,
-                                              parent=(self if parent is None
-                                                           else parent))
-
     def _append_to_suffix(self, suffix, *tokens):
         if suffix:
              block = CodeBlock.from_tokens(*tokens)
@@ -86,6 +73,19 @@ class AstFormatter(CodeFormatter):
         self.expr = expr
         self.parent = parent
         super(AstFormatter, self).__init__(formatters_register)
+
+    def get_formatter_class(self, expr, formatters_register=None):
+        formatters_register = (self.formatters_register if formatters_register is None
+                                                        else formatters_register)
+        return formatters_register[type(expr)]
+
+    def get_formatter(self, expr, parent=None, formatters_register=None):
+        formatters_register = (self.formatters_register if formatters_register is None
+                                                        else formatters_register)
+        Formatter = self.get_formatter_class(expr,
+                                             formatters_register=formatters_register)
+        return Formatter(expr=expr, formatters_register=formatters_register,
+                         parent=self if parent is None else parent)
 
 
 class StatementFormatter(AstFormatter):
@@ -731,7 +731,8 @@ class CallFormatter(ExpressionFormatter):
         def __init__(self, subexpression, formatters_register, parent, prefix):
             super(CallFormatter._StarArgsFormatter, self).__init__(formatters_register)
             self.subexpression = subexpression
-            SubexpressionFormater = self.get_formatter_class(self.subexpression)
+            self.parent = parent
+            SubexpressionFormater = self.parent.get_formatter_class(self.subexpression)
             self.subexpression_formatter = SubexpressionFormater(self.subexpression,
                                                                  formatters_register=self.formatters_register,
                                                                  parent=parent)
@@ -1236,14 +1237,9 @@ class ParameterListFormatter(AstFormatter):
             self.expression = expression
             self.parent = parent
 
-        def get_formatter(self, expression):
-            return super(ParameterListFormatter.KwargFormatter,
-                         self).get_formatter(expression,
-                                             self.parent)
-
         def _format_code(self, width, continuation, suffix):
-            parameter_formatter = self.get_formatter(self.parameter)
-            expression_formatter = self.get_formatter(self.expression)
+            parameter_formatter = self.parent.get_formatter(self.parameter)
+            expression_formatter = self.parent.get_formatter(self.expression)
             block = parameter_formatter.format_code(width-1)
             block.append_tokens('=')
             block.merge(expression_formatter.format_code(width - block.width, continuation,
@@ -1260,11 +1256,6 @@ class ParameterListFormatter(AstFormatter):
             self.vararg = vararg
             self.parent = parent
 
-        def get_formatter(self, expression):
-            return super(ParameterListFormatter.VarargFormatter,
-                         self).get_formatter(expression,
-                                             self.parent)
-
         def _format_code(self, width, continuation, suffix):
             block = CodeBlock.from_tokens('*%s' % self.vararg)
             if block.width > width:
@@ -1273,7 +1264,7 @@ class ParameterListFormatter(AstFormatter):
 
     def __init__(self, *args, **kwargs):
         super(ParameterListFormatter, self).__init__(*args, **kwargs)
-        parameters_formatters = [self.get_formatter(arg)
+        parameters_formatters = [self.parent.get_formatter(arg)
                                  for arg
                                  in self.expr.args[:len(self.expr.args) -
                                                     len(self.expr.defaults)]]
