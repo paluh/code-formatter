@@ -82,4 +82,3 @@ class FormattersRegister(dict):
     def register(self, *Formatters):
         for Formatter in Formatters:
             self.register_formatter(Formatter)
-        return self

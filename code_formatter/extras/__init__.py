@@ -176,6 +176,7 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
                                                                                                   parent=self))
                 expr = expr.value
             elif isinstance(expr, ast.Call):
+                # FIXME: how to fix parent?? should we change type of parent to ast type?
                 func_formatter = LinebreakingAttributeFormatter._IdentifierFormatter(
                                                                     (expr.func
                                                                          .attr),
@@ -187,6 +188,7 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
                 self._attrs_formatters.insert(0, call_formater)
                 expr = expr.func.value
             elif isinstance(expr, ast.Subscript):
+                # FIXME: how to fix parent?? should we change type of parent to ast type?
                 value_formatter = LinebreakingAttributeFormatter._IdentifierFormatter(
                                                                     (expr.value.attr),
                                                                     self.formatters_register,

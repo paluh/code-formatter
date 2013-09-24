@@ -14,7 +14,8 @@ from .utils import FormattersRegister
 # it can be customized quite easily
 formatters = FormattersRegister()
 
-# formatters.register returns itself to simpify chaining, but decorator has to return decorated class
+# formatters.register can accept multiple classes at once and returns None
+# we are introducing trivial decorator
 def register(cls):
     formatters.register(cls)
     return cls
@@ -42,7 +43,9 @@ class CodeFormatter(object):
 
     def _append_to_suffix(self, suffix, *tokens):
         if suffix:
-             return CodeBlock.from_tokens(*tokens).merge(suffix)
+             block = CodeBlock.from_tokens(*tokens)
+             block.merge(suffix)
+             return block
         return CodeBlock.from_tokens(*tokens)
 
     def _format_code(self, width, continuation, suffix):
@@ -163,6 +166,10 @@ for priority, ast_type, operator in [(10, ast.Pow, '**'),
 class OperationFormatter(ExpressionFormatter):
 
     @property
+    def separator(self):
+        raise NotImplementedError()
+
+    @property
     def priority(self):
         return ast_operator2priority[type(self.expr.op)]
 
@@ -175,13 +182,20 @@ class UnaryOperationFormatter(OperationFormatter):
 
     def __init__(self, *args, **kwargs):
         super(UnaryOperationFormatter, self).__init__(*args, **kwargs)
-        self.op_formatter = self.get_formatter(self.expr.op)
-        self.value_formatter = self.get_formatter(self.expr.operand)
+        self._operator_formatter = self.get_formatter(self.expr.op)
+        self._value_formatter = self.get_formatter(self.expr.operand)
+
+    @property
+    def separator(self):
+        if not isinstance(self.expr.op, ast.Not):
+            return CodeBlock.from_tokens('')
+        return CodeBlock.from_tokens(' ')
 
     def _format_code(self, width, continuation, suffix):
-        block = CodeBlock.from_tokens(self.op_formatter.operator, ' ')
-        value_block = self.value_formatter.format_code(width - block.width, continuation,
-                                                       suffix=suffix)
+        block = self._operator_formatter.format_code(width)
+        block.merge(self.separator)
+        value_block = self._value_formatter.format_code(width - block.width, continuation,
+                                                        suffix=suffix)
         block.merge(value_block)
         return block
 
@@ -191,10 +205,10 @@ class BinaryOperationFormatter(OperationFormatter):
     def are_parentheses_required(self):
         # FIXME: check against parent.expr and
         #        handle parent.expr access in some sane way in Formatter API...
-        return (self.parent is None or (isinstance(self.parent, OperationFormatter) and
-                                        self.parent.priority >= self.priority and
-                                        type(self.parent.expr.op) is not type(self.expr.op)) or
-                isinstance(self.parent, AttributeFormatter))
+        return self.parent is not None and (isinstance(self.parent, OperationFormatter) and
+                                            self.parent.priority >= self.priority and
+                                            type(self.parent.expr.op) is not type(self.expr.op) or
+                                            isinstance(self.parent, AttributeFormatter))
 
 
 @register
@@ -208,34 +222,47 @@ class BinaryArithmeticOperationFormatter(BinaryOperationFormatter):
         self.left_formatter = self.get_formatter(self.expr.left)
         self.right_formatter = self.get_formatter(self.expr.right)
 
+    def are_parentheses_required(self):
+        if (self.parent and isinstance(self.parent.expr, self.ast_type) and
+            self.parent.priority == self.priority):
+            return self.parent.expr.right == self.expr
+        return super(BinaryArithmeticOperationFormatter, self).are_parentheses_required()
+
+
+    @property
+    def separator(self):
+        return CodeBlock.from_tokens(' ')
+
     def _format_code(self, width, continuation, suffix):
         def _format(continuation, prefix=None):
-            separator = ' '
             try:
-                block = CodeBlock.from_tokens(prefix) if prefix else CodeBlock()
+                block = CodeBlock.from_maybe_token(prefix)
                 block.merge(self.left_formatter.format_code(width - block.width,
                                                             continuation))
                 block.merge(self.opt_formatter
-                                .format_code(width - block.last_line.width - 1,
+                                .format_code(width - block.last_line.width -
+                                             self.separator.width,
                                              continuation),
-                            separator=separator)
+                            separator=self.separator)
                 block.merge(self.right_formatter
-                                .format_code(width - block.last_line.width - 1,
+                                .format_code(width - block.last_line.width -
+                                             self.separator.width,
                                              continuation, suffix),
-                            separator=separator)
+                            separator=self.separator)
             except NotEnoughSpace:
                 if not continuation:
                     raise
-                block = CodeBlock.from_tokens(prefix) if prefix else CodeBlock()
-                indent = block.width*' '
+                block = CodeBlock.from_maybe_token(prefix)
+                indent = block.width
                 block.merge(self.left_formatter.format_code(width - block.width,
                                                             continuation))
                 block.merge(self.opt_formatter
-                                .format_code(width - block.last_line.width - 1,
+                                .format_code(width - block.last_line.width -
+                                             self.separator.width,
                                              continuation),
-                            separator=separator)
+                            separator=self.separator)
                 block.extend(self.right_formatter
-                                 .format_code(width - len(indent),
+                                 .format_code(width - indent,
                                               continuation,
                                               suffix=suffix),
                              indent=indent)
@@ -258,6 +285,10 @@ class CompareFormatter(OperationFormatter):
     @property
     def priority(self):
         return ast_operator2priority[type(self.expr.ops[0])]
+
+    @property
+    def separator(self):
+        return CodeBlock.from_tokens(' ')
 
     def are_parentheses_required(self):
         with_parentheses = False
@@ -282,18 +313,20 @@ class CompareFormatter(OperationFormatter):
         for i in range(width+1):
             operator_block = operator_formatter.format_code(width - i)
             comparator_block = comparator_formatter.format_code(width -
-                                                                operator_block.width - 1)
+                                                                operator_block.width -
+                                                                self.separator.width)
             try:
                 chain_block = self._format_operator_chain(width - operator_block.width -
-                                                          comparator_block.last_line.width - 2,
+                                                          comparator_block.last_line.width -
+                                                          2 * self.separator.width,
                                                           operators[1:], comparators[1:])
             except NotEnoughSpace:
                 continue
             else:
                 break
         block.merge(operator_block)
-        block.merge(comparator_block, separator=' ')
-        block.merge(chain_block, separator=' ')
+        block.merge(comparator_block, self.separator)
+        block.merge(chain_block, separator=self.separator)
         if block.width > width:
             raise NotEnoughSpace()
         return block
@@ -308,13 +341,14 @@ class CompareFormatter(OperationFormatter):
             left_block = left_formatter.format_code(width-block.width-i)
             try:
                 chain_block = self._format_operator_chain(width - left_block.last_line.width -
-                                                          (2 if with_parentheses else 1),
+                                                          ((1 if with_parentheses else 0) +
+                                                           self.separator.width),
                                                           self.expr.ops, self.expr.comparators)
             except NotEnoughSpace:
                 continue
             else:
                 block.merge(left_block)
-                block.merge(chain_block, separator=' ')
+                block.merge(chain_block, separator=self.separator)
                 break
         if with_parentheses:
             block.append_tokens(')')
@@ -335,6 +369,10 @@ class BooleanOperationFormatter(BinaryOperationFormatter):
         self._operator_formatter = self.get_formatter(self.expr.op)
         self._values_formatters = [self.get_formatter(v) for v in self.expr.values]
 
+    @property
+    def separator(self):
+        return CodeBlock.from_tokens(' ')
+
     def _format_code(self, width, continuation, suffix):
         def _format(continuation, prefix=None):
             block = CodeBlock.from_tokens(prefix) if prefix else CodeBlock()
@@ -345,13 +383,13 @@ class BooleanOperationFormatter(BinaryOperationFormatter):
             for value_formatter in self._values_formatters[1:]:
                 s = suffix if value_formatter is self._values_formatters[-1] else None
                 try:
-                    operator_block = self._operator_formatter.format_code(width - 2)
+                    operator_block = self._operator_formatter.format_code(width - self.separator.width)
                     value_block = value_formatter.format_code(width - block.width -
-                                                              operator_block.width - 2,
+                                                              operator_block.width - 2*self.separator.width,
                                                               continuation=continuation,
                                                               suffix=s)
-                    block.merge(operator_block, separator=' ')
-                    block.merge(value_block, separator=' ')
+                    block.merge(operator_block, separator=self.separator)
+                    block.merge(value_block, separator=self.separator)
                 except NotEnoughSpace:
                     if not continuation:
                         raise
@@ -359,7 +397,7 @@ class BooleanOperationFormatter(BinaryOperationFormatter):
                     value_block = value_formatter.format_code(width - len(indent),
                                                               continuation=continuation,
                                                               suffix=s)
-                    block.merge(operator_block, separator=' ')
+                    block.merge(operator_block, separator=self.separator)
                     block.extend(value_block, indent)
             return block
         if not self.are_parentheses_required():
@@ -509,7 +547,9 @@ class ListOfExpressionsFormatter(CodeFormatter):
             expression_block = self._expression_formatter.format_code(width, continuation,
                                                                       suffix=suffix)
             if line_width is not None:
-                expression_block = CodeBlock().merge(expression_block, indent=line_width - width)
+                block = CodeBlock()
+                expression_block = block.merge(expression_block,
+                                               indent=line_width - width)
             return expression_block
 
         def format_code(self, width, continuation=False, suffix=None, line_width=None):
@@ -990,8 +1030,9 @@ class SliceFormatter(ExpressionFormatter):
         if self._lower_formatter:
             if not self._upper_formatter and not self._step_formatter:
                 suffix = self._append_to_suffix(suffix, ':')
-                return block.merge(self._lower_formatter.format_code(width - block.width -
-                                                               1, suffix=suffix))
+                block.merge(self._lower_formatter.format_code(width - block.width -
+                                                              1, suffix=suffix))
+                return block
             block.merge(self._lower_formatter.format_code(width - block.width - 1))
         block.append_tokens(':')
 

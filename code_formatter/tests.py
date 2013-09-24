@@ -924,7 +924,8 @@ class OperatorPrecedenceTestCase(BaseFormattersTestCase):
 
     def test_shifting_operators(self):
         code = '(8 >> 4) << 2'
-        self.assertFormats(code, code)
+        expected = '8 >> 4 << 2'
+        self.assertFormats(code, expected)
         code = '8 >> (4 << 2)'
         self.assertFormats(code, code)
 
@@ -935,8 +936,13 @@ class OperatorPrecedenceTestCase(BaseFormattersTestCase):
         expected = '8 >> 4 & 2'
         self.assertFormats(code, expected)
 
-    def test_parentheses_are_preserved_for_different_operators_with_same_precendence(self):
+    def test_parentheses_are_preserved_for_different_operators_with_same_precendence_in_case_of_inconsistent_ordering(self):
         code = '8 / (2 * 4)'
+        self.assertFormats(code, code)
+
+    def test_parentheses_are_skipped_for_different_operators_with_same_precendence_in_case_of_consistent_ordering(self):
+        code = '(8 / 2) * 4'
+        code = '8 / 2 * 4'
         self.assertFormats(code, code)
 
     def test_parentheses_are_skipped_in_case_of_same_operators(self):

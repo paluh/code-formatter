@@ -11,8 +11,8 @@ from . import (CallFormatterWithLinebreakingFallback, LinebreakingAttributeForma
 
 class ListOfExpressionsWithSingleLineContinuationsFormatterTestCase(FormattersTestCase):
 
-    formatters_register = (base.formatters.copy()
-                               .register(ListOfExpressionsWithSingleLineContinuationsFormatter))
+    formatters_register = base.formatters.copy()
+    formatters_register.register(ListOfExpressionsWithSingleLineContinuationsFormatter)
 
     def test_line_breaking_can_occure_only_on(self):
         code = dedent("""\
@@ -34,9 +34,9 @@ class ListOfExpressionsWithSingleLineContinuationsFormatterTestCase(FormattersTe
 
 class CustomCallFormatterMixedWithListOfExpressionsWithSingleLineContinuationsFormatterTestCase(FormattersTestCase):
 
-    formatters_register = (base.formatters.copy()
-                               .register(ListOfExpressionsWithSingleLineContinuationsFormatter)
-                               .register(LinebreakingAttributeFormatter))
+    formatters_register = base.formatters.copy()
+    formatters_register.register(ListOfExpressionsWithSingleLineContinuationsFormatter,
+                                 LinebreakingAttributeFormatter)
 
     def test_line_continuation_formatter_mixed_with_line_breaking_attribute_formatter(self):
         code = dedent("""\
@@ -62,7 +62,8 @@ class CustomCallFormatterMixedWithListOfExpressionsWithSingleLineContinuationsFo
 
 class UnbreakableTupleFormatterTestCase(FormattersTestCase):
 
-    formatters_register = base.formatters.copy().register(UnbreakableTupleFormatter)
+    formatters_register = base.formatters.copy()
+    formatters_register.register(UnbreakableTupleFormatter)
 
     def test_alignment(self):
         code = '(   1,   2,  3)'
@@ -81,7 +82,8 @@ class UnbreakableTupleFormatterTestCase(FormattersTestCase):
 
 class CallFormatterWithLinebreakingFallback(FormattersTestCase):
 
-    formatters_register = base.formatters.copy().register(CallFormatterWithLinebreakingFallback)
+    formatters_register = base.formatters.copy()
+    formatters_register.register(CallFormatterWithLinebreakingFallback)
 
     def test_wrapping(self):
         code = dedent("""\
@@ -137,7 +139,8 @@ class LinebreakingAttributeFormatterTestCase(FormattersTestCase):
     [5.3.4]
     +   call                ::=  primary "(" [argument_list [","]
     """
-    formatters_register = base.formatters.copy().register(LinebreakingAttributeFormatter)
+    formatters_register = base.formatters.copy()
+    formatters_register.register(LinebreakingAttributeFormatter)
 
     def test_identifiers_wrapping(self):
         code = 'fun().identifier1.identifier2'
