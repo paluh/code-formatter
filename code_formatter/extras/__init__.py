@@ -1,3 +1,11 @@
+"""All formatters from this pacakge should be easily mixed whith default ones using this pattern:
+
+    >>> from code_formatter.base import formatters
+    >>> from code_formatter import extras
+    >>> custom_formatters = code_formatter.base.formatters.copy()
+    >>> custom_formatters.register(extras.UnbreakableTupleFormatter,
+                                   extras.ListOfExpressionsWithSingleLineContinuationsFormatter)
+"""
 import ast
 
 from .. import base
@@ -9,24 +17,6 @@ __all__ = ['UnbreakableListOfExpressionFormatter', 'LinebreakingListOfExpression
 
 
 class ListOfExpressionsWithSingleLineContinuationsFormatter(base.ListOfExpressionsFormatter):
-    """To use this formatter you have to configure it in all related
-    formatters (TupleFormatter, CallFormatter, etc.):
-
-        class CustomTupleFormatter(base.TupleFormatter):
-
-            ListOfExpressionsFormatter = ListOfExpressionsWithSingleLineContinuationsFormatter
-
-        custom_formatters = dict(base.formatters, **{ast.Tuple: CustomTupleFormatter})
-
-    There is convention to use `ListOfExpressionsFormatter` attribute in all formatters which
-    use ListOfExpressionsFormatter internally, so whole customization can be done in
-    more automatic manner:
-
-        custom_formatters = dict(base.formatters,
-                                 **{F.ast_type: type(F.__name__, (F,),
-                                                     {'ListOfExpressionsFormatter': ListOfExpressionsWithSingleLineContinuationsFormatter})
-                                    for F in base.formatters.values() if hasattr(F, 'ListOfExpressionsFormatter')})
-    """
 
     multiline_continuation = False
 
@@ -86,9 +76,10 @@ class CallFormatterWithLinebreakingFallback(base.CallFormatter):
 
 
 class LinebreakingAttributeFormatter(base.AttributeFormatter):
-    """This is really expermiental (it requires API requires cleanup and it hacks
-    ast structure in many places) formatter. It handles line breaking on attributes
-    references - for example this piece:
+    """This is really expermiental (as it API requires cleanup and it hacks
+    `ast` structure in many places) formatter.
+       It handles line breaking on attributes references, and alignes indentation to
+     first attribute reference in expression. For example this piece:
 
          instance.method().attribute
 
@@ -97,8 +88,8 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
          (instance.method()
                   .attribute)
 
-    During registration this formatter replaces AttributeFormatter (which is quite obvious) but also
-    CallFormatter and SubscriptionFormatter by derived formatters from current formatters - so simple
+    During registration this formatter replaces `AttributeFormatter` (which is quite obvious) but also
+    `CallFormatter` and `SubscriptionFormatter` by derived formatters from current formatters - so simple
     `formatters.register(LinebreakingAttributeFormatter)` follows below logic:
 
         >>> from ast import Attribute, Call, Subscript
