@@ -50,7 +50,7 @@ Above algorithm generates really compact formatting and is quite easy to follow 
 
 ### Custom formatters
 
-All formatters are kept in dictionary (`ast_type -> Formatter`) and are passed around, so you can replace given formatter quite easily. If you want to change some formatter, then subclass one and override it's `_format_code` method (of course you can completly replace it if it's necessary - just use interface which is defined by `base.AstFormatter`). Lets use some fancy formatter (from `extras`) as an example:
+All formatters are kept in dictionary (`ast_type -> Formatter`) which passed around, so you can replace given formatter quite easily. If you want to change some formatter, then subclass one and override it's `_format_code` method (of course you can completly replace it if it's necessary - just use interface which is defined by `base.AstFormatter`). Lets use some fancy formatter (from `extras`) as an example:
 
     >>> from format_code improt base, format_code
     >>> from code_formatter.extras import UnbreakableTupleFormatter

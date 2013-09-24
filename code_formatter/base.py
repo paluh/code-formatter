@@ -20,11 +20,9 @@ def register(cls):
 
 class CodeFormatter(object):
 
-    # cache max failure width to speedup search
-    _known_max_width_of_failure = None
-
     def __init__(self, formatters_register):
         self.formatters_register = formatters_register
+        # maps formatting context to max failing width
         self._known_max_width_of_failure = {}
 
     def get_formatter_class(self, expr, formatters_register=None):
@@ -514,7 +512,7 @@ class ListOfExpressionsFormatter(CodeFormatter):
     # You can find second version of this class in extras:
     # `code_formatter.extras.ListOfExpressionsWithSingleLineContinuationsFormatter`
     #
-    # * True - try to squash elements and continue line event if subelements
+    # * True - try to squash elements and continue line even if subelements
     #          are formatted in muliple lines already. This is really simple and
     #          greedy and expected behaviour, so it is default. For example:
     #

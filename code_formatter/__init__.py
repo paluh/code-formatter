@@ -9,7 +9,7 @@ __all__ = ['base', 'extras', 'format_code', 'NotEnoughSpace']
 
 
 def _format_code(code, width, formatters_register, force=False):
-    """Returns CodeBlock instance as result"""
+    """Returns CodeBlock instance as a result"""
     tree = ast.parse(code)
     result = []
     for e in tree.body:
