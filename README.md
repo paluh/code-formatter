@@ -54,7 +54,7 @@ All formatters are kept in tiny wrapper around standard python `dict` which is p
 
     >>> from format_code improt base, format_code
     >>> from code_formatter.extras import UnbreakableTupleFormatter
-    >>> my_formatters = base.formatters.register(UnbreakableTupleFormatter)
+    >>> my_formatters = base.formatters.copy().register(UnbreakableTupleFormatter)
     >>> print format_code('[(x,y), (z,v)]',
     ...                   formatters_register=my_formatters, width=1, force=2)
     [(x, y),
