@@ -2,7 +2,7 @@
 
     >>> from code_formatter.base import formatters
     >>> from code_formatter import extras
-    >>> custom_formatters = code_formatter.base.formatters.copy()
+    >>> custom_formatters = formatters.copy()
     >>> custom_formatters.register(extras.UnbreakableTupleFormatter,
                                    extras.ListOfExpressionsWithSingleLineContinuationsFormatter)
 """
