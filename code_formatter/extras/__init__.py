@@ -97,8 +97,9 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
          (instance.method()
                   .attribute)
 
-    If you want to use it you have to replace AttributeFormatter (which is quite obvious) but also
-    CallFormatter and SubscriptionFormatter by derived formatters from your formatters - for example:
+    During registration this formatter replaces AttributeFormatter (which is quite obvious) but also
+    CallFormatter and SubscriptionFormatter by derived formatters from current formatters - so simple
+    `formatters.register(LinebreakingAttributeFormatter)` follows below logic:
 
         >>> from ast import Attribute, Call, Subscript
         >>> from code_formatter import base, format_code
@@ -112,9 +113,6 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
         (instance.identifier
                  .identifier())
 
-    Proposed API can change as it is not really intuitive. It allows mixing
-    multiple custom formatters with this one - for example you can provide custom Call
-    formatter class to `LinebreakingAttributeFormatter.call_formatter_factory`.
     """
     class _IdentifierFormatter(base.CodeFormatter):
 

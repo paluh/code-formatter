@@ -50,12 +50,11 @@ Above algorithm generates really compact formatting and is quite easy to follow 
 
 ### Custom formatters
 
-All formatters are kept in dictionary (`ast_type -> Formatter`) which passed around, so you can replace given formatter quite easily. If you want to change some formatter, then subclass one and override it's `_format_code` method (of course you can completly replace it if it's necessary - just use interface which is defined by `base.AstFormatter`). Lets use some fancy formatter (from `extras`) as an example:
+All formatters are kept in tiny wrapper around standard python `dict` which is passed around. It maps `ast_type` to `Formatter` and introduces trivial protocol of registration operations, so you can replace given formatter quite easily. If you want to change some formatter, then subclass one and override it's `_format_code` method (of course you can completly replace it if it's necessary - just use interface which is defined by `base.AstFormatter`). Lets use some fancy formatter (from `extras`) as an example:
 
     >>> from format_code improt base, format_code
     >>> from code_formatter.extras import UnbreakableTupleFormatter
-    >>> my_formatters = dict(base.formatters,
-    ...                      **{UnbreakableTupleFormatter.ast_type: UnbreakableTupleFormatter})
+    >>> my_formatters = base.formatters.register(UnbreakableTupleFormatter)
     >>> print format_code('[(x,y), (z,v)]',
     ...                   formatters_register=my_formatters, width=1, force=2)
     [(x, y),
