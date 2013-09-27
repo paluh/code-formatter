@@ -50,7 +50,7 @@ Above algorithm generates really compact formatting and is quite easy to follow 
 
 ### Custom formatters
 
-### `extras` package
+#### `extras` package
 
 All formatters are kept is small subclass standard python `dict` which is passed around. It maps `ast_type` to `Formatter` and introduces trivial protocol of registration operations, so you can replace given formatter quite easily. Lets use some ready formatters from `extras` package:
 
@@ -87,15 +87,12 @@ Or even more interesting one:
 
 
 
-### Own formatters
+#### Own formatters
 
 If you want to change some formatter, then have to subclass one and override it's `_format_code` method. Of course you can completly replace it if it's necessary - just use interface which is defined by `base.AstFormatter`.
 
     TODO: example
 
-
-## Extra formatters
-By default this package provides basic formatters (`code_formatter.base`) which I'm trying to keep as simple/straightforward as possible. I'm also want to provide one and exactly one formatter for givent `ast` node type. All additional formatters (usually more funny :-P) goes into `code_formatter.extras` package, so don't hesitate and check them.
 
 # Hacking
 
@@ -106,6 +103,8 @@ By default this package provides basic formatters (`code_formatter.base`) which 
 * Add K&R formatters set.
 
 * Add `FormattersRegister` sum operation (`default_formatters` + `fallback_formatters`). Indroduce `FormattersRegister` subclass which can be a result of summing to formatters sets.
+
+* Add full, step by step example to "Customizing formatters -> Own formatters" section
 
 ## Contributing
 
