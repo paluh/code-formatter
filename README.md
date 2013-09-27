@@ -99,6 +99,14 @@ By default this package provides basic formatters (`code_formatter.base`) which 
 
 # Hacking
 
+## TODO (in order)
+
+* Change `Formatter.format_code` API from `format_code(width, contiuation, suffix=None)` to `format_code(width, continuation=False, prefix_width=0, suffix_width=0)`.
+
+* Add K&R formatters set.
+
+* Add `FormattersRegister` sum operation (`default_formatters` + `fallback_formatters`). Indroduce `FormattersRegister` subclass which can be a result of summing to formatters sets.
+
 ## Contributing
 
 I'm TDD fanatic so if you are going to provide some custom formatters please provide appropriate tests for them.
