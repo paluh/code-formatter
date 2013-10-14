@@ -1352,6 +1352,41 @@ class FunctionDefinitionTestCase(BaseFormattersTestCase):
                 pass""")
         self.assertFormats(code, expected)
 
+    def test_decorator_simple_alignment(self):
+        code = dedent("""\
+            @ decorator
+            def fun(*args):
+                pass""")
+        expected = dedent("""\
+            @decorator
+            def fun(*args):
+                pass""")
+        self.assertFormats(code, expected)
+
+    def test_decorator_call_alignment(self):
+        code = dedent("""\
+            @ decorator(   x  ,    y)
+            def fun(*args):
+                pass""")
+        expected = dedent("""\
+            @decorator(x, y)
+            def fun(*args):
+                pass""")
+        self.assertFormats(code, expected)
+
+    def test_multiple_decorators_alignement(self):
+        code = dedent("""\
+            @ decorator1
+            @ decorator2(   x  ,    y)
+            def fun(*args):
+                pass""")
+        expected = dedent("""\
+            @decorator1
+            @decorator2(x, y)
+            def fun(*args):
+                pass""")
+        self.assertFormats(code, expected)
+
 
 class ClassDefinitionTestCase(BaseFormattersTestCase):
     """
@@ -1371,6 +1406,41 @@ class ClassDefinitionTestCase(BaseFormattersTestCase):
                     '        Base3,\n'
                     '        Base4):\n'
                     '    pass')
+        self.assertFormats(code, expected)
+
+    def test_decorator_simple_alignment(self):
+        code = dedent("""\
+            @ decorator
+            class A:
+                pass""")
+        expected = dedent("""\
+            @decorator
+            class A:
+                pass""")
+        self.assertFormats(code, expected)
+
+    def test_decorator_call_alignment(self):
+        code = dedent("""\
+            @ decorator(   x  ,    y)
+            class A:
+                pass""")
+        expected = dedent("""\
+            @decorator(x, y)
+            class A:
+                pass""")
+        self.assertFormats(code, expected)
+
+    def test_multiple_decorators_alignement(self):
+        code = dedent("""\
+            @ decorator1
+            @ decorator2(   x  ,    y)
+            class A:
+                pass""")
+        expected = dedent("""\
+            @decorator1
+            @decorator2(x, y)
+            class A:
+                pass""")
         self.assertFormats(code, expected)
 
 

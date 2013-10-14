@@ -1674,18 +1674,37 @@ class IfFormatter(StatementFormatter):
         return block
 
 
+class DecoratedDefinitionMixin(StatementFormatter):
+
+    def __init__(self, *args, **kwargs):
+        super(DecoratedDefinitionMixin, self).__init__(*args, **kwargs)
+        self._decorators_formatters = [self.get_formatter(d) for d in self.expr.decorator_list]
+
+    def _format_decorators(self, width, continuation):
+        block = CodeBlock()
+        for decorator_formatter in self._decorators_formatters:
+            block.merge(decorator_formatter.format_code(width-1, continuation), separator='@')
+            block.append_lines(CodeLine())
+        return block
+
+
 @register
-class FunctionDefinitionFormatter(StatementFormatter):
+class FunctionDefinitionFormatter(DecoratedDefinitionMixin, StatementFormatter):
 
     ast_type = ast.FunctionDef
 
+    def __init__(self, *args, **kwargs):
+        super(FunctionDefinitionFormatter, self).__init__(*args, **kwargs)
+        self._parameter_list_formatter = self.get_formatter(self.expr.args)
+        self._subexpressions_formatters = [self.get_formatter(s) for s in self.expr.body]
+
+
     def _format_code(self, width, continuation, suffix):
-        block = CodeBlock.from_tokens('def', ' ', self.expr.name, '(')
-        parameter_list_formatter = self.get_formatter(self.expr.args)
-        block.merge(parameter_list_formatter.format_code(width-block.width))
+        block = self._format_decorators(width, continuation)
+        block.append_tokens('def', ' ', self.expr.name, '(')
+        block.merge(self._parameter_list_formatter.format_code(width-block.last_line.width))
         block.append_tokens('):')
-        for subexpression in self.expr.body:
-            subexpression_formatter = self.get_formatter(subexpression)
+        for subexpression_formatter in self._subexpressions_formatters:
             block.extend(subexpression_formatter.format_code(width - len(CodeLine.INDENT)),
                          CodeLine.INDENT)
         if block.width > width:
@@ -1694,13 +1713,14 @@ class FunctionDefinitionFormatter(StatementFormatter):
 
 
 @register
-class ClassDefinitionFormater(StatementFormatter):
+class ClassDefinitionFormater(DecoratedDefinitionMixin, StatementFormatter):
 
     ast_type = ast.ClassDef
     ListOfExpressionsFormatter = ListOfExpressionsFormatter
 
     def _format_code(self, width, continuation, suffix):
-        block = CodeBlock.from_tokens('class', ' ', self.expr.name)
+        block = self._format_decorators(width, continuation)
+        block.append_tokens('class', ' ', self.expr.name)
         if self.expr.bases:
             block.append_tokens('(')
             bases_formatter = self.ListOfExpressionsFormatter.from_expressions(self.expr.bases, self)

@@ -80,7 +80,7 @@ class CodeBlock(object):
             self.lines.append(line)
 
     def append_tokens(self, *tokens):
-        if self.last_line:
+        if self.last_line is not None:
             self.last_line.extend(tokens)
         else:
             self.append_lines(CodeLine(list(tokens)))
