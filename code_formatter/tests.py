@@ -537,7 +537,7 @@ class CallsTestCase(BaseFormattersTestCase):
 class PowerOperatorTestCase(BaseFormattersTestCase):
     """
     [5.4]
-    -   power ::=  primary ["**" u_expr]
+    +   power ::=  primary ["**" u_expr]
     """
     def test_alignemnt(self):
         code = 'x   **    z'
