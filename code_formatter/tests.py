@@ -534,10 +534,21 @@ class CallsTestCase(BaseFormattersTestCase):
         self.assertFormats(code, code)
 
 
+class PowerOperatorTestCase(BaseFormattersTestCase):
+    """
+    [5.4]
+    -   power ::=  primary ["**" u_expr]
+    """
+    def test_alignemnt(self):
+        code = 'x   **    z'
+        expected = 'x ** z'
+        self.assertFormats(code, expected)
+
+
 class UnaryArithmeticAndBitwiseOperatationsTestCase(BaseFormattersTestCase):
     """
     [5.5]
-    -   u_expr ::=  power | "-" u_expr | "+" u_expr | "~" u_expr
+    +   u_expr ::=  power | "-" u_expr | "+" u_expr | "~" u_expr
     """
     def test_alignemnt(self):
         for operator in ['-', '+', '~']:
