@@ -131,7 +131,10 @@ class OperatorFormatter(AtomFormatter):
 
 ast_operator2priority = {}
 
-for priority, ast_type, operator in [(10, ast.Pow, '**'),
+for priority, ast_type, operator in [(11, ast.Pow, '**'),
+                                     (10, ast.UAdd, '+'),
+                                     (10, ast.Invert, '~'),
+                                     (10, ast.USub, '-'),
                                      (9, ast.Mult, '*'),
                                      (9, ast.FloorDiv, '//'),
                                      (9, ast.Div, '/'),

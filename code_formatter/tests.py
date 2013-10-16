@@ -534,6 +534,18 @@ class CallsTestCase(BaseFormattersTestCase):
         self.assertFormats(code, code)
 
 
+class UnaryArithmeticAndBitwiseOperatationsTestCase(BaseFormattersTestCase):
+    """
+    [5.5]
+    -   u_expr ::=  power | "-" u_expr | "+" u_expr | "~" u_expr
+    """
+    def test_alignemnt(self):
+        for operator in ['-', '+', '~']:
+            code = '%s     x' % operator
+            expected = '%sx' % operator
+            self.assertFormats(code, expected)
+
+
 class BinaryArithmeticOperationsTestCase(BaseFormattersTestCase):
     """
     [5.6]
@@ -1290,11 +1302,11 @@ class TheWithStatementTestCase(BaseFormattersTestCase):
 class FunctionDefinitionTestCase(BaseFormattersTestCase):
     """
     [7.6]
-    -   decorated      ::=  decorators (classdef | funcdef)
-    -   decorators     ::=  decorator+
-    -   decorator      ::=  "@" dotted_name ["(" [argument_list [","]] ")"] NEWLINE
+    +   decorated      ::=  decorators (classdef | funcdef)
+    +   decorators     ::=  decorator+
+    +   decorator      ::=  "@" dotted_name ["(" [argument_list [","]] ")"] NEWLINE
     +   funcdef        ::=  "def" funcname "(" [parameter_list] ")" ":" suite
-    -   dotted_name    ::=  identifier ("." identifier)*
+    +   dotted_name    ::=  identifier ("." identifier)*
     +   parameter_list ::=  (defparameter ",")*
                             (  "*" identifier ["," "**" identifier]
                             | "**" identifier
@@ -1370,6 +1382,17 @@ class FunctionDefinitionTestCase(BaseFormattersTestCase):
                 pass""")
         expected = dedent("""\
             @decorator(x, y)
+            def fun(*args):
+                pass""")
+        self.assertFormats(code, expected)
+
+    def test_decorator_with_attr_refs_alignment(self):
+        code = dedent("""\
+            @instance.method( x, y)
+            def fun(*args):
+                pass""")
+        expected = dedent("""\
+            @instance.method(x, y)
             def fun(*args):
                 pass""")
         self.assertFormats(code, expected)
