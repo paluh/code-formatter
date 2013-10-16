@@ -213,3 +213,11 @@ class LinebreakingAttributeFormatterTestCase(FormattersTestCase):
             (identifier1[lower1:upper1:step1].identifier2[lower2:upper2:step2]
                                              .identifier3[lower3:])""")
         self.assertFormats(code, expected)
+
+    def test_attr_ref_value_wrapping_when_required(self):
+        code = '[1,2,3].__len__()'
+        expected = dedent("""\
+            [1,
+             2,
+             3].__len__()""")
+        self.assertFormats(code, expected)

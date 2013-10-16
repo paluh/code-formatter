@@ -204,30 +204,36 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
     def _format_code(self, width, continuation, suffix):
         def _format(continuation, prefix=None):
             block = CodeBlock.from_tokens(prefix) if prefix else CodeBlock()
-            block.merge(self.value_formatter.format_code(width - block.width))
-            separator = CodeBlock.from_tokens('.')
-            attr_ref_indent = block.width
-            block.merge(separator.copy())
-            block.merge(self._attrs_formatters[0]
-                            .format_code(width - block.width, False,
-                                         suffix=(suffix if len(self._attrs_formatters) == 1
-                                                        else None)))
-            for attr_formatter in self._attrs_formatters[1:]:
-                s = suffix if self._attrs_formatters[-1] == attr_formatter else None
+            for i in range(0, width - block.width + 1):
+                block.merge(self.value_formatter.format_code(width - block.width - i))
+                separator = CodeBlock.from_tokens('.')
+                attr_ref_indent = block.width
+                block.merge(separator.copy())
                 try:
-                    attr_block = attr_formatter.format_code(width - block.last_line.width -
-                                                            separator.width,
-                                                            False, suffix=s)
+                    block.merge(self._attrs_formatters[0]
+                                    .format_code(width - block.width, False,
+                                                 suffix=(suffix if len(self._attrs_formatters) == 1
+                                                                else None)))
+                    for attr_formatter in self._attrs_formatters[1:]:
+                        s = suffix if self._attrs_formatters[-1] == attr_formatter else None
+                        try:
+                            attr_block = attr_formatter.format_code(width - block.last_line.width -
+                                                                    separator.width,
+                                                                    False, suffix=s)
 
+                        except NotEnoughSpace:
+                            if not continuation:
+                                raise
+                            block.extend(separator, indent=attr_ref_indent)
+                            block.merge(attr_formatter.format_code(width - attr_ref_indent, continuation, suffix=s))
+                        else:
+                            block.merge(separator)
+                            block.merge(attr_block)
                 except NotEnoughSpace:
-                    if not continuation:
-                        raise
-                    block.extend(separator, indent=attr_ref_indent)
-                    block.merge(attr_formatter.format_code(width - attr_ref_indent, continuation, suffix=s))
-                else:
-                    block.merge(separator)
-                    block.merge(attr_block)
-            return block
+                    block = CodeBlock.from_tokens(prefix) if prefix else CodeBlock()
+                    continue
+
+                return block
         try:
             return _format(continuation)
         except NotEnoughSpace:
