@@ -94,7 +94,7 @@ My preffered combination of formatters is:
     >>> formatters.register_formatter(code_formatter.extras.ListOfExpressionsWithSingleLineContinuationsFormatter)
     >>> formatters.register_formatter(code_formatter.extras.UnbreakableTupleFormatter)
 
-It is worth to point out that above example ordered of formatters registrations is important. `ListOfExpressionsWithSingleLineContinuationsFormatter` replaces configuration of `ListOfExpressionFormatter` in all other formatters from `FormattersRegister` instance, so if we want to use `UnbreakableTupleFormatter` (which uses custom `ListOfExpressionFormatter`) we have to register it at the end.
+It is worth to point out that in above example ordering of registrations is important. `ListOfExpressionsWithSingleLineContinuationsFormatter` replaces configuration of `ListOfExpressionFormatter` in all other formatters from `FormattersRegister` instance, so if we want to use `UnbreakableTupleFormatter` (which uses custom `ListOfExpressionFormatter`) we have to register it at the end.
 
 
 #### Own formatters
