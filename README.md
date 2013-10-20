@@ -116,6 +116,11 @@ If you want to change some formatter, then have to subclass one and override it'
 
 * Add full, step by step example to "Customizing formatters -> Own formatters" section
 
+* Add online (maybe in browser: repl.it or skuplpt) demo
+
+* Consider making classes from `code_formatter.code` (`CodeBlock`, `CodeLine`, etc.) immutable
+
+
 ## Contributing
 
 I'm TDD fanatic so if you are going to provide some custom formatters please provide appropriate tests for them.
