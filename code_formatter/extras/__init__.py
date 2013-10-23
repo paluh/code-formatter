@@ -105,6 +105,7 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
                  .identifier())
 
     """
+
     class _IdentifierFormatter(base.CodeFormatter):
 
         def __init__(self, identifier, formatters_register, parent):
@@ -211,7 +212,7 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
                 block.merge(separator.copy())
                 try:
                     block.merge(self._attrs_formatters[0]
-                                    .format_code(width - block.width, False,
+                                    .format_code(width - block.last_line.width, False,
                                                  suffix=(suffix if len(self._attrs_formatters) == 1
                                                                 else None)))
                     for attr_formatter in self._attrs_formatters[1:]:

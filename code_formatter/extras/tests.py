@@ -52,7 +52,8 @@ class CustomCallFormatterMixedWithListOfExpressionsWithSingleLineContinuationsFo
                              key4=v4))""")
         self.assertFormats(code, expected)
 
-    def test(self):
+    def test_wrapping_of_simple_function_call(self):
+        # REGRESSION
         code = dedent("""\
                 r.m(_register=register,
                     parent=parent,
@@ -200,6 +201,17 @@ class LinebreakingAttributeFormatterTestCase(FormattersTestCase):
         code = 'instance.method1().method2()'
         self.assertFormats(code, code)
 
+    def test_correct_width_is_used_when_wrapping_subexpressions(self):
+        code = dedent("""\
+            super(Collector.BroadcasterInfo,
+                  cls).__new__(cls,
+                               source=cls.source,
+                               **kwargs)""")
+        expected = dedent("""\
+            super(Collector.BroadcasterInfo,
+                  cls).__new__(cls, source=cls.source, **kwargs)""")
+        self.assertFormats(code, expected)
+
     def test_subscription_wrapping(self):
         code = 'identifier1[value1].identifier2[value2].identifier3[value3]'
         expected = dedent("""\
@@ -217,7 +229,25 @@ class LinebreakingAttributeFormatterTestCase(FormattersTestCase):
     def test_attr_ref_value_wrapping_when_required(self):
         code = '[1,2,3].__len__()'
         expected = dedent("""\
-            [1,
-             2,
+            [1, 2,
              3].__len__()""")
         self.assertFormats(code, expected)
+
+
+class FuzzyTestCase(FormattersTestCase):
+
+    def test_nested_function_call_wrapping(self):
+        # REGRESSION
+        formatters_register = base.formatters.copy()
+        formatters_register.register(LinebreakingAttributeFormatter)
+        formatters_register.register_formatter(ListOfExpressionsWithSingleLineContinuationsFormatter)
+        formatters_register.register_formatter(UnbreakableTupleFormatter)
+
+        code = "db_session.add(Recipient(ip=ip, country_code=country_code, region_code=region_code, city=city))"
+        expected = dedent("""\
+            db_session.add(Recipient(ip=ip,
+                                     country_code=country_code,
+                                     region_code=region_code,
+                                     city=city))""")
+        self.assertFormats(code, expected, width=20, force=True,
+                           formatters_register=formatters_register)
