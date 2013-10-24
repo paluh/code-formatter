@@ -208,17 +208,16 @@ class BinaryOperationFormatter(OperationFormatter):
     def are_parentheses_required(self):
         # FIXME: check against parent.expr and
         #        handle parent.expr access in some sane way in Formatter API...
-        if isinstance(self.parent.expr, ast.Attribute):
+        if isinstance(self.parent, AttributeFormatter):
             return True
         if self.parent is None or not isinstance(self.parent,
                                                  OperationFormatter):
             return False
-        _get_op = lambda expr: expr.ops[0] if isinstance(expr, ast.Compare) else expr.op
-        parent_operator = _get_op(self.parent.expr)
-        operator = _get_op(self.expr)
+        _get_op = lambda f: f.expr.ops[0] if isinstance(f, CompareFormatter) else f.expr.op
+        parent_operator = _get_op(self.parent)
+        operator = _get_op(self)
         return (self.parent.priority >= self.priority and
-                type(operator) is not type(parent_operator) or
-                isinstance(self.parent, AttributeFormatter))
+                type(operator) is not type(parent_operator))
 
 
 @register

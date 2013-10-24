@@ -233,6 +233,10 @@ class LinebreakingAttributeFormatterTestCase(FormattersTestCase):
              3].__len__()""")
         self.assertFormats(code, expected)
 
+    def test_formatting_preserves_parentheses_of_not_wrapped_subexpression(self):
+        code = '(x or y).get()'
+        self.assertFormats(code, code)
+
 
 class FuzzyTestCase(FormattersTestCase):
 

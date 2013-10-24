@@ -292,11 +292,15 @@ class AttributeRefTestCase(BaseFormattersTestCase):
         self.assertEqual(format_code('instance.attribute   =  x'),
                          'instance.attribute = x')
 
-    def test_attribute_formatting_preserves_parentheses_of_subexpression(self):
+    def test_attribute_formatting_preserves_parentheses_of_wrapped_subexpression(self):
         # REGRESSION
         code = dedent("""\
             x.timegm((f(x=0) -
                       v).m(x=y))""")
+        self.assertFormats(code, code)
+
+    def test_attribute_formatting_preserves_parentheses_of_not_wrapped_subexpression(self):
+        code = '(x or y).get()'
         self.assertFormats(code, code)
 
 
