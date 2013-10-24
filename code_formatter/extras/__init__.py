@@ -105,6 +105,10 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
                  .identifier())
 
     """
+    class AttrsRefsListFormatter(base.ListOfExpressionsFormatter):
+
+        separator = '.'
+
 
     class _IdentifierFormatter(base.CodeFormatter):
 

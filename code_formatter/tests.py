@@ -718,6 +718,10 @@ class ComparisonsTestCase(BaseFormattersTestCase):
         code = dedent("parent is None")
         self.assertFormats(code, code, width=6, force=True)
 
+    def test_mixed_operations_formatting(self):
+        code = "'test.stream' in ((status[self.station_id].status[wvh_id].get('status') or {}).get('live') or {})"
+        self.assertFormats(code, code, force=True)
+
 
 class BooleanOperationsTestCase(BaseFormattersTestCase):
     """
