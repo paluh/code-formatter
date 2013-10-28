@@ -1361,15 +1361,25 @@ class AssertStatementFormatter(StatementFormatter):
     ast_type = ast.Assert
 
     def _format_code(self, width, continuation, suffix):
-        block = CodeBlock.from_tokens('assert', ' ')
         test_formatter = self.get_formatter(self.expr.test)
         if self.expr.msg:
-            separator = CodeBlock.from_tokens(', ')
-            block.merge(test_formatter.format_code(width - block.width - separator.width))
-            block.merge(separator)
-            msg_formatter = self.get_formatter(self.expr.msg)
-            block.merge(msg_formatter.format_code(width - block.width, continuation, suffix=suffix))
+            for i in range(width+1):
+                block = CodeBlock.from_tokens('assert', ' ')
+                block.merge(test_formatter.format_code(width - block.width - i))
+                separator = CodeBlock.from_tokens(', ')
+                msg_formatter = self.get_formatter(self.expr.msg)
+                try:
+                    block.merge(separator)
+                    block.merge(msg_formatter.format_code(width -
+                                                          block.last_line.width,
+                                                          continuation,
+                                                          suffix=suffix))
+                except NotEnoughSpace:
+                    continue
+                else:
+                    break
         else:
+            block = CodeBlock.from_tokens('assert', ' ')
             block.merge(test_formatter.format_code(width -
                                                    block.width, suffix=suffix))
         return block

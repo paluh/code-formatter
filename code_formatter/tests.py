@@ -1064,6 +1064,17 @@ class AssertTestCase(BaseFormattersTestCase):
         self.assertFormats(code, expected)
 
 
+    def test_complex_condition_wrapping(self):
+        code = dedent("""\
+            assert isinstance(variable, int) and variable > 0, \
+                   'Positive integer value expected'""")
+        expected = dedent("""\
+            assert (isinstance(variable, int) and
+                    variable > 0), ('Positive integer '
+                                    'value expected')""")
+        self.assertFormats(code, expected)
+
+
 class SimpleStatementsTestCase(BaseFormattersTestCase):
     """
     [6.4, 6.5, 6.7, 6.8, 6.9, 6.10, 6.11, 6.13]
