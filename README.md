@@ -1,14 +1,9 @@
 Python AST/code formatter [![Build Status](https://travis-ci.org/paluh/code-formatter.png?branch=master)](https://travis-ci.org/paluh/code-formatter) [![Coverage Status](https://coveralls.io/repos/paluh/code-formatter/badge.png?branch=master)](https://coveralls.io/r/paluh/code-formatter?branch=master)
 ==========================
 
-Currently I'm only experimenting with this code/idea and using it as a base for my Vim plugin. Be prepared for API changes. If you want something really stable check: codegen, PythonTidy or autopep8.
+# Notes
 
-I'm trying to cover Python 2.7 at first, but some language constructs are still missing. If you want to check what has been already implemented I'm documenting each test with section number from "The Python Language Reference" (version 2.7): http://docs.python.org/2/reference/index.html.
-
-
-# Puprose
-
-This project contains basic code formatter which operates on Python AST tree (for more info check `ast` package). It can be used as AST pretty printer or simple code formatter, __but__ you have to know that there are serious limitations of this approach and it shouldn't be considered as fully "automatic" tool for project code validation/correction:
+This project contains basic and advanced code formatters which operates on Python AST tree (for more info check `ast` package). It can be used as AST pretty printer or code formatter, __but__ you have to know that there are serious limitations of this approach and it shouldn't be considered as fully "automatic" tool for project code validation/correction:
 
 * it can be used only for complete and correct Python statements
 
@@ -16,7 +11,7 @@ This project contains basic code formatter which operates on Python AST tree (fo
 
 * as far as I know AST can be generated only for "current" version of Python (for example if you are running Python 3.3 you can't process/format statements from Python 2.7 which contains incompatible constructs)
 
-* it can be quite inefficient for long chunks of code as it really tries to find appropriate formatting for every statement
+* it is currently only tested against Python 2.7
 
 One of main principles of this project is to make this library easily extensible (everybody should be able to customize single formatter), so if you see any obstacles in current design just fill an github issue.
 
