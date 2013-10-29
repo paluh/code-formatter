@@ -5,7 +5,7 @@ except ImportError:
 
 
 CLASSIFIERS = [
-    'Development Status :: 3 - Pre-Alpha',
+    'Development Status :: 4 - Beta',
     'Environment :: Console',
     'Intended Audience :: Developers',
     'License :: OSI Approved :: BSD License',
@@ -28,5 +28,5 @@ setup(
     scripts=[],
     test_suite='code_formatter.tests.test_suite',
     zip_safe=False,
-    version = '2013.9.1',
+    version = '0.1.0c1',
 )
