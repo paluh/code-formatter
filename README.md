@@ -1,8 +1,6 @@
 Python AST/code formatter [![Build Status](https://travis-ci.org/paluh/code-formatter.png?branch=master)](https://travis-ci.org/paluh/code-formatter) [![Coverage Status](https://coveralls.io/repos/paluh/code-formatter/badge.png?branch=master)](https://coveralls.io/r/paluh/code-formatter?branch=master)
 ==========================
 
-# Notes
-
 This project contains basic and advanced code formatters which operates on Python AST tree (for more info check `ast` package). It can be used as AST pretty printer or code formatter, __but__ you have to know that there are serious limitations of this approach and it shouldn't be considered as fully "automatic" tool for project code validation/correction:
 
 * it can be used only for complete and correct Python statements
