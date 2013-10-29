@@ -4,6 +4,8 @@ except ImportError:
     from distutils.core import setup
 
 
+from code_formatter import __version__
+
 CLASSIFIERS = [
     'Development Status :: 4 - Beta',
     'Environment :: Console',
@@ -28,5 +30,5 @@ setup(
     scripts=[],
     test_suite='code_formatter.tests.test_suite',
     zip_safe=False,
-    version = '0.1.0c1',
+    version = __version__,
 )
