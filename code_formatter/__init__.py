@@ -3,7 +3,7 @@ from . import extras
 from . import utils
 from .exceptions import NotEnoughSpace
 
-__version__ = '0.1.0c1'
+__version__ = '0.1.0c2'
 
 __all__ = ['base', 'extras', 'format_code', 'NotEnoughSpace']
 

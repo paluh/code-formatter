@@ -243,11 +243,37 @@ class FuzzyTestCase(FormattersTestCase):
     def test_nested_function_call_wrapping(self):
         # REGRESSION
         formatters_register = base.formatters.copy()
-        formatters_register.register(LinebreakingAttributeFormatter)
-        formatters_register.register_formatter(ListOfExpressionsWithSingleLineContinuationsFormatter)
-        formatters_register.register_formatter(UnbreakableTupleFormatter)
+        for Formatter in [LinebreakingAttributeFormatter,
+                          ListOfExpressionsWithSingleLineContinuationsFormatter,
+                          UnbreakableTupleFormatter]:
+            formatters_register.register_formatter(Formatter)
 
-        code = "db_session.add(Recipient(ip=ip, country_code=country_code, region_code=region_code, city=city))"
+        code = dedent("""\
+            db_session.add(Recipient(ip=ip, country_code=country_code,
+                                     region_code=region_code, city=city))""")
+        expected = dedent("""\
+            db_session.add(Recipient(ip=ip,
+                                     country_code=country_code,
+                                     region_code=region_code,
+                                     city=city))""")
+        self.assertFormats(code, expected, width=20, force=True,
+                           formatters_register=formatters_register)
+
+
+    def test_argument_wrapping_in_complex_function_definition_statement(self):
+        # FIXME: No line breaking at width = 80??
+        #    def test_string_field_processing(self, Form=containers.Dict.of(scalars.String
+        #                                                                          .named('test-argument'))):
+        # REGRESSION
+        formatters_register = base.formatters.copy()
+        for Formatter in [LinebreakingAttributeFormatter,
+                          ListOfExpressionsWithSingleLineContinuationsFormatter,
+                          UnbreakableTupleFormatter]:
+            formatters_register.register_formatter(Formatter)
+
+        code = dedent("""\
+            db_session.add(Recipient(ip=ip, country_code=country_code,
+                                     region_code=region_code, city=city))""")
         expected = dedent("""\
             db_session.add(Recipient(ip=ip,
                                      country_code=country_code,
