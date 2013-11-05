@@ -1207,7 +1207,7 @@ class TupleFormatter(ExpressionFormatter):
             return block
 
         if (isinstance(self.parent.expr, (ast.Tuple, ast.Call, ast.List,
-                                          ast.BinOp, ast.ListComp,
+                                          ast.BinOp, ast.ListComp, ast.FunctionDef,
                                           ast.GeneratorExp)) or
             len(self.expr.elts) < 2):
             block.append_tokens('(')
