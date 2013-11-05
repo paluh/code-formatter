@@ -1208,7 +1208,7 @@ class TupleFormatter(ExpressionFormatter):
 
         if (isinstance(self.parent.expr, (ast.Tuple, ast.Call, ast.List,
                                           ast.BinOp, ast.ListComp, ast.FunctionDef,
-                                          ast.GeneratorExp)) or
+                                          ast.Dict, ast.GeneratorExp)) or
             len(self.expr.elts) < 2):
             block.append_tokens('(')
             suffix = _get_closing_suffix(suffix)

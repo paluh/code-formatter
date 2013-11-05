@@ -897,6 +897,16 @@ class ExpressionListTestCase(BaseFormattersTestCase):
              var4)""")
         self.assertFormats(code, code)
 
+    def test_tuple_parentheses_are_preserved_in_function_definition(self):
+        code = dedent("""\
+            def func((x, y)):
+                pass""")
+        self.assertFormats(code, code)
+
+    def test_tuple_parentheses_are_preserved_in_dictionary(self):
+        code = "{Number: ('darker', 'red')}"
+        self.assertFormats(code, code)
+
 
 class OperatorPrecedenceTestCase(BaseFormattersTestCase):
     """
@@ -1361,12 +1371,6 @@ class FunctionDefinitionTestCase(BaseFormattersTestCase):
                     '        z):\n'
                     '    pass')
         self.assertFormats(code, expected)
-
-    def test_tuple_parentheses_are_preserved(self):
-        code = dedent("""\
-            def func((x, y)):
-                pass""")
-        self.assertFormats(code, code)
 
     def test_identifiers_parameter_list_wrapping_with_multiple_params_per_line(self):
         code = ('def fun(x,y,z,u,v,w,t):\n'
