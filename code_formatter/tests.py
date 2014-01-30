@@ -1363,6 +1363,13 @@ class FunctionDefinitionTestCase(BaseFormattersTestCase):
                     '    pass')
         self.assertEqual(format_code(code), expected)
 
+    def test_kwargs_identifier_alignment(self):
+        code = ('def fun( **  kwargs ):\n'
+                '    pass')
+        expected = ('def fun(**kwargs):\n'
+                    '    pass')
+        self.assertEqual(format_code(code), expected)
+
     def test_identifiers_parameter_list_wrapping(self):
         code = ('def fun(x,y,z):\n'
                 '    pass')

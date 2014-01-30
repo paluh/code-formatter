@@ -1238,10 +1238,10 @@ class ParameterListFormatter(AstFormatter):
     ast_type = ast.arguments
     ListOfExpressionsFormatter = ListOfExpressionsFormatter
 
-    class KwargFormatter(CodeFormatter):
+    class DefaultsFormatter(CodeFormatter):
 
         def __init__(self, parameter, expression, parent, formatters_register):
-            super(ParameterListFormatter.KwargFormatter, self).__init__(formatters_register)
+            super(ParameterListFormatter.DefaultsFormatter, self).__init__(formatters_register)
             self.parameter = parameter
             self.expression = expression
             self.parent = parent
@@ -1257,6 +1257,18 @@ class ParameterListFormatter(AstFormatter):
                 raise NotEnoughSpace()
             return block
 
+    class KwargFormatter(CodeFormatter):
+
+        def __init__(self, kwarg, parent, formatters_register):
+            super(ParameterListFormatter.KwargFormatter, self).__init__(formatters_register)
+            self.kwarg = kwarg
+            self.parent = parent
+
+        def _format_code(self, width, continuation, suffix):
+            block = CodeBlock.from_tokens('**%s' % self.kwarg)
+            if block.width > width:
+                raise NotEnoughSpace()
+            return block
 
     class VarargFormatter(CodeFormatter):
 
@@ -1281,13 +1293,17 @@ class ParameterListFormatter(AstFormatter):
             parameters_formatters.append(ParameterListFormatter.VarargFormatter(self.expr.vararg,
                                                                                 self,
                                                                                 self.formatters_register))
-        parameters_formatters += [ParameterListFormatter.KwargFormatter(arg, default,
-                                                                        self,
-                                                                        self.formatters_register)
+        parameters_formatters += [ParameterListFormatter.DefaultsFormatter(arg, default,
+                                                                           self,
+                                                                           self.formatters_register)
                                   for (arg, default)
                                   in zip(self.expr.args[len(self.expr.args) -
                                                         len(self.expr.defaults):],
                                          self.expr.defaults)]
+        if self.expr.kwarg:
+            parameters_formatters.append(ParameterListFormatter.KwargFormatter(self.expr.kwarg,
+                                                                               self,
+                                                                               self.formatters_register))
         self._paramters_formatter = self.ListOfExpressionsFormatter(parameters_formatters,
                                                                     self.formatters_register)
 
