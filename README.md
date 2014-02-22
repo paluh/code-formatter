@@ -45,7 +45,7 @@ Above algorithm generates really compact formatting and is quite easy to follow 
 
 #### `extras` package
 
-All formatters are kept is small subclass standard python `dict` which is passed around. It maps `ast_type` to `Formatter` and introduces trivial protocol of registration operations, so you can replace given formatter quite easily. Lets use some ready formatters from `extras` package:
+All formatters are kept is a small subclass of standard python `dict` which is passed around. It maps `ast_type` to `Formatter` and introduces trivial protocol of registration operations, so you can replace given formatter quite easily. Lets use some ready formatters from `extras` package:
 
 
     >>> from code_formatter improt base, format_code
@@ -92,7 +92,7 @@ It is worth to point out that in above example ordering of registrations is impo
 
 #### Own formatters
 
-If you want to change some formatter, then have to subclass one and override it's `_format_code` method. Of course you can completly replace it if it's necessary - just use interface which is defined by `base.AstFormatter`.
+If you want to change some formatter, then you have to subclass one and override it's `_format_code` method. Of course you can completly replace it if it's necessary - just use interface which is defined by `base.AstFormatter`.
 
     TODO: example
 
