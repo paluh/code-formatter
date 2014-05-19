@@ -45,7 +45,7 @@ Above algorithm generates really compact formatting and is quite easy to follow 
 
 #### `extras` package
 
-All formatters are kept is a small subclass of standard python `dict` which is passed around. It maps `ast_type` to `Formatter` and introduces trivial protocol of registration operations, so you can replace given formatter quite easily. Lets use some ready formatters from `extras` package:
+All formatters are kept in a small subclass of standard python `dict` which is passed around. It maps `ast_type` to `Formatter` and introduces trivial protocol of registration operations, so you can replace given formatter quite easily. Lets use some ready formatters from `extras` package:
 
 
     >>> from code_formatter improt base, format_code
