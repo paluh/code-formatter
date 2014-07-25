@@ -281,3 +281,15 @@ class FuzzyTestCase(FormattersTestCase):
                                      city=city))""")
         self.assertFormats(code, expected, width=20, force=True,
                            formatters_register=formatters_register)
+
+
+# vim config fo unbreakable formatting generates this shit:
+#for k, v in [('Cache-Control', 'no-cache, no-store, must-revalidate'),
+#             ('Access-'
+#                                                    'Control-'
+#                                                    'Allow-'
+#                                                    'Origin', '*'),
+#             ('Pragma', 'no-cache'), ('Expires', 0)]:
+#    if k not in response_headers:
+#        headers.append(
+#
