@@ -537,6 +537,16 @@ class CallsTestCase(BaseFormattersTestCase):
                    x=2))""")
         self.assertFormats(code, code)
 
+    def test_force_wrapping_params_of_function_with_long_name(self):
+        code = dedent("""\
+            def xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx(self, process_start, process_stop, get_running_processes):
+                pass""")
+        expected = dedent("""\
+            def xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx(self, process_start,
+                                                      process_stop,
+                                                      get_running_processes):
+                pass""")
+        self.assertFormats(code, expected, width=30, force=True)
 
 class PowerOperatorTestCase(BaseFormattersTestCase):
     """

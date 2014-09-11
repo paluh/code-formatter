@@ -1308,7 +1308,7 @@ class ParameterListFormatter(AstFormatter):
                                                                     self.formatters_register)
 
     def _format_code(self, width, continuation, suffix):
-        return self._paramters_formatter.format_code(width)
+        return self._paramters_formatter.format_code(width, continuation, suffix)
 
 
 @register
@@ -1733,12 +1733,12 @@ class FunctionDefinitionFormatter(DecoratedDefinitionMixin, StatementFormatter):
         self._parameter_list_formatter = self.get_formatter(self.expr.args)
         self._subexpressions_formatters = [self.get_formatter(s) for s in self.expr.body]
 
-
     def _format_code(self, width, continuation, suffix):
         block = self._format_decorators(width, continuation)
         block.append_tokens('def', ' ', self.expr.name, '(')
-        block.merge(self._parameter_list_formatter.format_code(width-block.last_line.width))
-        block.append_tokens('):')
+        block.merge(self._parameter_list_formatter
+                        .format_code(width - block.last_line.width,
+                                     continuation=True, suffix=CodeBlock.from_tokens('):')))
         for subexpression_formatter in self._subexpressions_formatters:
             block.extend(subexpression_formatter.format_code(width - len(CodeLine.INDENT)),
                          CodeLine.INDENT)
