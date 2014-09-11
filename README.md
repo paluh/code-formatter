@@ -37,7 +37,7 @@ Default formatters (`code_formatter.base`) follow simple logic:
 
 * use as much space as possible - try to find formatting with maximal width, which is lower or equal to given value
 
-* if you use `force` parameter in `format_code` helper it uses above strategy, but in case of failure (desired width is to small for given statement) it tries to find smallest possible width which allows formatting
+* if you use `force` parameter in `format_code` helper it uses above strategy, but in case of failure (desired width is too small for given statement) it tries to find smallest possible width which allows formatting
 
 Above algorithm generates really compact formatting and is quite easy to follow and test. And what is really important, it is quite simple and we all know that "simple is better than complex"... so I've decided to use it as a base. But as "readability counts" there is a lot of space for possible customization of formatting strategy. I've created `extras` package for such extentions (contributions welcome).
 
