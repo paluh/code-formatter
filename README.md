@@ -48,7 +48,7 @@ Above algorithm generates really compact formatting and is quite easy to follow 
 All formatters are kept in a small subclass of standard python `dict` which is passed around. It maps `ast_type` to `Formatter` and introduces trivial protocol of registration operations, so you can replace given formatter quite easily. Lets use some ready formatters from `extras` package:
 
 
-    >>> from code_formatter improt base, format_code
+    >>> from code_formatter import base, format_code
     >>> from code_formatter.extras import UnbreakableTupleFormatter
     >>> my_formatters = base.formatters.copy().register(UnbreakableTupleFormatter)
     >>> print format_code('[(x,y), (z,v)]',
