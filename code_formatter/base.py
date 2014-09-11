@@ -1266,6 +1266,7 @@ class ParameterListFormatter(AstFormatter):
 
         def _format_code(self, width, continuation, suffix):
             block = CodeBlock.from_tokens('**%s' % self.kwarg)
+            block.merge(suffix)
             if block.width > width:
                 raise NotEnoughSpace()
             return block
@@ -1279,6 +1280,7 @@ class ParameterListFormatter(AstFormatter):
 
         def _format_code(self, width, continuation, suffix):
             block = CodeBlock.from_tokens('*%s' % self.vararg)
+            block.merge(suffix)
             if block.width > width:
                 raise NotEnoughSpace()
             return block
