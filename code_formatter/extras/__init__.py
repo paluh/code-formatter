@@ -129,7 +129,7 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
     def call_formatter_factory(cls, CallFormatter):
         class RedirectingCallFormatter(CallFormatter):
             def __new__(cls, expr, formatters_register, parent=None, func_formatter=None):
-                # if func_formatter is not provided check wether we are not part of method call
+                # if func_formatter is not provided check whether we are not part of method call
                 if func_formatter is None and isinstance(expr.func, ast.Attribute):
                     return LinebreakingAttributeFormatter(expr, formatters_register, parent)
                 return super(RedirectingCallFormatter, cls).__new__(cls, expr=expr,
@@ -170,10 +170,10 @@ class LinebreakingAttributeFormatter(base.AttributeFormatter):
         self._attrs_formatters = []
         expr = self.expr
         while (isinstance(expr, ast.Attribute) or
-               isinstance(expr, ast.Call) and isinstance(expr.func,
-                                                         ast.Attribute) or
-               isinstance(expr, ast.Subscript) and isinstance(expr.value,
-                                                              ast.Attribute)):
+               isinstance(expr, ast.Call) and
+               isinstance(expr.func, ast.Attribute) or
+               isinstance(expr, ast.Subscript) and
+               isinstance(expr.value, ast.Attribute)):
             if isinstance(expr, ast.Attribute):
                 self._attrs_formatters.insert(0,
                                               LinebreakingAttributeFormatter._IdentifierFormatter(expr.attr,

@@ -240,6 +240,11 @@ class LinebreakingAttributeFormatterTestCase(FormattersTestCase):
 
 class FuzzyTestCase(FormattersTestCase):
 
+    def assertFormats(self, code, expected, formatters_register, *args, **kwargs):
+        super(FuzzyTestCase, self).assertFormats(code, expected,
+                                                 formatters_register,
+                                                 *args, **kwargs)
+
     def test_nested_function_call_wrapping(self):
         # REGRESSION
         formatters_register = base.formatters.copy()
@@ -258,7 +263,6 @@ class FuzzyTestCase(FormattersTestCase):
                                      city=city))""")
         self.assertFormats(code, expected, width=20, force=True,
                            formatters_register=formatters_register)
-
 
     def test_argument_wrapping_in_complex_function_definition_statement(self):
         # FIXME: No line breaking at width = 80??
@@ -281,15 +285,3 @@ class FuzzyTestCase(FormattersTestCase):
                                      city=city))""")
         self.assertFormats(code, expected, width=20, force=True,
                            formatters_register=formatters_register)
-
-
-# vim config fo unbreakable formatting generates this shit:
-#for k, v in [('Cache-Control', 'no-cache, no-store, must-revalidate'),
-#             ('Access-'
-#                                                    'Control-'
-#                                                    'Allow-'
-#                                                    'Origin', '*'),
-#             ('Pragma', 'no-cache'), ('Expires', 0)]:
-#    if k not in response_headers:
-#        headers.append(
-#
